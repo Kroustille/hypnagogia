@@ -4,7 +4,7 @@ baseline_commit: 35880ff
 
 # Story 1.3 : Se déplacer dans l'arène
 
-Status: review
+Status: done
 
 ## Story
 
@@ -59,6 +59,22 @@ afin de sentir un contrôle nerveux.
   - [x] Arène à l'écran, bandes noires, netteté du sprite en mouvement, F2, F5 dans les deux sens, capture d'écran.
 - [x] **T11. Régression** : import et lancement headless sans erreur, recherche des interdits, F3 et F5 de 1.1 et 1.2 toujours conformes.
 - [x] **T12. Reports** : consigner dans `deferred-work.md` ce qui n'a pas pu être vérifié (manette physique, ressenti au stick, voir « Stratégie de test »).
+
+### Review Findings
+
+Revue du 2026-11-20 (Blind Hunter, Edge Case Hunter, Acceptance Auditor). Les 12 critères d'acceptation sont satisfaits (le CA 9 est partiel comme prévu : seule la hitbox du joueur existe). Aucun constat bloquant.
+
+- [x] [Review][Decision] Sémantique de `GameClock` dans `Player` : tranché par Kroustille le 2026-11-20, option 3 (le moteur avance au `delta` réel, seule la vitesse finale est mise à l'échelle). Devient le patch ci-dessous.
+- [x] [Review][Patch] `Player._physics_process` : appeler `_motor.step(wish, delta)` avec le `delta` réel et garder `velocity = motor_velocity * clock_scale`, pour que l'échelle ne s'applique qu'une fois (la rampe n'est plus ralentie à échelle 0,5) et que le moteur reste cohérent avec l'entrée pendant la pause (plus de glissade à la reprise). Mettre à jour le commentaire de `PlayerMotor` (« delta already scaled »), la boucle et la note « Échelle 0 » de la section `Player` de la story [game/player/player.gd:36-43, game/player/player_motor.gd:3-4]
+- [x] [Review][Patch] La `Camera` est déplacée dans `_ready` sans `reset_physics_interpolation()` : avec l'interpolation physique activée, `get_canvas_transform().origin` vaut `(0,0)` puis glisse (`(57,45)` puis `(16,24)` au démarrage ; `(320,180)` sur 2 à 3 frames au retour de F5). Ajouter `_camera.reset_physics_interpolation()` après le placement, ce qui donne `(16,24)` dès la première frame [game/rooms/arena/arena.gd:26]
+- [x] [Review][Patch] `PlayerMotor._safe_time` : en build debug sans débogueur attaché, `assert(false)` interrompt la fonction, qui renvoie `0.0` au lieu de `MIN_RAMP_TIME` ; `_accel_px` ou `_decel_px` devient `inf` et la vitesse devient `NaN` avec `dt = 0`. Calculer la valeur sûre (`maxf(value, MIN_RAMP_TIME)`) avant le `Log.error` et l'`assert`, pour que le repli vaille aussi en debug [game/player/player_motor.gd:34-39]
+- [x] [Review][Patch] `deferred-work.md` : la section « code review of story 1-2 » dit toujours « à reprendre quand l'arène existe (story 1.3) » pour deux reports que 1.3 règle (F5 vide `ActiveScene` : l'arène est recréée ; projectile hors zone : cadre de murs fermé). Marquer ces reports comme résolus par la story 1.3 [_bmad-output/implementation-artifacts/deferred-work.md:12-16]
+- [x] [Review][Defer] Valeurs de réglage non validées : `NaN` dans une durée, `move_speed` ≤ 0 (la vitesse diverge) ou `hitbox_size` ≤ 0 ; la borne `MIN_RAMP_TIME` double l'`@export_range` de `PlayerTuning` [game/player/player_motor.gd:17-22, game/player/player.gd:262-264, game/core/player_tuning.gd:33-39] — deferred, la spec ne validait que les deux durées ; un point de validation unique viendra avec le premier outil d'édition des réglages
+- [x] [Review][Defer] Pas de flèches directionnelles ni de croix directionnelle de manette sur `move_*` [game/project.godot:374-396] — deferred, la spec fixe ZQSD et stick gauche ; la réassignation est la story 1.7
+- [x] [Review][Defer] `CollisionDrawer` ignore sans le dire les formes autres que `RectangleShape2D` et `CircleShape2D`, et les `CollisionShape2D` désactivées [game/debug/collision_drawer.gd:110-125] — deferred, seule la forme du joueur existe ; à traiter avec les `Hurtbox` et `Hitbox` de la story 1.5
+- [x] [Review][Defer] `main.gd` référence `CollisionDrawer` (dossier `debug/`) à la compilation même en release, alors que l'instanciation est gardée par `OS.is_debug_build()` [game/main/main.gd] — deferred, voulu par la spec ; à vérifier à l'export (story 1.8)
+
+Écartés comme bruit (≈ 20) : constantes `LAYER_*` (masques de bits, vérifiés : couche 16, masque 1), `get_global_transform_interpolated()` (n'existe que sur `Node3D`, repli déjà consigné), projectiles non interpolés (déjà consigné pour 144 Hz), `process_callback = 0` de la caméra (justifié au Debug Log), commentaires de `scale_test_pattern` et `bullet_load_test` (la spec interdit d'y toucher), valeurs par défaut de `PlayerTuning` répétées, absence d'`uid` dans les `.tscn` et `.tres`, texture du sprite recalculée par instance, et autres remarques de style sans conséquence.
 
 ## Dev Notes
 
@@ -151,7 +167,7 @@ var velocity: Vector2   # lecture seule pour l'extérieur
 - `wish` : sortie de `Input.get_vector` (longueur ≤ 1).
 - Cible : `wish * max_speed_px`. Taux : `accel_px` si `wish != Vector2.ZERO`, sinon `decel_px`. `velocity = velocity.move_toward(target, rate * dt)`.
 - `max_speed_px = move_speed * Const.TILE_SIZE` ; `accel_px = max_speed_px / acceleration_time` ; `decel_px = max_speed_px / deceleration_time`. Borner les durées par un minimum technique (par exemple 0,001 s, constante du script) pour ne jamais diviser par zéro ; une durée négative ou nulle dans la Resource est une donnée invalide : `Log.error("input", ...)` une fois, valeur sûre. Pas d'`assert` seul (AR28).
-- **Pas de lecture de `GameClock` ici** : `dt` arrive déjà mis à l'échelle.
+- **Pas de lecture de `GameClock` ici** : l'appelant passe le `delta` réel et applique l'échelle à la vitesse renvoyée (revue du 2026-11-20).
 - Conséquences chiffrées à 60 Hz (`Engine.physics_ticks_per_second`, ne pas coder 60) : 96 px/s au maximum ; le pas de 1/60 s atteint la vitesse max en **4 ticks** (3,6 arrondi au tick supérieur) et l'arrêt en **3 ticks** (2,4 arrondi). C'est conforme à 0,06 s et 0,04 s à un tick près ; les vérifications le tolèrent.
 - Un demi-tour passe par `accel_px` (cible opposée) : il dure donc deux fois le temps d'accélération. Valeur de départ, à juger au ressenti.
 
@@ -171,16 +187,16 @@ Nœuds : `Player` → `Sprite` (`Sprite2D`, `%Sprite`) et `Hitbox` (`CollisionSh
 
 ```gdscript
 func _physics_process(delta: float) -> void:
-	var dt: float = delta * GameClock.scale(GameClock.Group.PLAYER)   # une lecture par tick
+	var clock_scale: float = GameClock.scale(GameClock.Group.PLAYER)   # une lecture par tick
 	var wish: Vector2 = Input.get_vector(&"move_left", &"move_right", &"move_up", &"move_down")
-	var motor_velocity: Vector2 = _motor.step(wish, dt)
-	# move_and_slide() integrates with the unscaled physics delta: scaling the velocity is the same as scaling delta.
-	velocity = motor_velocity * GameClock.scale(GameClock.Group.PLAYER)
+	var motor_velocity: Vector2 = _motor.step(wish, delta)   # delta réel (décision de revue du 2026-11-20)
+	# move_and_slide() integrates with the unscaled physics delta: the scale is applied once, on the velocity.
+	velocity = motor_velocity * clock_scale
 	move_and_slide()
 ```
 
   - `velocity` est réécrit à chaque tick à partir du moteur : `move_and_slide()` le modifie en glissant, ne **jamais** le relire comme état du moteur.
-  - Échelle 0 (pause) : `dt = 0`, `velocity = 0`, le joueur ne bouge pas et garde sa vitesse intérieure.
+  - Échelle 0 (pause) : `velocity = 0`, le joueur ne bouge pas. Le moteur, lui, continue d'avancer au `delta` réel vers l'entrée tenue : à la reprise, sa vitesse est déjà cohérente avec l'entrée (pas de glissade). L'échelle ne s'applique qu'une fois, sur la vitesse finale (revue du 2026-11-20).
   - Pas de `Timer`, pas de `Engine.time_scale`, pas de RNG.
   - Aucune lecture d'entrée dans `_process` ni `_input` (CA 5).
 - **Apparition** : le joueur est placé dans la scène de l'arène (voir plus bas). L'interpolation physique est active : après tout placement par code, appeler `reset_physics_interpolation()` **après** avoir fixé `position` (sinon une traînée d'une frame). Placé dans le `.tscn`, il n'y a rien à faire.

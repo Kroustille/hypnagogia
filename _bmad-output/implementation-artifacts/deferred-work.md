@@ -12,8 +12,8 @@
 ## Deferred from: code review of story 1-2 (2026-11-20)
 
 - Traversée de mur si l'échelle de temps d'un groupe dépasse 1 : un seul échantillon de cellule par tick. À traiter (sous-pas ou plafond de pas) à la story 1.4, quand `GameClock` aura une API d'écriture.
-- Projectile qui sort de la zone tuilée (ouverture dans `Walls`) ou qui apparaît dans une cellule solide : il vit jusqu'à la fin de sa durée de vie. Dépend de l'arène réelle (story 1.3) et des motifs ennemis (epic 2).
-- Couches solides libérées ou remplacées pendant la vie du manager (changement de salle), et F5 qui vide tous les enfants d'`ActiveScene` : à reprendre quand l'arène existe (story 1.3).
+- Projectile qui sort de la zone tuilée (ouverture dans `Walls`) ou qui apparaît dans une cellule solide : il vit jusqu'à la fin de sa durée de vie. **Partiellement résolu par la story 1.3** : le cadre de murs de l'arène est fermé, donc aucun projectile ne sort de la zone. Reste le cas d'une apparition dans une cellule solide, à reprendre avec les motifs ennemis (epic 2).
+- Couches solides libérées ou remplacées pendant la vie du manager (changement de salle), et F5 qui vide tous les enfants d'`ActiveScene` : **résolu par la story 1.3** pour F5 (l'arène est recréée à chaque retour, `ActiveScene` garde un seul enfant). Le remplacement des couches solides en cours de vie reste sans objet tant que l'arène ne porte pas de `BulletManager` (story 1.5, epic 4).
 
 ## Deferred from: story 1-3 (2026-11-20)
 
@@ -21,3 +21,10 @@
 - **Ressenti du déplacement et latence : NON ÉVALUÉS** (étapes humaines). Valeurs de départ à juger au jeu : demi-tour = 2× le temps d'accélération (il passe par `accel_px`), `wall_min_slide_angle` laissé au défaut de 15° (aucun accrochage mesuré, voir story 1.3). Latence mesurée : story 1.8.
 - **F2 : le contour suit la position physique, pas la position interpolée.** `get_global_transform_interpolated()` n'existe pas en Godot 4.7.2. Le cadre peut devancer le sprite de moins d'un tick (≈1,6 px à pleine vitesse). Acceptable pour du debug ; à reprendre seulement si cela gêne le réglage des hitbox.
 - **Mire de netteté (`scale_test_pattern`) conservée mais plus instanciée** : à supprimer ou à rebrancher (touche de debug) selon le besoin de la story 1.8.
+
+## Deferred from: code review of story 1-3 (2026-11-20)
+
+- Valeurs de réglage non validées (`NaN` dans une durée, `move_speed` ≤ 0, `hitbox_size` ≤ 0) : un point de validation unique viendra avec le premier outil d'édition des réglages. La spec ne validait que les deux durées de rampe.
+- Pas de flèches directionnelles ni de croix directionnelle de manette sur `move_*` : la réassignation et les alternatives de touches sont la story 1.7.
+- `CollisionDrawer` ignore les formes autres que `RectangleShape2D` et `CircleShape2D`, ainsi que les `CollisionShape2D` désactivées : à traiter avec les `Hurtbox` et `Hitbox` de la story 1.5.
+- `main.gd` référence `CollisionDrawer` (`debug/`) à la compilation même en release (instanciation gardée par `OS.is_debug_build()`) : à vérifier à l'export, story 1.8.
