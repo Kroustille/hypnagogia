@@ -1,6 +1,10 @@
+---
+baseline_commit: b5111df07cd21f1a7930fe3d305a6b522938b398
+---
+
 # Story 1.1 : Lancer le jeu dans une fenêtre nette à toutes les résolutions
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -27,45 +31,45 @@ afin que chaque story suivante parte de fondations conformes à l'architecture.
 
 ## Tâches / sous-tâches
 
-- [ ] **T1. Installer Godot et trancher l'emplacement de l'éditeur** (CA 12)
-  - [ ] Faire valider le choix par Kroustille **avant** d'installer quoi que ce soit (recommandation et constats ci-dessous, section « Environnement de développement »).
-  - [ ] Installer Godot **4.7.2 stable, version standard (sans .NET)** à l'emplacement retenu. Vérifier : `godot --version` commence par `4.7.2.stable`.
-  - [ ] Les modèles d'export ne sont **pas** nécessaires ici (story 1.8).
-- [ ] **T2. Arborescence du dépôt et `.gitignore`** (CA 4)
-  - [ ] Créer `game/`, `art_source/.gitkeep`, `tools/.gitkeep`.
-  - [ ] Ajouter au `.gitignore` racine (sans effacer les lignes existantes `*:Zone.Identifier`) : `game/.godot/` et `builds/`.
-- [ ] **T3. Créer `game/project.godot` et ses réglages** (CA 1, 2, 3)
-  - [ ] Nom `Hypnagogia`, scène principale `res://main/main.tscn`, features `4.7` et `GL Compatibility`.
-  - [ ] Réglages d'affichage, de rendu et de physique (bloc de référence ci-dessous).
-  - [ ] Fenêtre de démarrage en 1280×720 (`window_width_override` / `window_height_override`), pour ne pas ouvrir une fenêtre minuscule en 640×360.
-  - [ ] Nommer les couches de collision 2D (tableau ci-dessous).
-  - [ ] Passer les avertissements de typage en erreur (bloc ci-dessous).
-  - [ ] Ajouter l'action `InputMap` `debug_toggle_perf` sur F3 (touche physique).
-- [ ] **T4. `core/` : `Const` et `Tuning`** (CA 2, 8)
-  - [ ] `game/core/constants.gd` (`class_name Const`) : `TILE_SIZE`, `VIEWPORT`, masques des couches de collision.
-  - [ ] `game/core/tuning.gd` (`class_name Tuning`) : classe statique vide, prête à recevoir les `preload` des `.tres`.
-- [ ] **T5. Autoloads** (CA 5, 6, 7)
-  - [ ] `game/autoloads/log.gd` : API `error/warn/info/debug/trace`, format, filtrage release, TRACE par catégorie.
-  - [ ] `game/autoloads/game_clock.gd` : enum `Group`, `scale()`, `paused`.
-  - [ ] Coquilles : `events.gd`, `settings.gd`, `save_service.gd`, `audio.gd`.
-  - [ ] Déclarer les autoloads dans cet ordre : `Log`, `Events`, `GameClock`, `Settings`, `SaveService`, `Audio`.
-- [ ] **T6. Scène `Main` et mire de netteté** (CA 9, 10)
-  - [ ] `game/main/main.tscn` + `main.gd` : racine `Main` (Node), enfants `ActiveScene` (Node) et `UI` (CanvasLayer).
-  - [ ] En build de debug seulement, `Main` instancie `res://debug/scale_test_pattern.tscn` sous `ActiveScene` (mire provisoire, remplacée par l'arène en story 1.3).
-  - [ ] `Main` journalise la taille de fenêtre et le facteur d'échelle à chaque `size_changed` (jamais par frame).
-- [ ] **T7. Surcouche de performances F3** (CA 11)
-  - [ ] `game/debug/perf_overlay.tscn` + `perf_overlay.gd`, instanciée par `Main` sous `UI` dans **tous** les builds, masquée au démarrage.
-  - [ ] Affiche FPS, 1 % low, et la taille de fenêtre avec le facteur d'échelle (aide à vérifier le CA 9).
-  - [ ] Bascule par l'action `debug_toggle_perf` ; `process_mode = PROCESS_MODE_ALWAYS`.
-- [ ] **T8. Configurer les MCP et consigner le choix** (CA 12)
-  - [ ] `claude mcp add` pour GoPeak et Context7 (commandes ci-dessous).
-  - [ ] Consigner l'emplacement de l'éditeur, le chemin `GODOT_PATH` et les commandes MCP dans `_bmad-output/game-architecture.md`, section « Environnement de développement » : remplacer les mentions « à trancher à l'installation ».
-  - [ ] Prévenir Kroustille qu'il faut relancer la session Claude Code pour charger les MCP. La vérification de leur chargement se fait après relance.
-- [ ] **T9. Vérifications** (tous les CA ; voir « Stratégie de test »)
-  - [ ] Import et analyse en headless sans aucune erreur de script.
-  - [ ] Lancement fenêtré : mire nette, F3, logs dans la console et dans `user://logs/godot.log`.
-  - [ ] Résolutions et bandes noires (CA 9, 10), avec les limites de l'écran disponible consignées.
-  - [ ] Recherche dans le code : aucun `print(` hors de `log.gd`, aucun `Timer`, `create_timer`, `time_scale`, `randf`, `randi`, `randomize`, `shuffle`, `pick_random`.
+- [x] **T1. Installer Godot et trancher l'emplacement de l'éditeur** (CA 12)
+  - [x] Faire valider le choix par Kroustille **avant** d'installer quoi que ce soit (recommandation et constats ci-dessous, section « Environnement de développement »).
+  - [x] Installer Godot **4.7.2 stable, version standard (sans .NET)** à l'emplacement retenu. Vérifier : `godot --version` commence par `4.7.2.stable`.
+  - [x] Les modèles d'export ne sont **pas** nécessaires ici (story 1.8).
+- [x] **T2. Arborescence du dépôt et `.gitignore`** (CA 4)
+  - [x] Créer `game/`, `art_source/.gitkeep`, `tools/.gitkeep`.
+  - [x] Ajouter au `.gitignore` racine (sans effacer les lignes existantes `*:Zone.Identifier`) : `game/.godot/` et `builds/`.
+- [x] **T3. Créer `game/project.godot` et ses réglages** (CA 1, 2, 3)
+  - [x] Nom `Hypnagogia`, scène principale `res://main/main.tscn`, features `4.7` et `GL Compatibility`.
+  - [x] Réglages d'affichage, de rendu et de physique (bloc de référence ci-dessous).
+  - [x] Fenêtre de démarrage en 1280×720 (`window_width_override` / `window_height_override`), pour ne pas ouvrir une fenêtre minuscule en 640×360.
+  - [x] Nommer les couches de collision 2D (tableau ci-dessous).
+  - [x] Passer les avertissements de typage en erreur (bloc ci-dessous).
+  - [x] Ajouter l'action `InputMap` `debug_toggle_perf` sur F3 (touche physique).
+- [x] **T4. `core/` : `Const` et `Tuning`** (CA 2, 8)
+  - [x] `game/core/constants.gd` (`class_name Const`) : `TILE_SIZE`, `VIEWPORT`, masques des couches de collision.
+  - [x] `game/core/tuning.gd` (`class_name Tuning`) : classe statique vide, prête à recevoir les `preload` des `.tres`.
+- [x] **T5. Autoloads** (CA 5, 6, 7)
+  - [x] `game/autoloads/log.gd` : API `error/warn/info/debug/trace`, format, filtrage release, TRACE par catégorie.
+  - [x] `game/autoloads/game_clock.gd` : enum `Group`, `scale()`, `paused`.
+  - [x] Coquilles : `events.gd`, `settings.gd`, `save_service.gd`, `audio.gd`.
+  - [x] Déclarer les autoloads dans cet ordre : `Log`, `Events`, `GameClock`, `Settings`, `SaveService`, `Audio`.
+- [x] **T6. Scène `Main` et mire de netteté** (CA 9, 10)
+  - [x] `game/main/main.tscn` + `main.gd` : racine `Main` (Node), enfants `ActiveScene` (Node) et `UI` (CanvasLayer).
+  - [x] En build de debug seulement, `Main` instancie `res://debug/scale_test_pattern.tscn` sous `ActiveScene` (mire provisoire, remplacée par l'arène en story 1.3).
+  - [x] `Main` journalise la taille de fenêtre et le facteur d'échelle à chaque `size_changed` (jamais par frame).
+- [x] **T7. Surcouche de performances F3** (CA 11)
+  - [x] `game/debug/perf_overlay.tscn` + `perf_overlay.gd`, instanciée par `Main` sous `UI` dans **tous** les builds, masquée au démarrage.
+  - [x] Affiche FPS, 1 % low, et la taille de fenêtre avec le facteur d'échelle (aide à vérifier le CA 9).
+  - [x] Bascule par l'action `debug_toggle_perf` ; `process_mode = PROCESS_MODE_ALWAYS`.
+- [x] **T8. Configurer les MCP et consigner le choix** (CA 12)
+  - [x] `claude mcp add` pour GoPeak et Context7 (commandes ci-dessous).
+  - [x] Consigner l'emplacement de l'éditeur, le chemin `GODOT_PATH` et les commandes MCP dans `_bmad-output/game-architecture.md`, section « Environnement de développement » : remplacer les mentions « à trancher à l'installation ».
+  - [x] Prévenir Kroustille qu'il faut relancer la session Claude Code pour charger les MCP. La vérification de leur chargement se fait après relance.
+- [x] **T9. Vérifications** (tous les CA ; voir « Stratégie de test »)
+  - [x] Import et analyse en headless sans aucune erreur de script.
+  - [x] Lancement fenêtré : mire nette, F3, logs dans la console et dans `user://logs/godot.log`.
+  - [x] Résolutions et bandes noires (CA 9, 10), avec les limites de l'écran disponible consignées.
+  - [x] Recherche dans le code : aucun `print(` hors de `log.gd`, aucun `Timer`, `create_timer`, `time_scale`, `randf`, `randi`, `randomize`, `shuffle`, `pick_random`.
 
 ## Dev Notes
 
@@ -382,10 +386,48 @@ Il n'y a pas de `project-context.md`. Règles tirées de `CLAUDE.md` et de la m�
 
 ### Agent Model Used
 
+claude-sonnet-5-5
+
 ### Debug Log References
+
+- `godot --headless --path game --import`, puis `--quit-after 60` : aucune erreur de script ; ligne `[INFO] [ui] window resized size=64x64 scale=x1`.
+- Réglages effectifs relus par `ProjectSettings.get_setting()` (script jetable, hors dépôt) : viewport 640×360, stretch `viewport`/`keep`/`integer`, HiDPI vrai, `gl_compatibility`, filtre 0 (Nearest), 60 ticks physiques, cinq avertissements `unsafe_*`/`untyped` à 2, couches 1 et 10 nommées. `inferred_declaration` reste à 0.
+- CA 3 : un `var x = 1` temporaire échoue (`Variable "x" has no static type. (Warning treated as error.)`), puis a été retiré.
+- Autoloads : les six sont présents ; `GameClock.scale()` renvoie 1,0 pour chacun des six groupes et 0,0 avec `paused = true`.
+- `Main` instancié en headless : `ActiveScene` contient `ScaleTestPattern` ; la surcouche est masquée au départ, visible après une action `debug_toggle_perf` simulée, et affiche `FPS .. | 1% low .. | WxH xN`.
+- Recherche des interdits : seul `print(line)` de `log.gd` (plus deux commentaires qui citent les API interdites).
+
+### Implementation Plan
+
+Socle posé tel que décrit dans les Dev Notes : `project.godot` écrit à la main (valeurs de référence), `Const` en masques de bits avec une table de noms pour le garde-fou de `Main`, `Log` sur `print()` + journal intégré de Godot, `GameClock` avec dictionnaire typé, quatre autoloads en coquille, `Main` + mire de netteté (debug seulement) + surcouche F3 (tampon circulaire de 1 000 frames, rafraîchie deux fois par seconde).
 
 ### Completion Notes List
 
 - Analyse de contexte terminée : guide d'implémentation complet créé (create-story, 2026-11-20).
+- **Éditeur (CA 12) :** option A validée par Kroustille (Linux via WSLg). Godot 4.7.2 stable (standard) installé dans `~/.local/opt/godot/`, lien `~/.local/bin/godot`, SHA-512 vérifié, `godot --version` = `4.7.2.stable.official.ed1daf0bf`. Choix consigné dans `_bmad-output/game-architecture.md`.
+- Pour la story 1.8 : le filtre d'export devra garder `perf_overlay.*` (F3 existe dans tous les builds) et pourra exclure `debug/scale_test_pattern.*`.
+- Exemption de localisation des textes de la surcouche F3 : notée en commentaire dans `perf_overlay.gd` (question ouverte 1 de la story, à confirmer en revue).
+- **Vérifications fenêtrées (T9), après installation des bibliothèques graphiques par Kroustille :** écran 3840×2160, rendu logiciel Mesa llvmpipe (VSync non supporté, ~270 FPS). Facteur d'échelle et décalage mesurés par `Window.get_screen_transform()` (script jetable hors dépôt) : 1280×720 → ×2 ; 1920×1080 → ×3 ; 2560×1440 → ×4 ; 3840×2160 → ×6 ; plein écran (3840×2160) → ×6 ; 2560×1600 → ×4 avec 80 px de bande en haut et en bas ; 1366×768 → ×2 avec décalage (43, 24), donc bandes noires. Tous les facteurs sont entiers et les décalages sont des entiers (CA 9, 10).
+- F3 en fenêtré : la surcouche s'affiche (`FPS .. | 1% low .. | 1920x1080 x3`) et se masque au second appui. Le FPS vaut 1 pendant la première seconde (compteur du moteur) puis suit la valeur réelle ; le « 1 % low » du début est faussé par les frames de démarrage, qui restent dans le tampon de 1 000 entrées. Le log `[INFO] [ui] window resized ...` apparaît dans la console et dans `user://logs/godot.log` (CA 6).
+- **Netteté de la mire confirmée à l'œil par Kroustille** (grille et damier nets, sans case grise). Le cadre blanc de 1 px, exactement sur le bord, est rogné par le contour de la fenêtre WSLg ; les pixels rendus ont été vérifiés (bords blancs, image 640×360). Les avertissements audio (pas de carte son, `libpulse` absent) sont sans effet pour cette story.
+- **MCP (T8) — écart assumé sur le CA 12 :** le CLI `claude` n'existe pas dans le WSL. Context7 est déclaré dans `.mcp.json` (racine, ignoré par git) et démarre (vérifié par une requête `initialize`). **GoPeak est volontairement reporté (décision de Kroustille)** : `gopeak` 2.3.8 sur npm est déprécié pour une injection de commande (CWE-78) et n'est plus publié sur npm ; les versions corrigées (≥ 2.4.1) sont sur GitHub (`HaD0Yun/Doyunha-Gopeak`). Il pourra être ajouté plus tard à `.mcp.json`. Relancer la session Claude Code pour charger Context7 (non vérifié depuis cette session).
+- Régression finale (2026-11-20) : import et lancement headless sans erreur, autoloads et `GameClock` conformes, `Main` + F3 conformes, aucun appel interdit hors `log.gd`. Pas de framework de test à ce stade (AR26) : les vérifications sont des commandes et des contrôles manuels.
 
 ### File List
+
+- `.gitignore` (modifié : `game/.godot/`, `builds/`, `.mcp.json`)
+- `.mcp.json` (nouveau, ignoré par git : Context7 seulement)
+- `art_source/.gitkeep` (nouveau)
+- `tools/.gitkeep` (nouveau)
+- `game/project.godot` (nouveau)
+- `game/icon.svg` (nouveau, + `.import` généré)
+- `game/core/constants.gd`, `game/core/tuning.gd` (nouveaux, + `.uid`)
+- `game/autoloads/log.gd`, `game_clock.gd`, `events.gd`, `settings.gd`, `save_service.gd`, `audio.gd` (nouveaux, + `.uid`)
+- `game/main/main.gd`, `game/main/main.tscn` (nouveaux, + `.uid`)
+- `game/debug/perf_overlay.gd`, `perf_overlay.tscn`, `scale_test_pattern.gd`, `scale_test_pattern.tscn` (nouveaux, + `.uid`)
+- `_bmad-output/game-architecture.md` (modifié : environnement de développement)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (modifié)
+
+### Change Log
+
+- 2026-11-20 : socle du projet Godot (réglages, `Const`, `Tuning`, autoloads, `Main`, mire, surcouche F3) et choix de l'éditeur consignés. Vérifications fenêtrées faites ; Context7 configuré, GoPeak reporté. Story passée en `review`.

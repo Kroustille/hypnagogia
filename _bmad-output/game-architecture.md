@@ -180,7 +180,7 @@ physics/common/physics_ticks_per_second = 60
 - **GoPeak** (`HaD0Yun/Gopeak-godot-mcp`, MIT) : MCP Godot 4.x lancé avec `npx -y gopeak`. Édition de scènes et de scripts, diagnostics LSP, logs, inspection de l'arbre de scène en direct, captures d'écran, injection d'entrées. Vérifier l'état du dépôt à l'installation.
 - **Context7** (`upstash/context7`) : documentation Godot à jour pour l'IA.
 - Alternative : `Coding-Solo/godot-mcp`, le plus suivi, avec moins d'outils (lancer l'éditeur, exécuter, récupérer la sortie de débogage).
-- **À trancher à l'installation :** où tourne l'éditeur (éditeur Windows sur le dépôt WSL, éditeur Linux via WSLg, ou dépôt déplacé côté Windows). Ce choix fixe le chemin vers l'exécutable Godot dans la configuration du MCP.
+- **Tranché le 2026-11-20 (story 1.1) :** l'éditeur Linux tourne via WSLg (option A), sur le dépôt WSL. Voir « Environnement de développement ».
 
 ## Décisions architecturales
 
@@ -962,7 +962,14 @@ claude mcp add godot -e GODOT_PATH=<chemin vers l'exécutable Godot 4.7.2> -- np
 claude mcp add context7 -- npx -y @upstash/context7-mcp
 ```
 
-`GODOT_PATH` dépend de l'endroit où tourne l'éditeur (éditeur Windows sur le dépôt WSL, éditeur Linux via WSLg, ou dépôt déplacé côté Windows) : à trancher à l'installation.
+**Choix retenu (2026-11-20, story 1.1) : éditeur Linux via WSLg, option A.**
+
+- Binaire : Godot 4.7.2 stable Linux x86_64 (version standard), installé hors du dépôt dans `~/.local/opt/godot/Godot_v4.7.2-stable_linux.x86_64`, avec le lien `~/.local/bin/godot`. Archive vérifiée par SHA-512.
+- `GODOT_PATH` : `/home/kroustille/.local/opt/godot/Godot_v4.7.2-stable_linux.x86_64`.
+- Le CLI `claude` n'existe pas dans le WSL : les MCP sont déclarés dans `.mcp.json` à la racine, **ignoré par git** (config propre à la machine, avec `GODOT_PATH`). Context7 (`@upstash/context7-mcp` 4.7.3) y est déclaré et démarre.
+- **GoPeak : reporté (décision du 2026-11-20), non configuré.** Le paquet npm `gopeak` 2.3.8 est déprécié : injection de commande via les arguments d'outils (CWE-78) dans toutes les versions npm, et GoPeak n'est plus publié sur npm. Les versions corrigées (2.4.1 ou plus) se trouvent dans les releases GitHub de `HaD0Yun/Doyunha-Gopeak`. Mode d'installation à décider avant d'activer ce serveur (entrée `godot` avec `GODOT_PATH`, `command` pointant vers la version installée). Alternative : `Coding-Solo/godot-mcp`. Les plugins éditeur et runtime ne sont pas installés.
+- **À tester hors WSL :** performances et latence (stories 1.2 et 1.8) sur un export Windows natif, car le rendu WSLg passe par Mesa/d3d12 et n'est pas représentatif ; manette (story 1.7) sous Windows, car elle n'est pas transmise à WSL sans `usbipd` ; Retina et macOS (story 1.8) sur un Mac.
+- Dépendances système du binaire Linux sous WSL (Debian 13) : bibliothèques graphiques absentes par défaut (voir les Completion Notes de la story 1.1).
 
 ### Initialisation
 
