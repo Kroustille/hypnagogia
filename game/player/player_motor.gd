@@ -1,7 +1,7 @@
 class_name PlayerMotor
 extends RefCounted
 ## Pure speed logic of the player: no node, no scene, no clock.
-## The caller passes a delta that is already scaled by GameClock.
+## The caller passes the real physics delta and applies the GameClock scale to the returned velocity.
 
 ## Technical floor for the acceleration and deceleration durations: never divide by zero.
 const MIN_RAMP_TIME: float = 0.001
@@ -15,11 +15,14 @@ var _decel_px: float = 0.0
 
 
 func _init(tuning: PlayerTuning) -> void:
-	var acceleration_time: float = _safe_time(tuning.acceleration_time, "acceleration_time")
-	var deceleration_time: float = _safe_time(tuning.deceleration_time, "deceleration_time")
+	# The safe values are stored first: in a debug build the assert below may abort _validate_time().
+	var acceleration_time: float = maxf(tuning.acceleration_time, MIN_RAMP_TIME)
+	var deceleration_time: float = maxf(tuning.deceleration_time, MIN_RAMP_TIME)
 	_max_speed_px = tuning.move_speed * Const.TILE_SIZE
 	_accel_px = _max_speed_px / acceleration_time
 	_decel_px = _max_speed_px / deceleration_time
+	_validate_time(tuning.acceleration_time, "acceleration_time")
+	_validate_time(tuning.deceleration_time, "deceleration_time")
 
 
 ## Advances the velocity by dt seconds toward the wished direction and returns it (px/s).
@@ -31,9 +34,7 @@ func step(wish: Vector2, dt: float) -> Vector2:
 	return velocity
 
 
-func _safe_time(value: float, field: String) -> float:
+func _validate_time(value: float, field: String) -> void:
 	if value < MIN_RAMP_TIME:
 		Log.error("input", "PlayerTuning.%s is %s, using %s" % [field, value, MIN_RAMP_TIME])
 		assert(false, "Invalid PlayerTuning duration")
-		return MIN_RAMP_TIME
-	return value

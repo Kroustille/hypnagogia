@@ -24,6 +24,7 @@ func _ready() -> void:
 
 	# Fixed camera: centered on the room, shifted up by half the HUD band so the band stays free at the top.
 	_camera.position = frame_px / 2.0 - Vector2(0.0, Const.HUD_BAND_HEIGHT / 2.0)
+	_camera.reset_physics_interpolation()
 
 	# Spawn at the center of the playable area. Reset after the placement so interpolation does not trail.
 	_player.position = frame_px / 2.0

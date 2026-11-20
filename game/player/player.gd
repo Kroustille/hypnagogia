@@ -36,8 +36,9 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	var clock_scale: float = GameClock.scale(GameClock.Group.PLAYER)
 	var wish: Vector2 = Input.get_vector(&"move_left", &"move_right", &"move_up", &"move_down")
-	var motor_velocity: Vector2 = _motor.step(wish, delta * clock_scale)
-	# move_and_slide() integrates with the unscaled physics delta: scaling the velocity is the same as scaling delta.
+	# The motor runs on the real delta so the ramps and the paused state stay consistent with the input;
+	# the clock scale is applied once, on the final velocity (move_and_slide() integrates with the unscaled delta).
+	var motor_velocity: Vector2 = _motor.step(wish, delta)
 	# velocity is rewritten every tick from the motor: move_and_slide() alters it when sliding, never read it back.
 	velocity = motor_velocity * clock_scale
 	move_and_slide()
