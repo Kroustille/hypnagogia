@@ -4,7 +4,7 @@ baseline_commit: 9426ef4
 
 # Story 1.2 : Valider 400 projectiles à 60 FPS
 
-Status: review
+Status: done
 
 ## Story
 
@@ -12,7 +12,7 @@ En tant que développeur,
 je veux un `BulletManager` orienté données et une scène de test de charge à 400 projectiles,
 afin de lever le risque n°1 (les performances de Godot) avant de bâtir le combat dessus.
 
-**Exigences couvertes :** AR5, AR6 (camps ennemi et joueur ; hurtbox, graze et meubles hors périmètre, voir ci-dessous), AR31 (points 1 et 3), NFR1
+**Exigences couvertes :** AR5, AR6 (camps ennemi et joueur ; hurtbox, graze et meubles hors périmètre, voir ci-dessous). **NFR1 et AR31 (points 1 et 3) : code prêt, mais NON VÉRIFIÉS** (mesure de 10 minutes et contrôle à 144 Hz reportés par Kroustille, voir `deferred-work.md`).
 
 ## Critères d'acceptation
 
@@ -23,7 +23,7 @@ afin de lever le risque n°1 (les performances de Godot) avant de bâtir le comb
 5. **Étant donné** un pool plein, **quand** un nouveau tir est demandé, **alors** le tir est refusé sans erreur, et le refus est compté dans la surcouche F3, sans log par frame.
 6. **Étant donné** un build de debug, **quand** on appuie sur F5, **alors** une scène de test entretient 400 projectiles ennemis en mouvement, et F3 affiche leur nombre.
 7. **Étant donné** la machine de référence (classe GTX 1060, CPU 4 cœurs, 8 Go), **quand** le test de charge tourne 10 minutes, **alors** le jeu tient 60 FPS soutenus, avec un 1 % low d'au moins 55 FPS.
-8. Le résultat de ce test, avec le moteur de rendu utilisé, est consigné dans la story. En cas d'échec, le repli retenu (boucle en GDExtension ou rendu Forward+) est décidé et consigné **avant** la story suivante.
+8. Le résultat de ce test, avec le moteur de rendu utilisé, est consigné dans la story. En cas d'échec, le repli retenu (boucle en GDExtension ou rendu Forward+) est décidé et consigné **avant** la story suivante. *(Échéance repoussée par décision de Kroustille le 2026-11-20 : mesure à faire avant l'epic 2 et au plus tard avec la story 1.8 ; le risque n°1 reste ouvert d'ici là.)*
 9. **Étant donné** un écran à 144 Hz, **quand** les projectiles se déplacent, **alors** ils ne saccadent pas. Si c'est le cas, le `BulletManager` interpole lui-même leurs positions de rendu entre deux ticks.
 
 ## Tâches / sous-tâches
@@ -46,7 +46,7 @@ afin de lever le risque n°1 (les performances de Godot) avant de bâtir le comb
   - [x] `_process` : écrire les transformations des projectiles actifs, par apparence, et ajuster `visible_instance_count`.
   - [x] Texture provisoire générée en code (disque de 8×8 px) pour la scène de test ; pas de fichier image dans cette story.
 - [x] **T5. Compteurs dans F3** (CA 5, 6)
-  - [x] `PerfOverlay` : seconde ligne `Bullets <actifs> | refused <refus>`, calculée à chaque rafraîchissement (2 Hz) en sommant les nœuds du groupe `Const.GROUP_BULLET_MANAGERS`. Aucune dépendance de `debug/` vers `combat/`.
+  - [x] `PerfOverlay` : seconde ligne `Bullets <actifs> | refused <refus>`, calculée à chaque rafraîchissement (2 Hz) en sommant les nœuds du groupe `Const.GROUP_BULLET_MANAGERS`. Le cast `as BulletManager` dans `debug/` est accepté : la règle d'architecture interdit que du code dépende de `debug/`, pas l'inverse.
   - [x] Agrandir le `Label` (`offset_bottom`) pour deux lignes ; le contour de la story 1.1 reste.
 - [x] **T6. Scène de test de charge et touche F5** (CA 6)
   - [x] `game/debug/bullet_load_test.tscn` + `bullet_load_test.gd` (voir « Scène de test »).
@@ -56,13 +56,29 @@ afin de lever le risque n°1 (les performances de Godot) avant de bâtir le comb
 - [x] **T8. Vérifications fenêtrées sous WSLg** (CA 2, 6)
   - [x] F5 affiche 400 projectiles qui bougent et se renouvellent ; F3 affiche `Bullets ~400`.
   - [x] Consigner le FPS et le coût CPU de la simulation (rendu logiciel Mesa llvmpipe : indicatif seulement, pas la machine de référence).
-- [x] **T9. Mesure sur la machine de référence, 10 minutes** (CA 7, 8) — **REPORTÉE, NON MESURÉE** (décision de Kroustille, 2026-11-20) : voir `deferred-work.md`
-  - [x] Voir « Mesure sur la machine de référence ». Consigner dans les Completion Notes : machine, moteur de rendu (Compatibility), FPS moyen, 1 % low, durée. *(reporté)*
-  - [x] En cas d'échec : décider et consigner le repli (GDExtension ou Forward+) avant la story 1.3. *(reporté)*
-- [x] **T10. Fluidité à 144 Hz** (CA 9) — **REPORTÉE, NON VÉRIFIÉE** (décision de Kroustille, 2026-11-20) : voir `deferred-work.md`
-  - [x] Observer sur un écran 144 Hz. Si les projectiles saccadent, ajouter l'interpolation des positions de rendu entre deux ticks dans `BulletManager`. *(reporté)*
-  - [x] Si aucun écran 144 Hz n'est disponible : consigner « non vérifié » et le reporter à la story 1.8 (`deferred-work.md`). *(reporté)*
+- [ ] **T9. Mesure sur la machine de référence, 10 minutes** (CA 7, 8) — **REPORTÉE, NON MESURÉE** (décision de Kroustille, 2026-11-20) : voir `deferred-work.md`
+  - [ ] Voir « Mesure sur la machine de référence ». Consigner dans les Completion Notes : machine, moteur de rendu (Compatibility), FPS moyen, 1 % low, durée. *(reporté)*
+  - [ ] En cas d'échec : décider et consigner le repli (GDExtension ou Forward+) avant la story 1.3. *(reporté)*
+- [ ] **T10. Fluidité à 144 Hz** (CA 9) — **REPORTÉE, NON VÉRIFIÉE** (décision de Kroustille, 2026-11-20) : voir `deferred-work.md`
+  - [ ] Observer sur un écran 144 Hz. Si les projectiles saccadent, ajouter l'interpolation des positions de rendu entre deux ticks dans `BulletManager`. *(reporté)*
+  - [ ] Si aucun écran 144 Hz n'est disponible : consigner « non vérifié » et le reporter à la story 1.8 (`deferred-work.md`). *(reporté)*
 - [x] **T11. Régression** : import et lancement headless sans erreur, recherche des interdits (voir « Stratégie de test »), mire de netteté et F3 de la story 1.1 toujours conformes.
+
+### Review Findings
+
+Revue de code du 2026-11-20 (Blind Hunter, Edge Case Hunter, Acceptance Auditor). Aucune décision à prendre.
+
+- [x] [Review][Patch] `fire()` ne valide les paramètres que par `assert` (absent en release) : refuser avec `Log.error` et `return false` un `speed` ≤ 0 ou qui franchit une tuile par tick (traversée de mur), un `lifetime` ≤ 0 ou NaN, un `radius` < 0, une direction nulle, NaN ou non normalisée [game/combat/bullets/bullet_manager.gd:92-105]
+- [x] [Review][Patch] `fire()` avant `_ready()` compte à tort un refus et `add_appearance()` accepte une texture nulle ou plus de 256 apparences (`_appearances` est un `PackedByteArray`) : garder ces cas, `Log.error` et valeur sûre [game/combat/bullets/bullet_manager.gd:74-95]
+- [x] [Review][Patch] `_ready()` : `assert` que `capacity` > 0, que chaque couche a un `tile_set` et que sa taille de tuile vaut `Const.TILE_SIZE` (sans `tile_set`, `local_to_map` renvoie toujours la cellule 0,0) [game/combat/bullets/bullet_manager.gd:53-57]
+- [x] [Review][Patch] `_free()` sans garde contre la double libération : `assert` que le bit actif est posé avant de libérer [game/combat/bullets/bullet_manager.gd:152]
+- [x] [Review][Patch] `Main` : `_load_test_active` est inversé même si le chargement de la scène échoue, et l'ancienne scène reste dans l'arbre (donc dans le groupe des managers) jusqu'à la fin de la frame : n'inverser le drapeau qu'après un chargement réussi, et retirer l'ancienne scène de l'arbre avant `queue_free()` [game/main/main.gd:45-58]
+- [x] [Review][Patch] Aligner le texte de la story sur la réalité : T9 et T10 ne doivent pas être cochées « faites » (décochées, marquées reportées) ; l'en-tête « Exigences couvertes » ne doit pas annoncer NFR1 et AR31 comme couverts ; l'échéance du CA 8 est repoussée par décision de Kroustille ; T5 et « Frontières » autorisent le cast `as BulletManager` dans la surcouche F3 [_bmad-output/implementation-artifacts/1-2-valider-400-projectiles-a-60-fps.md]
+- [x] [Review][Defer] Traversée de mur si l'échelle de temps d'un groupe dépasse 1 (un seul échantillon de cellule par tick) [game/combat/bullets/bullet_manager.gd:115-124] — deferred, `GameClock` n'a pas encore d'API d'écriture : traiter (sous-pas ou plafond) à la story 1.4
+- [x] [Review][Defer] Projectile qui sort de la zone tuilée (ouverture dans `Walls`) ou apparaît dans une cellule solide : vit jusqu'à la fin de sa durée de vie [game/combat/bullets/bullet_manager.gd:115-124] — deferred, dépend de l'arène réelle (story 1.3) et des motifs ennemis (epic 2)
+- [x] [Review][Defer] Couches solides libérées ou remplacées pendant la vie du manager (changement de salle), et F5 qui vide tous les enfants d'`ActiveScene` une fois l'arène en place [game/combat/bullets/bullet_manager.gd:139, game/main/main.gd:51] — deferred, à traiter avec l'arène (story 1.3)
+
+Écartés comme bruit (14) : `_high_water` jamais abaissé (512 emplacements), `FLAG_COUNTED` et `_radii` « inutiles » (prévus par la story), ordre `process_physics_priority` du test, émetteurs et murs de test en pixels, absence d'assertions automatiques dans le test de charge (mesure humaine reportée), `setup()` stocke le tableau par référence, `_process` sans interpolation (CA 9 reporté), `capacity` ou `camp` modifiés après `_ready`, F5 aussi raccourci de l'éditeur, nombre magique `offset_bottom`, filtre de texture (le défaut du projet est `Nearest`), rotation et échelle des quads fixes, `GOLDEN_ANGLE` tronqué, textures de test recréées à chaque F5.
 
 ## Dev Notes
 
@@ -202,7 +218,7 @@ func _physics_process(delta: float) -> void:
 - **Code, commentaires, logs et noms de fichiers en anglais.**
 - **Création** : tout projectile passe par `BulletManager.fire(params, origin, direction)`, jamais d'instanciation de scène. Les pools ne concernent que les projectiles et les effets d'impact.
 - **Injection** : `setup()` est appelée **avant** `add_child()` ; les dépendances internes à une scène passent par `@export` ou `%NomUnique`.
-- **Frontières** : `combat/` ne dépend que de `core/` et des autoloads. Rien ne dépend de `debug/` sauf `Main`. La surcouche F3 (dans `debug/`) lit les managers par le **groupe de nœuds**, pas par un chemin ni par un import de `combat/`.
+- **Frontières** : `combat/` ne dépend que de `core/` et des autoloads. Rien ne dépend de `debug/` sauf `Main`. La surcouche F3 (dans `debug/`) trouve les managers par le **groupe de nœuds** (pas par un chemin de nœud) et les caste en `BulletManager`.
 - **Erreurs** (AR28) : `assert` + `Log.error` pour un invariant violé (projectile sans paramètres, direction non normalisée) ; un pool plein n'est **pas** une erreur.
 - **Temps** (AR13) : `delta * GameClock.scale(group)`. Pas de `Timer`.
 - **Pas de chemins `/root/...`, pas de `get_parent().get_parent()`.**
@@ -316,6 +332,7 @@ claude-sonnet-5-5
 - **Reste à faire, étapes humaines :**
   - **T9** (CA 7 et 8) : 10 minutes sur la machine de référence (classe GTX 1060). Le rendu WSLg ne la représente pas. Résultat et moteur de rendu à consigner ici ; en cas d'échec, décider du repli (GDExtension ou Forward+) avant la story 1.3.
   - **T10** (CA 9) : fluidité à 144 Hz. Aucune interpolation n'est codée : à ajouter seulement si ça saccade.
+- **Revue de code (2026-11-20) : 6 correctifs appliqués.** `fire()` valide désormais les paramètres même en release (vitesse, durée de vie, rayon, direction, appel avant `_ready`) et refuse avec `Log.error` ; `add_appearance()` refuse une texture nulle ou plus de 256 apparences ; `_ready()` vérifie la capacité et le `TileSet` des couches ; `_free()` garde contre la double libération ; la bascule F5 ne change d'état qu'après un chargement réussi et retire l'ancienne scène de l'arbre ; texte de la story aligné. Contrôles relancés : 12 contrôles du pool PASS, 12 cas de tirs invalides refusés, F5/F3 à `Bullets 400 | refused 0`, ~67 µs par tick de simulation.
 - **T9 et T10 reportées (décision de Kroustille, 2026-11-20) :** la mesure de 10 minutes sur machine de référence et le contrôle à 144 Hz ne seront pas faits maintenant. **Les CA 7, 8 et 9 ne sont donc PAS vérifiés.** Le risque n°1 (NFR1) reste ouvert : seules des mesures indicatives existent (~68 µs de simulation par tick pour 400 projectiles, ~267 FPS sous llvmpipe). À faire avant de s'appuyer sur le combat (au plus tard avec l'export de la story 1.8) ; en cas d'échec, décider du repli (GDExtension ou Forward+).
 
 ### File List
@@ -331,4 +348,5 @@ claude-sonnet-5-5
 
 ### Change Log
 
+- 2026-11-20 : revue de code, 6 correctifs appliqués (validation des tirs en release, gardes, bascule F5) ; statut `done`, CA 7 à 9 reportés.
 - 2026-11-20 : `BulletManager` orienté données, scène de test de charge (F5) et compteurs dans F3. T9 (mesure sur machine de référence) et T10 (144 Hz) reportées, voir `deferred-work.md`. Statut `review`.
