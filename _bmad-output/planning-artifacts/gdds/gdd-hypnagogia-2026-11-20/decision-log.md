@@ -130,3 +130,9 @@ Trois revues en parallèle : rapprochement avec le brief (10 constats), rapproch
 - **Polish** : aucun standard de document configuré (`doc_standards` vide). Le style a été harmonisé pendant les corrections (lexique, vocabulaire, termes vagues chiffrés).
 - **Narration** : le guide roguelike ne porte pas de drapeau narratif, mais le pilier 4 et le mystère rendent `gds-create-narrative` utile avant le jalon C. Il est proposé au designer.
 - **Statut : final.** Fichiers : `gdd.md`, `epics.md`, `decision-log.md`.
+
+## 2026-11-20 — Plateformes et résolutions (retour de l'architecture)
+
+- **macOS remplace Linux** comme plateforme souhaitée, Windows reste prioritaire. Décidé pendant le workflow d'architecture.
+- **Résolutions de 720p à 4K** : rendu interne 640×360 inchangé, facteur d'échelle entier (×2, ×3, ×4, ×6), bandes noires hors 16:9, HiDPI pris en charge.
+- Section modifiée : Spécifications techniques › Plateforme.

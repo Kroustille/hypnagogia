@@ -551,9 +551,9 @@ Pixel art, avec une palette par phase du sommeil.
 
 ### Plateforme
 
-- PC uniquement (Windows en priorité, Linux souhaité), sous Godot.
+- PC uniquement (Windows en priorité, macOS souhaité), sous Godot.
 - Clavier-souris et manette (disposition Xbox), avec bascule automatique selon le dernier périphérique utilisé.
-- Fenêtré ou plein écran. Rendu interne 640×360, mis à l'échelle par un facteur entier (1080p ×3, 1440p ×4).
+- Fenêtré ou plein écran, de 1280×720 à 3840×2160. Rendu interne 640×360, mis à l'échelle par un facteur entier : 720p ×2, 1080p ×3, 1440p ×4, 4K ×6. Les écrans qui ne sont pas en 16:9 (16:10 des Mac, ultrawide) ou dont la définition n'est pas un multiple exact affichent des bandes noires. Écrans HiDPI (Retina) pris en charge.
 
 ### Assets
 
