@@ -8,6 +8,9 @@ extends Node2D
 
 enum Camp { ENEMY, PLAYER }
 
+## Appearance indices are stored in a PackedByteArray.
+const MAX_APPEARANCES: int = 256
+
 const FLAG_ACTIVE: int = 1
 ## Reserved for the graze and perfect dash rules of epic 2 (pattern P2).
 const FLAG_COUNTED: int = 2
@@ -45,9 +48,16 @@ func setup(solid_layers: Array[TileMapLayer]) -> void:
 
 
 func _ready() -> void:
+	assert(capacity > 0, "BulletManager capacity must be positive")
+	capacity = maxi(capacity, 1)
 	assert(position == Vector2.ZERO, "BulletManager must sit at the scene origin")
 	for layer: TileMapLayer in _solid_layers:
 		assert(layer.position == Vector2.ZERO, "Solid layers must share the BulletManager origin")
+		assert(layer.tile_set != null, "Solid layers need a TileSet (local_to_map is wrong without one)")
+		assert(
+			layer.tile_set.tile_size == Vector2i(Const.TILE_SIZE, Const.TILE_SIZE),
+			"Solid layer tile size must equal Const.TILE_SIZE"
+		)
 	_clock_group = (
 		GameClock.Group.ENEMY_BULLETS if camp == Camp.ENEMY else GameClock.Group.PLAYER_BULLETS
 	)
@@ -66,6 +76,10 @@ func _ready() -> void:
 
 ## Registers a look (one MultiMeshInstance2D) and returns its index for BulletParams.appearance.
 func add_appearance(texture: Texture2D) -> int:
+	if texture == null or _multimeshes.size() >= MAX_APPEARANCES:
+		Log.error("combat", "add_appearance() needs a texture and at most %d appearances" % MAX_APPEARANCES)
+		assert(false, "Invalid appearance")
+		return -1
 	var quad: QuadMesh = QuadMesh.new()
 	quad.size = texture.get_size()
 	var multimesh: MultiMesh = MultiMesh.new()
@@ -85,16 +99,12 @@ func add_appearance(texture: Texture2D) -> int:
 ## Fires one bullet. origin is in this node's local space, direction must be normalized.
 ## Returns false, without error or log, when the pool is full (the refusal is counted).
 func fire(params: BulletParams, origin: Vector2, direction: Vector2) -> bool:
-	if params == null or params.appearance < 0 or params.appearance >= _multimeshes.size():
-		Log.error("combat", "fire() called without valid params or appearance")
-		assert(false, "Invalid BulletParams")
+	if not _is_shot_valid(params, direction):
 		return false
-	assert(is_equal_approx(direction.length_squared(), 1.0), "Bullet direction must be normalized")
 	if _free_top == 0:
 		refused_count += 1
 		return false
 	var speed: float = params.speed * Const.TILE_SIZE
-	assert(speed / Engine.physics_ticks_per_second < Const.TILE_SIZE, "Bullet fast enough to cross a tile in one tick")
 	_free_top -= 1
 	var i: int = _free_slots[_free_top]
 	_positions[i] = origin
@@ -106,6 +116,31 @@ func fire(params: BulletParams, origin: Vector2, direction: Vector2) -> bool:
 	_high_water = maxi(_high_water, i + 1)
 	active_count += 1
 	return true
+
+
+## Invariants of a shot. Checked in release too (AR28): a bad shot is refused and logged, never fired.
+## The speed limit keeps a bullet from crossing a whole tile in one tick: walls are tested at one point per tick.
+func _is_shot_valid(params: BulletParams, direction: Vector2) -> bool:
+	var problem: String = ""
+	if not is_node_ready():
+		problem = "BulletManager is not in the tree yet"
+	elif params == null:
+		problem = "no BulletParams"
+	elif params.appearance < 0 or params.appearance >= _multimeshes.size():
+		problem = "unknown appearance %d" % params.appearance
+	elif not (params.speed > 0.0) or params.speed * Const.TILE_SIZE / Engine.physics_ticks_per_second >= Const.TILE_SIZE:
+		problem = "speed %s tiles/s is not in (0, one tile per tick)" % params.speed
+	elif not is_finite(params.lifetime) or params.lifetime <= 0.0:
+		problem = "lifetime %s must be finite and positive" % params.lifetime
+	elif not (params.radius >= 0.0):
+		problem = "radius %s must not be negative" % params.radius
+	elif not is_equal_approx(direction.length_squared(), 1.0):
+		problem = "direction %s is not normalized" % direction
+	if problem.is_empty():
+		return true
+	Log.error("combat", "shot refused: %s" % problem)
+	assert(false, "Invalid shot: %s" % problem)
+	return false
 
 
 func _physics_process(delta: float) -> void:
@@ -144,6 +179,7 @@ func _hits_solid(pos: Vector2) -> bool:
 
 
 func _free(i: int) -> void:
+	assert(_flags[i] & FLAG_ACTIVE != 0, "Slot freed twice")
 	_flags[i] = 0
 	_free_slots[_free_top] = i
 	_free_top += 1

@@ -42,20 +42,25 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not OS.is_debug_build():
 		return
 	if event.is_action_pressed("debug_load_test"):
-		_load_test_active = not _load_test_active
-		_show_debug_scene(BULLET_LOAD_TEST_PATH if _load_test_active else SCALE_TEST_PATTERN_PATH)
+		var wants_load_test: bool = not _load_test_active
+		var path: String = BULLET_LOAD_TEST_PATH if wants_load_test else SCALE_TEST_PATTERN_PATH
+		if _show_debug_scene(path):
+			_load_test_active = wants_load_test
 		get_viewport().set_input_as_handled()
 
 
-## Debug only: replaces the content of ActiveScene by a debug scene.
-func _show_debug_scene(path: String) -> void:
+## Debug only: replaces the content of ActiveScene by a debug scene. Returns false if it cannot load.
+func _show_debug_scene(path: String) -> bool:
 	var debug_scene: PackedScene = load(path) as PackedScene
 	if debug_scene == null:
 		Log.warn("ui", "debug scene not found at %s" % path)
-		return
+		return false
 	for child: Node in _active_scene.get_children():
+		# Out of the tree at once, so its node groups (bullet managers) stop counting this frame.
+		_active_scene.remove_child(child)
 		child.queue_free()
 	_active_scene.add_child(debug_scene.instantiate())
+	return true
 
 
 func _on_window_size_changed() -> void:
