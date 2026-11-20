@@ -4,7 +4,7 @@ baseline_commit: 35880ff
 
 # Story 1.3 : Se déplacer dans l'arène
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -34,31 +34,31 @@ afin de sentir un contrôle nerveux.
 
 ## Tâches / sous-tâches
 
-- [ ] **T1. Socle partagé** (CA 1, 8, 9)
-  - [ ] `Const` : `HUD_BAND_HEIGHT: int = 24`, `ROOM_TILES: Vector2i = Vector2i(36, 19)` (tuiles jouables, murs exclus), `GROUP_DEBUG_SHAPES: StringName`.
-  - [ ] `core/player_tuning.gd` : `class_name PlayerTuning extends Resource` (voir « `PlayerTuning` »).
-  - [ ] `data/tuning/player_tuning.tres` (valeurs du GDD) et `Tuning.PLAYER` (`preload`, voir « `PlayerTuning` »).
-- [ ] **T2. Actions d'entrée et réglages du projet** (CA 2, 4, 5, 12)
-  - [ ] `project.godot` : actions `move_up`, `move_down`, `move_left`, `move_right` (touches physiques W/A/S/D + stick gauche, voir « Entrées »).
-  - [ ] `project.godot` : action `debug_toggle_collisions` sur F2 (touche physique, `physical_keycode` 4194333), même forme que `debug_toggle_perf`.
-  - [ ] `project.godot` : `physics/common/physics_interpolation=true`. Ne pas toucher à la VSync (déjà activée par défaut).
-- [ ] **T3. `PlayerMotor`** (CA 2, 3, 8)
-  - [ ] `player/player_motor.gd` : `class_name PlayerMotor extends RefCounted`, logique pure de vitesse (voir « `PlayerMotor` »).
-- [ ] **T4. `Player`** (CA 2, 5, 6, 7, 11, 12)
-  - [ ] `player/player.tscn` + `player/player.gd` : `CharacterBody2D`, sprite provisoire 16×24, forme de collision 6×6 (voir « `Player` »).
-- [ ] **T5. Arène et caméra** (CA 1, 6)
-  - [ ] `rooms/arena/arena.tscn` + `rooms/arena/arena.gd` : couches `Floor` et `Walls` construites en code, joueur, caméra fixe (voir « Arène » et « Caméra »).
-- [ ] **T6. `Main`** (CA 1, 10)
-  - [ ] Démarrer sur l'arène dans tous les builds ; F5 bascule arène ↔ test de charge ; instancier le `CollisionDrawer` en debug (voir « `Main` »).
-- [ ] **T7. F2 : affichage des formes de collision** (CA 9)
-  - [ ] `debug/collision_drawer.gd` : `class_name CollisionDrawer` (voir « F2 »).
-- [ ] **T8. Lexique** : ajouter à `game-architecture.md` (section « Lexique ») la ligne `Arène ; bande de HUD | arena ; hud_band` (AR32 : un terme entre dans le lexique avant le code).
-- [ ] **T9. Vérifications headless** (CA 2 à 8, 11)
-  - [ ] Scripts jetables dans le scratchpad (pas dans le dépôt) : voir « Stratégie de test ».
-- [ ] **T10. Vérifications fenêtrées sous WSLg** (CA 1, 9, 10, 12)
-  - [ ] Arène à l'écran, bandes noires, netteté du sprite en mouvement, F2, F5 dans les deux sens, capture d'écran.
-- [ ] **T11. Régression** : import et lancement headless sans erreur, recherche des interdits, F3 et F5 de 1.1 et 1.2 toujours conformes.
-- [ ] **T12. Reports** : consigner dans `deferred-work.md` ce qui n'a pas pu être vérifié (manette physique, ressenti au stick, voir « Stratégie de test »).
+- [x] **T1. Socle partagé** (CA 1, 8, 9)
+  - [x] `Const` : `HUD_BAND_HEIGHT: int = 24`, `ROOM_TILES: Vector2i = Vector2i(36, 19)` (tuiles jouables, murs exclus), `GROUP_DEBUG_SHAPES: StringName`.
+  - [x] `core/player_tuning.gd` : `class_name PlayerTuning extends Resource` (voir « `PlayerTuning` »).
+  - [x] `data/tuning/player_tuning.tres` (valeurs du GDD) et `Tuning.PLAYER` (`preload`, voir « `PlayerTuning` »).
+- [x] **T2. Actions d'entrée et réglages du projet** (CA 2, 4, 5, 12)
+  - [x] `project.godot` : actions `move_up`, `move_down`, `move_left`, `move_right` (touches physiques W/A/S/D + stick gauche, voir « Entrées »).
+  - [x] `project.godot` : action `debug_toggle_collisions` sur F2 (touche physique, `physical_keycode` 4194333), même forme que `debug_toggle_perf`.
+  - [x] `project.godot` : `physics/common/physics_interpolation=true`. Ne pas toucher à la VSync (déjà activée par défaut).
+- [x] **T3. `PlayerMotor`** (CA 2, 3, 8)
+  - [x] `player/player_motor.gd` : `class_name PlayerMotor extends RefCounted`, logique pure de vitesse (voir « `PlayerMotor` »).
+- [x] **T4. `Player`** (CA 2, 5, 6, 7, 11, 12)
+  - [x] `player/player.tscn` + `player/player.gd` : `CharacterBody2D`, sprite provisoire 16×24, forme de collision 6×6 (voir « `Player` »).
+- [x] **T5. Arène et caméra** (CA 1, 6)
+  - [x] `rooms/arena/arena.tscn` + `rooms/arena/arena.gd` : couches `Floor` et `Walls` construites en code, joueur, caméra fixe (voir « Arène » et « Caméra »).
+- [x] **T6. `Main`** (CA 1, 10)
+  - [x] Démarrer sur l'arène dans tous les builds ; F5 bascule arène ↔ test de charge ; instancier le `CollisionDrawer` en debug (voir « `Main` »).
+- [x] **T7. F2 : affichage des formes de collision** (CA 9)
+  - [x] `debug/collision_drawer.gd` : `class_name CollisionDrawer` (voir « F2 »).
+- [x] **T8. Lexique** : ajouter à `game-architecture.md` (section « Lexique ») la ligne `Arène ; bande de HUD | arena ; hud_band` (AR32 : un terme entre dans le lexique avant le code).
+- [x] **T9. Vérifications headless** (CA 2 à 8, 11)
+  - [x] Scripts jetables dans le scratchpad (pas dans le dépôt) : voir « Stratégie de test ».
+- [x] **T10. Vérifications fenêtrées sous WSLg** (CA 1, 9, 10, 12)
+  - [x] Arène à l'écran, bandes noires, netteté du sprite en mouvement, F2, F5 dans les deux sens, capture d'écran.
+- [x] **T11. Régression** : import et lancement headless sans erreur, recherche des interdits, F3 et F5 de 1.1 et 1.2 toujours conformes.
+- [x] **T12. Reports** : consigner dans `deferred-work.md` ce qui n'a pas pu être vérifié (manette physique, ressenti au stick, voir « Stratégie de test »).
 
 ## Dev Notes
 
@@ -364,12 +364,62 @@ Il n'y a pas de `project-context.md`. Règles tirées de `CLAUDE.md` et de la m�
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Sonnet 5.5 (claude-sonnet-5-5)
+
+### Implementation Plan
+
+- `PlayerMotor` (`RefCounted`) porte toute la logique de vitesse (`move_toward` vers `wish * max_speed_px`, taux d'accélération ou de décélération). Aucune dépendance à un nœud : vérifiable sans scène.
+- `Player` (`CharacterBody2D`, `MOTION_MODE_FLOATING`) lit `Input.get_vector` dans `_physics_process`, applique `GameClock.scale(PLAYER)` une seule fois par tick, puis `move_and_slide()`.
+- `Arena` construit `Floor` et `Walls` en code (un `TileSet` partagé, couche de physique ajoutée **avant** les sources), place le joueur au centre et la caméra fixe à `(304, 156)`.
+- `Main` démarre sur l'arène dans tous les builds ; `_show_debug_scene` devient `_show_scene` ; F5 bascule arène ↔ test de charge (drapeau inversé après chargement réussi, règle de 1.2 conservée) ; `CollisionDrawer` instancié en debug.
 
 ### Debug Log References
+
+- `get_global_transform_interpolated()` n'existe pas en Godot 4.7.2 (sondage de `ClassDB` : aucune méthode `*interpol*` sur `Node2D` ni `CanvasItem`, seulement `Node.is_physics_interpolated*`, `reset_physics_interpolation`). Repli prévu par la story : `global_transform`. Consigné dans `deferred-work.md`.
+- Avertissement du moteur « Camera2D overridden to physics process mode » : supprimé en fixant `process_callback = 0` (physique) dans `arena.tscn`. Le régler dans `_ready()` ne suffit pas, le moteur l'émet avant.
+- En `MOTION_MODE_FLOATING`, `move_and_slide()` conserve la vitesse en glissant : le long d'un mur à 45° le joueur avance à ~94 px/s (pas à la composante de 68 px/s). Il ne dépasse jamais 96 px/s, donc CA 3 est respecté ; aucun ralentissement au mur.
+- Tracé tick par tick d'un glissement le long du mur du haut : pas de pas bloqué sur les jointures de tuiles (« Risque connu » de la story non rencontré).
+- Premier test de glissement invalide (45° ne touchait jamais le mur) puis corrigé ; les « blocages » comptés dans le coin d'arrivée ont été exclus. Test de timing du test de charge corrigé (50 ticks nécessaires pour 400 projectiles).
 
 ### Completion Notes List
 
 - Analyse de contexte terminée : guide d'implémentation complet créé (create-story, 2026-11-20).
+- ✅ T1 : `Const.HUD_BAND_HEIGHT`, `ROOM_TILES`, `GROUP_DEBUG_SHAPES` ; `PlayerTuning` dans `core/` ; `player_tuning.tres` (valeurs du GDD) ; `Tuning.PLAYER`.
+- ✅ T2 : actions `move_up/down/left/right` (touches physiques W/A/S/D + stick gauche, zone morte 0,2), `debug_toggle_collisions` (F2), `physics/common/physics_interpolation=true`. `project.godot` : +30 lignes, aucune re-sérialisation parasite.
+- ✅ T3 à T7 : `PlayerMotor`, `Player`, `Arena`, `Main`, `CollisionDrawer` comme spécifiés. Une durée de rampe invalide (< 0,001 s) est consignée par `Log.error` et ramenée à la valeur sûre.
+- ✅ T8 : ligne `Arène ; bande de HUD | arena ; hud_band` ajoutée au lexique de `game-architecture.md`.
+- ✅ T9, vérifications headless (scripts jetables du scratchpad, hors dépôt), toutes réussies :
+  - `PlayerMotor` : 96 px/s atteints en 4 ticks, arrêt en 3 ticks, jamais au-dessus de 96, diagonale à 96 (95,99999), `dt = 0` sans effet, `move_speed = 3` donne 48.
+  - Arène : joueur en `(304, 168)`, caméra en `(304, 156)`, origine du canvas `(16, 24)`, hitbox `6×6` centrée, sprite `16×24` centré, couches `player`/`walls`.
+  - Murs : arrêt à 589 / 19 / 317 / 19 (à 0,01 px près) ; diagonale contre le coin pendant 10 s reste dans `[19, 589] × [19, 317]`.
+  - Glissement sur les quatre murs (clavier 45° et stick incliné de 10°) : zéro pas bloqué. `wall_min_slide_angle` laissé au défaut (15°).
+  - CA 8 : `move_speed = 3.0` et `hitbox_size = 0.5` dans le `.tres` donnent 48 px/s et 8×8 ; valeurs d'origine remises.
+  - CA 11 : `GameClock.paused = true` fige le joueur, il repart au `false`.
+  - Stick simulé : 0,1 (sous la zone morte) ne bouge pas, 1,0 déplace à droite. Touches physiques 87/83/65/68 avec `keycode` 0.
+  - F2 bascule le `CollisionDrawer` ; F5 arène → test de charge (400 projectiles) → arène, deux fois de suite, `ActiveScene` toujours à un enfant, joueur de retour en `(304, 168)`.
+- ✅ T10, fenêtré sous WSLg (indicatif) : arène en ×2 (1280×720), bande noire de 24 px en haut, marges de 16 px, F2 affiche le carré 6×6 centré sur le torse, F3 et F5 fonctionnels. Netteté en mouvement : le sprite mesure 16×24 pixels à l'écran sur 90 frames consécutives, donc **pas de `snap_2d_transforms_to_pixel`** (réglage non modifié).
+- ✅ T11 : import et lancement headless sans `SCRIPT ERROR`, `Parse Error` ni avertissement. Recherche des interdits propre (seules occurrences : `log.gd`, commentaires, et la variable locale renommée en `clock_scale`). Aucun `Log.` dans `_physics_process` ni `_process`.
+- ✅ T12 : reports consignés dans `deferred-work.md` (manette réelle, ressenti et latence, contour F2 non interpolé, mire de netteté).
+- Écart de méthode : les tests ont été écrits **après** le code (scripts jetables, pas de framework avant le jalon B, AR26), pas en rouge-vert-refactor strict.
+- Aucun test automatisé ajouté au dépôt (AR26). Les vérifications fonctionnelles de la manette physique et du ressenti restent des étapes humaines.
 
 ### File List
+
+- `game/core/constants.gd` (modifié)
+- `game/core/tuning.gd` (modifié)
+- `game/core/player_tuning.gd` (nouveau) + `.uid`
+- `game/data/tuning/player_tuning.tres` (nouveau)
+- `game/player/player.gd`, `game/player/player.tscn` (nouveaux) + `.uid`
+- `game/player/player_motor.gd` (nouveau) + `.uid`
+- `game/rooms/arena/arena.gd`, `game/rooms/arena/arena.tscn` (nouveaux) + `.uid`
+- `game/debug/collision_drawer.gd` (nouveau) + `.uid`
+- `game/main/main.gd`, `game/main/main.tscn` (modifiés)
+- `game/project.godot` (modifié)
+- `_bmad-output/game-architecture.md` (modifié : lexique)
+- `_bmad-output/implementation-artifacts/deferred-work.md` (modifié)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (modifié)
+- `_bmad-output/implementation-artifacts/1-3-se-deplacer-dans-l-arene.md` (cette story)
+
+### Change Log
+
+- 2026-11-20 : implémentation de la story 1.3 (arène, joueur, déplacement 8 directions, caméra fixe, F2, F5 arène ↔ test de charge). Statut : `review`.
