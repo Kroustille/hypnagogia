@@ -4,7 +4,7 @@ baseline_commit: 9426ef4
 
 # Story 1.2 : Valider 400 projectiles à 60 FPS
 
-Status: ready-for-dev
+Status: in-progress
 
 ## Story
 
@@ -28,41 +28,41 @@ afin de lever le risque n°1 (les performances de Godot) avant de bâtir le comb
 
 ## Tâches / sous-tâches
 
-- [ ] **T1. Paramètres de tir et constantes partagées** (CA 1, 5, 6)
-  - [ ] `game/combat/bullets/bullet_params.gd` : `class_name BulletParams extends Resource` (voir « `BulletParams` »).
-  - [ ] `Const` : ajouter `GROUP_BULLET_MANAGERS: StringName` (nom du groupe de nœuds que la surcouche F3 interroge).
-  - [ ] `project.godot` : action `InputMap` `debug_load_test` sur F5 (touche physique, `physical_keycode` 4194336), même forme que `debug_toggle_perf`.
-- [ ] **T2. `BulletManager` : stockage, `fire`, libération, pool** (CA 1, 5)
-  - [ ] `game/combat/bullets/bullet_manager.gd` : `class_name BulletManager extends Node2D`, avec l'enum `Camp { ENEMY, PLAYER }`.
-  - [ ] Tableaux parallèles de taille fixe (capacité exportée, 512 par défaut) et pile d'emplacements libres (voir « Stockage »).
-  - [ ] `fire(params, origin, direction) -> bool` : renvoie `false` sans erreur, sans log, et incrémente `refused_count` quand le pool est plein.
-  - [ ] `active_count` et `refused_count` en lecture publique ; le manager s'ajoute au groupe `Const.GROUP_BULLET_MANAGERS` dans `_ready()`.
-- [ ] **T3. Simulation** (CA 3, 4)
-  - [ ] `_physics_process(delta)` : lire `GameClock.scale(group)` **une fois par tick**, avancer chaque projectile actif de `vitesse * delta * échelle`, décrémenter sa durée de vie du même pas.
-  - [ ] `setup(solid_layers: Array[TileMapLayer])`, appelée **avant** `add_child()` : les couches `Walls` et `HighObstacles` contre lesquelles les projectiles disparaissent.
-  - [ ] Test de mur : un projectile actif dont la cellule existe dans une des couches (`get_cell_source_id(cell) != -1`) est libéré.
-- [ ] **T4. Rendu par `MultiMeshInstance2D`** (CA 2)
-  - [ ] `add_appearance(texture: Texture2D) -> int` crée un `MultiMeshInstance2D` pour cette apparence (voir « Rendu »).
-  - [ ] `_process` : écrire les transformations des projectiles actifs, par apparence, et ajuster `visible_instance_count`.
-  - [ ] Texture provisoire générée en code (disque de 8×8 px) pour la scène de test ; pas de fichier image dans cette story.
-- [ ] **T5. Compteurs dans F3** (CA 5, 6)
-  - [ ] `PerfOverlay` : seconde ligne `Bullets <actifs> | refused <refus>`, calculée à chaque rafraîchissement (2 Hz) en sommant les nœuds du groupe `Const.GROUP_BULLET_MANAGERS`. Aucune dépendance de `debug/` vers `combat/`.
-  - [ ] Agrandir le `Label` (`offset_bottom`) pour deux lignes ; le contour de la story 1.1 reste.
-- [ ] **T6. Scène de test de charge et touche F5** (CA 6)
-  - [ ] `game/debug/bullet_load_test.tscn` + `bullet_load_test.gd` (voir « Scène de test »).
-  - [ ] `Main` (debug seulement) : F5 bascule entre la mire de netteté et la scène de test, dans `ActiveScene`.
-- [ ] **T7. Vérifications headless** (CA 1 à 5)
-  - [ ] Script jetable dans le scratchpad (pas dans le dépôt) : voir « Stratégie de test ».
-- [ ] **T8. Vérifications fenêtrées sous WSLg** (CA 2, 6)
-  - [ ] F5 affiche 400 projectiles qui bougent et se renouvellent ; F3 affiche `Bullets ~400`.
-  - [ ] Consigner le FPS et le coût CPU de la simulation (rendu logiciel Mesa llvmpipe : indicatif seulement, pas la machine de référence).
+- [x] **T1. Paramètres de tir et constantes partagées** (CA 1, 5, 6)
+  - [x] `game/combat/bullets/bullet_params.gd` : `class_name BulletParams extends Resource` (voir « `BulletParams` »).
+  - [x] `Const` : ajouter `GROUP_BULLET_MANAGERS: StringName` (nom du groupe de nœuds que la surcouche F3 interroge).
+  - [x] `project.godot` : action `InputMap` `debug_load_test` sur F5 (touche physique, `physical_keycode` 4194336), même forme que `debug_toggle_perf`.
+- [x] **T2. `BulletManager` : stockage, `fire`, libération, pool** (CA 1, 5)
+  - [x] `game/combat/bullets/bullet_manager.gd` : `class_name BulletManager extends Node2D`, avec l'enum `Camp { ENEMY, PLAYER }`.
+  - [x] Tableaux parallèles de taille fixe (capacité exportée, 512 par défaut) et pile d'emplacements libres (voir « Stockage »).
+  - [x] `fire(params, origin, direction) -> bool` : renvoie `false` sans erreur, sans log, et incrémente `refused_count` quand le pool est plein.
+  - [x] `active_count` et `refused_count` en lecture publique ; le manager s'ajoute au groupe `Const.GROUP_BULLET_MANAGERS` dans `_ready()`.
+- [x] **T3. Simulation** (CA 3, 4)
+  - [x] `_physics_process(delta)` : lire `GameClock.scale(group)` **une fois par tick**, avancer chaque projectile actif de `vitesse * delta * échelle`, décrémenter sa durée de vie du même pas.
+  - [x] `setup(solid_layers: Array[TileMapLayer])`, appelée **avant** `add_child()` : les couches `Walls` et `HighObstacles` contre lesquelles les projectiles disparaissent.
+  - [x] Test de mur : un projectile actif dont la cellule existe dans une des couches (`get_cell_source_id(cell) != -1`) est libéré.
+- [x] **T4. Rendu par `MultiMeshInstance2D`** (CA 2)
+  - [x] `add_appearance(texture: Texture2D) -> int` crée un `MultiMeshInstance2D` pour cette apparence (voir « Rendu »).
+  - [x] `_process` : écrire les transformations des projectiles actifs, par apparence, et ajuster `visible_instance_count`.
+  - [x] Texture provisoire générée en code (disque de 8×8 px) pour la scène de test ; pas de fichier image dans cette story.
+- [x] **T5. Compteurs dans F3** (CA 5, 6)
+  - [x] `PerfOverlay` : seconde ligne `Bullets <actifs> | refused <refus>`, calculée à chaque rafraîchissement (2 Hz) en sommant les nœuds du groupe `Const.GROUP_BULLET_MANAGERS`. Aucune dépendance de `debug/` vers `combat/`.
+  - [x] Agrandir le `Label` (`offset_bottom`) pour deux lignes ; le contour de la story 1.1 reste.
+- [x] **T6. Scène de test de charge et touche F5** (CA 6)
+  - [x] `game/debug/bullet_load_test.tscn` + `bullet_load_test.gd` (voir « Scène de test »).
+  - [x] `Main` (debug seulement) : F5 bascule entre la mire de netteté et la scène de test, dans `ActiveScene`.
+- [x] **T7. Vérifications headless** (CA 1 à 5)
+  - [x] Script jetable dans le scratchpad (pas dans le dépôt) : voir « Stratégie de test ».
+- [x] **T8. Vérifications fenêtrées sous WSLg** (CA 2, 6)
+  - [x] F5 affiche 400 projectiles qui bougent et se renouvellent ; F3 affiche `Bullets ~400`.
+  - [x] Consigner le FPS et le coût CPU de la simulation (rendu logiciel Mesa llvmpipe : indicatif seulement, pas la machine de référence).
 - [ ] **T9. Mesure sur la machine de référence, 10 minutes** (CA 7, 8) — **étape humaine**
   - [ ] Voir « Mesure sur la machine de référence ». Consigner dans les Completion Notes : machine, moteur de rendu (Compatibility), FPS moyen, 1 % low, durée.
   - [ ] En cas d'échec : décider et consigner le repli (GDExtension ou Forward+) avant la story 1.3.
 - [ ] **T10. Fluidité à 144 Hz** (CA 9) — **étape humaine**, puis code seulement si ça saccade
   - [ ] Observer sur un écran 144 Hz. Si les projectiles saccadent, ajouter l'interpolation des positions de rendu entre deux ticks dans `BulletManager`.
   - [ ] Si aucun écran 144 Hz n'est disponible : consigner « non vérifié » et le reporter à la story 1.8 (`deferred-work.md`).
-- [ ] **T11. Régression** : import et lancement headless sans erreur, recherche des interdits (voir « Stratégie de test »), mire de netteté et F3 de la story 1.1 toujours conformes.
+- [x] **T11. Régression** : import et lancement headless sans erreur, recherche des interdits (voir « Stratégie de test »), mire de netteté et F3 de la story 1.1 toujours conformes.
 
 ## Dev Notes
 
@@ -289,10 +289,46 @@ Il n'y a pas de `project-context.md`. Règles tirées de `CLAUDE.md` et de la m�
 
 ### Agent Model Used
 
+claude-sonnet-5-5
+
 ### Debug Log References
+
+- `godot --headless --path game --import`, puis `--quit-after`: aucune erreur de script.
+- Les scripts jetables vivent dans le scratchpad (hors dépôt). `--script` ne résout pas les autoloads à la compilation (`Identifier not found: Log`) : les vérifications tournent donc comme une **scène** (`godot --headless --path game --scene <scène du scratchpad>`), avec `call_deferred` pour attendre que la racine soit prête.
+- Vérification du pool, des murs, de la pause, de la durée de vie et des fuites : 12 contrôles PASS, 0 échec (CA 1, 3, 4, 5).
+- F5 et F3 simulés par des `InputEventAction` en headless : `Bullets 400 | refused 0`, la scène de test remplace la mire, un second F5 la remet.
+- Coût CPU mesuré en headless (rendu factice), 400 projectiles actifs et une couche de murs : **~68 µs par tick** de simulation et **~74 µs par image** de mise à jour du rendu, pour un budget de 16 667 µs par tick à 60 Hz.
+- Fenêtré sous WSLg (Mesa llvmpipe, rendu logiciel, VSync non supporté), 1280×720 (×2), F5 actif pendant ~18 s : **~267 FPS**, 1 % low ~230, `Bullets` 394 à 399 avant le correctif d'ordre de tick, puis 400 exact, `refused 0`. **Indicatif seulement : ce n'est pas la machine de référence.**
+
+### Implementation Plan
+
+- `BulletManager` : tableaux parallèles `Packed*Array`, pile d'emplacements libres, `_high_water` comme borne de boucle, aucun nœud ni objet par projectile. Simulation dans `_physics_process` (une lecture de `GameClock.scale()` par tick), rendu dans `_process` par `MultiMesh.set_instance_transform_2d()` (le `buffer` en bloc n'a pas été nécessaire).
+- Compteurs lus par la surcouche F3 via le groupe `Const.GROUP_BULLET_MANAGERS`, à 2 Hz.
+- Scène de test : murs en code, quatre émetteurs, angle d'or (pas de RNG), 8 tirs maximum par tick jusqu'à 400 ; `process_physics_priority = 1` pour que le compte lu après un tick soit celui après recharge.
 
 ### Completion Notes List
 
 - Analyse de contexte terminée : guide d'implémentation complet créé (create-story, 2026-11-20).
+- **T1 à T8 et T11 faits (2026-11-20).** `BulletParams`, `BulletManager` (pool, `fire`, murs par cellule de `TileMapLayer`, pause via `GameClock`, rendu `MultiMeshInstance2D`), compteurs dans F3, scène F5 à 400 projectiles. Aucun appel interdit (`grep` : seuls les occurrences attendues dans `log.gd` et des commentaires).
+- **Écart assumé avec la story :** la surcouche F3 caste les nœuds du groupe en `BulletManager` (dépendance de `debug/` vers `combat/`) au lieu de lire des propriétés sans type. La règle d'architecture interdit que du code dépende de `debug/`, pas l'inverse ; le groupe évite seulement un chemin de nœud.
+- **`Log.error` dans `fire()`** : uniquement pour un `BulletParams` invalide (invariant violé, jamais en jeu normal), pas dans la boucle.
+- **Pas de framework de test** (AR26) : les contrôles sont des scripts jetables, non versionnés.
+- **Reste à faire, étapes humaines :**
+  - **T9** (CA 7 et 8) : 10 minutes sur la machine de référence (classe GTX 1060). Le rendu WSLg ne la représente pas. Résultat et moteur de rendu à consigner ici ; en cas d'échec, décider du repli (GDExtension ou Forward+) avant la story 1.3.
+  - **T10** (CA 9) : fluidité à 144 Hz. Aucune interpolation n'est codée : à ajouter seulement si ça saccade.
+- La story reste donc `in-progress` : le CA 7 n'est pas vérifié.
 
 ### File List
+
+- `game/combat/bullets/bullet_params.gd` (nouveau, + `.uid`)
+- `game/combat/bullets/bullet_manager.gd` (nouveau, + `.uid`)
+- `game/debug/bullet_load_test.gd`, `bullet_load_test.tscn` (nouveaux, + `.uid`)
+- `game/debug/perf_overlay.gd`, `perf_overlay.tscn` (modifiés : ligne `Bullets | refused`)
+- `game/main/main.gd` (modifié : F5, `_show_debug_scene`)
+- `game/core/constants.gd` (modifié : `GROUP_BULLET_MANAGERS`)
+- `game/project.godot` (modifié : action `debug_load_test`)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (modifié)
+
+### Change Log
+
+- 2026-11-20 : `BulletManager` orienté données, scène de test de charge (F5) et compteurs dans F3. T9 (mesure sur machine de référence) et T10 (144 Hz) restent à faire par Kroustille.
