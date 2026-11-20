@@ -45,7 +45,7 @@ development_status:
   # Epic 1: Bouger et tirer dans le rêve
   epic-1: in-progress
   1-1-lancer-le-jeu-dans-une-fenetre-nette-a-toutes-les-resolutions: done
-  1-2-valider-400-projectiles-a-60-fps: backlog
+  1-2-valider-400-projectiles-a-60-fps: ready-for-dev
   1-3-se-deplacer-dans-l-arene: backlog
   1-4-dasher: backlog
   1-5-viser-et-tirer: backlog
