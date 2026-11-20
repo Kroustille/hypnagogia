@@ -177,7 +177,7 @@ physics/common/physics_ticks_per_second = 60
 
 ### Environnement de développement : MCP
 
-- **GoPeak** (`HaD0Yun/Gopeak-godot-mcp`, MIT) : MCP Godot 4.x lancé avec `npx -y gopeak`. Édition de scènes et de scripts, diagnostics LSP, logs, inspection de l'arbre de scène en direct, captures d'écran, injection d'entrées. Vérifier l'état du dépôt à l'installation.
+- **GoPeak** (reporté, voir « Environnement de développement » ; `HaD0Yun/Gopeak-godot-mcp`, MIT) : MCP Godot 4.x lancé avec `npx -y gopeak`. Édition de scènes et de scripts, diagnostics LSP, logs, inspection de l'arbre de scène en direct, captures d'écran, injection d'entrées. Vérifier l'état du dépôt à l'installation.
 - **Context7** (`upstash/context7`) : documentation Godot à jour pour l'IA.
 - Alternative : `Coding-Solo/godot-mcp`, le plus suivi, avec moins d'outils (lancer l'éditeur, exécuter, récupérer la sortie de débogage).
 - **Tranché le 2026-11-20 (story 1.1) :** l'éditeur Linux tourne via WSLg (option A), sur le dépôt WSL. Voir « Environnement de développement ».
@@ -925,7 +925,7 @@ const COMBAT: CombatTuning = preload("res://data/tuning/combat_tuning.tres")
 ### Versions
 
 - Godot 4.7.2 stable, vérifié le 2026-11-20. Toutes les décisions reposent sur des fonctionnalités intégrées à Godot ; aucune bibliothèque tierce dans le jeu.
-- MCP GoPeak : actif d'après les annuaires consultés le 2026-11-20 ; version et commande d'installation à vérifier sur son dépôt à l'installation.
+- MCP GoPeak : **reporté** (décision du 2026-11-20) ; le paquet npm `gopeak` est déprécié (CWE-78), voir « Choix retenu » dans l'environnement de développement.
 
 ### Points à vérifier au jalon A
 
@@ -944,7 +944,7 @@ const COMBAT: CombatTuning = preload("res://data/tuning/combat_tuning.tres")
 
 - **Godot 4.7.2 stable**, version standard (sans .NET), et ses modèles d'export (Windows, macOS).
 - **Git**.
-- **Node.js** (pour lancer le MCP GoPeak avec `npx`).
+- **Node.js** (pour lancer Context7 avec `npx` ; GoPeak est reporté).
 - Une **manette Xbox** pour tester la bascule de périphérique.
 - Un **Mac** pour tester l'export macOS (jalon A pour un premier essai, sinon jalon B).
 
@@ -952,13 +952,12 @@ const COMBAT: CombatTuning = preload("res://data/tuning/combat_tuning.tres")
 
 | Serveur MCP | Rôle | Installation |
 |---|---|---|
-| GoPeak (`HaD0Yun/Gopeak-godot-mcp`) | Édition de scènes et de scripts, diagnostics LSP, logs, arbre de scène en direct, captures, injection d'entrées | `npx`, sans plugin obligatoire (plugins éditeur et runtime optionnels pour l'inspection en direct) |
+| GoPeak (`HaD0Yun/Gopeak-godot-mcp`), **reporté** | Édition de scènes et de scripts, diagnostics LSP, logs, arbre de scène en direct, captures, injection d'entrées | Non installé : le paquet npm est déprécié (voir « Choix retenu ») |
 | Context7 (`upstash/context7`) | Documentation Godot à jour | `npx` |
 
-**Mise en place (Claude Code) :** vérifier les deux README avant l'installation, puis :
+**Mise en place (Claude Code) :** Context7 uniquement ; GoPeak reste à installer plus tard (voir « Choix retenu »).
 
 ```bash
-claude mcp add godot -e GODOT_PATH=<chemin vers l'exécutable Godot 4.7.2> -- npx -y gopeak
 claude mcp add context7 -- npx -y @upstash/context7-mcp
 ```
 

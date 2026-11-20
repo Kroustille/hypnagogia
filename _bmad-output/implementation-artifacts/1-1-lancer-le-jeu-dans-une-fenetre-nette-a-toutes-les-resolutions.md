@@ -4,7 +4,7 @@ baseline_commit: b5111df07cd21f1a7930fe3d305a6b522938b398
 
 # Story 1.1 : Lancer le jeu dans une fenêtre nette à toutes les résolutions
 
-Status: review
+Status: done
 
 ## Story
 
@@ -27,7 +27,7 @@ afin que chaque story suivante parte de fondations conformes à l'architecture.
 9. **Étant donné** le jeu lancé, **quand** la fenêtre passe en 1280×720, 1920×1080, 2560×1440 puis 3840×2160, en fenêtré comme en plein écran, **alors** l'image est mise à l'échelle par ×2, ×3, ×4 puis ×6, sans flou.
 10. Une fenêtre en 16:10, ou dont la définition n'est pas un multiple exact, affiche des bandes noires.
 11. **Étant donné** n'importe quel build (debug ou release), **quand** on appuie sur F3, **alors** une surcouche affiche les FPS et le 1 % low.
-12. **Étant donné** l'environnement de développement, **quand** la story est terminée, **alors** l'emplacement de l'éditeur est tranché (Windows, WSLg ou dépôt côté Windows), les MCP GoPeak et Context7 sont configurés, et ce choix est consigné.
+12. **Étant donné** l'environnement de développement, **quand** la story est terminée, **alors** l'emplacement de l'éditeur est tranché (Windows, WSLg ou dépôt côté Windows), le MCP Context7 est configuré (GoPeak est reporté, décision de Kroustille du 2026-11-20, voir `game-architecture.md`), et ce choix est consigné.
 
 ## Tâches / sous-tâches
 
@@ -62,7 +62,7 @@ afin que chaque story suivante parte de fondations conformes à l'architecture.
   - [x] Affiche FPS, 1 % low, et la taille de fenêtre avec le facteur d'échelle (aide à vérifier le CA 9).
   - [x] Bascule par l'action `debug_toggle_perf` ; `process_mode = PROCESS_MODE_ALWAYS`.
 - [x] **T8. Configurer les MCP et consigner le choix** (CA 12)
-  - [x] `claude mcp add` pour GoPeak et Context7 (commandes ci-dessous).
+  - [x] Configurer Context7 (`.mcp.json`) ; GoPeak reporté (CWE-78 sur le paquet npm), voir `game-architecture.md`.
   - [x] Consigner l'emplacement de l'éditeur, le chemin `GODOT_PATH` et les commandes MCP dans `_bmad-output/game-architecture.md`, section « Environnement de développement » : remplacer les mentions « à trancher à l'installation ».
   - [x] Prévenir Kroustille qu'il faut relancer la session Claude Code pour charger les MCP. La vérification de leur chargement se fait après relance.
 - [x] **T9. Vérifications** (tous les CA ; voir « Stratégie de test »)
@@ -70,6 +70,26 @@ afin que chaque story suivante parte de fondations conformes à l'architecture.
   - [x] Lancement fenêtré : mire nette, F3, logs dans la console et dans `user://logs/godot.log`.
   - [x] Résolutions et bandes noires (CA 9, 10), avec les limites de l'écran disponible consignées.
   - [x] Recherche dans le code : aucun `print(` hors de `log.gd`, aucun `Timer`, `create_timer`, `time_scale`, `randf`, `randi`, `randomize`, `shuffle`, `pick_random`.
+
+### Review Findings
+
+Revue de code du 2026-11-20 (Blind Hunter, Edge Case Hunter, Acceptance Auditor).
+
+- [x] [Review][Patch] Fenêtre plus petite que 640×360 : imposer une taille minimale `Const.VIEWPORT` via `Window.min_size` (décision de Kroustille, 2026-11-20) ; le facteur ×1 forcé devient alors exact [game/main/main.gd, game/project.godot]
+- [x] [Review][Patch] `Main` écrit une ligne `Log.info` à chaque `size_changed` : ne journaliser que lorsque le facteur d'échelle change (décision de Kroustille, 2026-11-20) [game/main/main.gd:35]
+- [x] [Review][Patch] Couleur des bandes (CA 10) non fixée : définir `rendering/environment/defaults/default_clear_color` en noir et vérifier visuellement [game/project.godot]
+- [x] [Review][Patch] Calcul du facteur d'échelle dupliqué : le centraliser en un seul endroit, avec garde pour une fenêtre 0×0 (minimisée) [game/main/main.gd:37, game/debug/perf_overlay.gd:48]
+- [x] [Review][Patch] CA 12 / GoPeak : aligner la documentation sur la décision de reporter GoPeak (lignes 928 et 961-962 de `game-architecture.md`, commentaire `.mcp.json` du `.gitignore`, libellé du CA 12 et de T8) [_bmad-output/game-architecture.md, .gitignore]
+- [x] [Review][Patch] Horodatage lu en deux appels d'horloge, décalage possible à la frontière d'une seconde : une seule lecture [game/autoloads/log.gd:63]
+- [x] [Review][Patch] Surcouche F3 : mesurer le delta réel avec `Time.get_ticks_usec()` (indépendant de `Engine.time_scale`) et remettre le tampon à zéro à l'affichage [game/debug/perf_overlay.gd]
+- [x] [Review][Patch] Surcouche F3 : texte sans contour ni fond, illisible sur la mire claire [game/debug/perf_overlay.tscn]
+- [x] [Review][Patch] `Const.VIEWPORT` duplique `viewport_width/height` de `project.godot` : l'ajouter au contrôle de cohérence de `Main` en debug [game/main/main.gd]
+- [x] [Review][Patch] `.gitignore` : ancrer `builds/` en `/builds/` [.gitignore:3]
+- [x] [Review][Defer] `GameClock.paused` indépendant de `SceneTree.paused` [game/autoloads/game_clock.gd] — deferred, à trancher à la story 1.6 (pause)
+- [x] [Review][Defer] CA 9 et CA 11 : plein écran à ×2/×3/×4, HiDPI et build release non couverts par les mesures [—] — deferred, story 1.8 (export et mesures)
+- [x] [Review][Defer] `GameClock` sans API pour modifier les échelles (hitstop, ralenti) [game/autoloads/game_clock.gd] — deferred, à créer quand une story en aura besoin
+
+Écartés comme bruit (17) : F3 en `physical_keycode` (correct), surcoût de l'overlay en release (voulu par la story), `assert` en boucle (debug seulement), `Dictionary[Group, float]` (import headless propre), doublon `push_error` + `print` (voulu : visible dans le débogueur), noms d'autoloads, `@abstract` sur `Tuning`, coût de la mire, `.uid` et `icon.svg` « absents » (exclus du diff fourni aux relecteurs), `file_logging`, renderer et features (imposés par la story), absence de tests (AR26), `GameClock.scale()` hors enum, ombrage de `size`.
 
 ## Dev Notes
 
