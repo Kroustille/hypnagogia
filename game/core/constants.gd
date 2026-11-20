@@ -4,8 +4,15 @@ class_name Const
 const TILE_SIZE: int = 16
 const VIEWPORT: Vector2i = Vector2i(640, 360)
 
+## Height in pixels of the HUD band above the room (empty until story 2.7).
+const HUD_BAND_HEIGHT: int = 24
+## Playable tiles of a one-screen room, walls excluded.
+const ROOM_TILES: Vector2i = Vector2i(36, 19)
+
 ## Node group of every BulletManager, read by the F3 overlay.
 const GROUP_BULLET_MANAGERS: StringName = &"bullet_managers"
+## Node group of every CollisionShape2D shown by the F2 debug overlay.
+const GROUP_DEBUG_SHAPES: StringName = &"debug_shapes"
 
 ## Integer scale factor the engine applies to a window of this size (0 when the window is smaller than the viewport, e.g. minimized).
 @warning_ignore("integer_division")

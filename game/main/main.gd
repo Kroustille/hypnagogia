@@ -2,13 +2,14 @@ class_name Main
 extends Node
 ## Application root. Hosts the active scene and the UI layer.
 
-const SCALE_TEST_PATTERN_PATH: String = "res://debug/scale_test_pattern.tscn"
+const ARENA_PATH: String = "res://rooms/arena/arena.tscn"
 const BULLET_LOAD_TEST_PATH: String = "res://debug/bullet_load_test.tscn"
 
 var _last_scale_factor: int = -1
 var _load_test_active: bool = false
 
 @onready var _active_scene: Node = %ActiveScene
+@onready var _ui: CanvasLayer = %UI
 
 
 func _ready() -> void:
@@ -16,7 +17,8 @@ func _ready() -> void:
 	if OS.is_debug_build():
 		_check_viewport_size()
 		_check_collision_layer_names()
-		_show_debug_scene(SCALE_TEST_PATTERN_PATH)
+		_ui.add_child(CollisionDrawer.new())
+	_show_scene(ARENA_PATH)
 	get_window().size_changed.connect(_on_window_size_changed)
 	_on_window_size_changed()
 
@@ -43,23 +45,24 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed("debug_load_test"):
 		var wants_load_test: bool = not _load_test_active
-		var path: String = BULLET_LOAD_TEST_PATH if wants_load_test else SCALE_TEST_PATTERN_PATH
-		if _show_debug_scene(path):
+		var path: String = BULLET_LOAD_TEST_PATH if wants_load_test else ARENA_PATH
+		# Flip the flag only after a successful load, so a failed load cannot desynchronize it.
+		if _show_scene(path):
 			_load_test_active = wants_load_test
 		get_viewport().set_input_as_handled()
 
 
-## Debug only: replaces the content of ActiveScene by a debug scene. Returns false if it cannot load.
-func _show_debug_scene(path: String) -> bool:
-	var debug_scene: PackedScene = load(path) as PackedScene
-	if debug_scene == null:
-		Log.warn("ui", "debug scene not found at %s" % path)
+## Replaces the content of ActiveScene by the scene at path. Returns false if it cannot load.
+func _show_scene(path: String) -> bool:
+	var scene: PackedScene = load(path) as PackedScene
+	if scene == null:
+		Log.warn("ui", "scene not found at %s" % path)
 		return false
 	for child: Node in _active_scene.get_children():
-		# Out of the tree at once, so its node groups (bullet managers) stop counting this frame.
+		# Out of the tree at once, so its node groups (bullet managers, debug shapes) stop counting this frame.
 		_active_scene.remove_child(child)
 		child.queue_free()
-	_active_scene.add_child(debug_scene.instantiate())
+	_active_scene.add_child(scene.instantiate())
 	return true
 
 
