@@ -47,7 +47,7 @@ development_status:
   1-1-lancer-le-jeu-dans-une-fenetre-nette-a-toutes-les-resolutions: done
   1-2-valider-400-projectiles-a-60-fps: done
   1-3-se-deplacer-dans-l-arene: done
-  1-4-dasher: backlog
+  1-4-dasher: ready-for-dev
   1-5-viser-et-tirer: backlog
   1-6-mettre-en-pause-et-regler-le-jeu: backlog
   1-7-jouer-a-la-manette-ou-au-clavier-souris-avec-ses-propres-touches: backlog
