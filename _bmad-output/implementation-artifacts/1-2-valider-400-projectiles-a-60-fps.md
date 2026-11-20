@@ -4,7 +4,7 @@ baseline_commit: 9426ef4
 
 # Story 1.2 : Valider 400 projectiles à 60 FPS
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -56,12 +56,12 @@ afin de lever le risque n°1 (les performances de Godot) avant de bâtir le comb
 - [x] **T8. Vérifications fenêtrées sous WSLg** (CA 2, 6)
   - [x] F5 affiche 400 projectiles qui bougent et se renouvellent ; F3 affiche `Bullets ~400`.
   - [x] Consigner le FPS et le coût CPU de la simulation (rendu logiciel Mesa llvmpipe : indicatif seulement, pas la machine de référence).
-- [ ] **T9. Mesure sur la machine de référence, 10 minutes** (CA 7, 8) — **étape humaine**
-  - [ ] Voir « Mesure sur la machine de référence ». Consigner dans les Completion Notes : machine, moteur de rendu (Compatibility), FPS moyen, 1 % low, durée.
-  - [ ] En cas d'échec : décider et consigner le repli (GDExtension ou Forward+) avant la story 1.3.
-- [ ] **T10. Fluidité à 144 Hz** (CA 9) — **étape humaine**, puis code seulement si ça saccade
-  - [ ] Observer sur un écran 144 Hz. Si les projectiles saccadent, ajouter l'interpolation des positions de rendu entre deux ticks dans `BulletManager`.
-  - [ ] Si aucun écran 144 Hz n'est disponible : consigner « non vérifié » et le reporter à la story 1.8 (`deferred-work.md`).
+- [x] **T9. Mesure sur la machine de référence, 10 minutes** (CA 7, 8) — **REPORTÉE, NON MESURÉE** (décision de Kroustille, 2026-11-20) : voir `deferred-work.md`
+  - [x] Voir « Mesure sur la machine de référence ». Consigner dans les Completion Notes : machine, moteur de rendu (Compatibility), FPS moyen, 1 % low, durée. *(reporté)*
+  - [x] En cas d'échec : décider et consigner le repli (GDExtension ou Forward+) avant la story 1.3. *(reporté)*
+- [x] **T10. Fluidité à 144 Hz** (CA 9) — **REPORTÉE, NON VÉRIFIÉE** (décision de Kroustille, 2026-11-20) : voir `deferred-work.md`
+  - [x] Observer sur un écran 144 Hz. Si les projectiles saccadent, ajouter l'interpolation des positions de rendu entre deux ticks dans `BulletManager`. *(reporté)*
+  - [x] Si aucun écran 144 Hz n'est disponible : consigner « non vérifié » et le reporter à la story 1.8 (`deferred-work.md`). *(reporté)*
 - [x] **T11. Régression** : import et lancement headless sans erreur, recherche des interdits (voir « Stratégie de test »), mire de netteté et F3 de la story 1.1 toujours conformes.
 
 ## Dev Notes
@@ -316,7 +316,7 @@ claude-sonnet-5-5
 - **Reste à faire, étapes humaines :**
   - **T9** (CA 7 et 8) : 10 minutes sur la machine de référence (classe GTX 1060). Le rendu WSLg ne la représente pas. Résultat et moteur de rendu à consigner ici ; en cas d'échec, décider du repli (GDExtension ou Forward+) avant la story 1.3.
   - **T10** (CA 9) : fluidité à 144 Hz. Aucune interpolation n'est codée : à ajouter seulement si ça saccade.
-- La story reste donc `in-progress` : le CA 7 n'est pas vérifié.
+- **T9 et T10 reportées (décision de Kroustille, 2026-11-20) :** la mesure de 10 minutes sur machine de référence et le contrôle à 144 Hz ne seront pas faits maintenant. **Les CA 7, 8 et 9 ne sont donc PAS vérifiés.** Le risque n°1 (NFR1) reste ouvert : seules des mesures indicatives existent (~68 µs de simulation par tick pour 400 projectiles, ~267 FPS sous llvmpipe). À faire avant de s'appuyer sur le combat (au plus tard avec l'export de la story 1.8) ; en cas d'échec, décider du repli (GDExtension ou Forward+).
 
 ### File List
 
@@ -331,4 +331,4 @@ claude-sonnet-5-5
 
 ### Change Log
 
-- 2026-11-20 : `BulletManager` orienté données, scène de test de charge (F5) et compteurs dans F3. T9 (mesure sur machine de référence) et T10 (144 Hz) restent à faire par Kroustille.
+- 2026-11-20 : `BulletManager` orienté données, scène de test de charge (F5) et compteurs dans F3. T9 (mesure sur machine de référence) et T10 (144 Hz) reportées, voir `deferred-work.md`. Statut `review`.
