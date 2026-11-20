@@ -666,6 +666,7 @@ hypnagogia/
 | Synergies Piqué, Chute sans fin | `dive`, `endless_fall` |
 | Pacte ; salle d'oubli ; meubles du rêve ; trous | `pact` ; `oblivion_room` ; `furniture` ; `pits` |
 | Renfort ; télégraphe | `reinforcement` ; `telegraph` |
+| Arène ; bande de HUD | `arena` ; `hud_band` |
 
 Tout nouveau terme du GDD entre dans ce lexique avant d'apparaître dans le code.
 
