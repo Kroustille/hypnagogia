@@ -1,2 +1,7 @@
 # Windows download markers (WSL)
 *:Zone.Identifier
+game/.godot/
+builds/
+
+# Machine-specific MCP config (contains GODOT_PATH)
+.mcp.json

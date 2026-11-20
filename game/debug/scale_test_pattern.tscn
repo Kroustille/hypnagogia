@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://debug/scale_test_pattern.gd" id="1_pattern"]
+
+[node name="ScaleTestPattern" type="Node2D"]
+script = ExtResource("1_pattern")
