@@ -1,6 +1,6 @@
 class_name PerfOverlay
 extends Control
-## F3 performance overlay: FPS, 1% low, window size and integer scale factor.
+## F3 performance overlay: FPS, 1% low, window size, integer scale factor and bullet counters.
 ## Present in every build. Measures the engine (real delta, not GameClock) and keeps running while paused.
 ## Texts are technical readouts (units/abbreviations), not game text: they intentionally bypass tr().
 ## This exemption only applies to debug/.
@@ -56,11 +56,26 @@ func _process(_delta: float) -> void:
 func _refresh_text() -> void:
 	var size: Vector2i = get_window().size
 	var factor: int = Const.integer_scale(size)
-	_label.text = "FPS %d | 1%% low %d | %dx%d x%d" % [
+	var bullets: Vector2i = _bullet_counts()
+	_label.text = "FPS %d | 1%% low %d | %dx%d x%d\nBullets %d | refused %d" % [
 		roundi(Engine.get_frames_per_second()),
 		roundi(_one_percent_low()),
 		size.x, size.y, factor,
+		bullets.x, bullets.y,
 	]
+
+
+## Sum of (active, refused) over every BulletManager, found by node group. Called at 2 Hz only.
+func _bullet_counts() -> Vector2i:
+	var active: int = 0
+	var refused: int = 0
+	for node: Node in get_tree().get_nodes_in_group(Const.GROUP_BULLET_MANAGERS):
+		var manager: BulletManager = node as BulletManager
+		if manager == null:
+			continue
+		active += manager.active_count
+		refused += manager.refused_count
+	return Vector2i(active, refused)
 
 
 ## FPS at the 99th percentile of recorded frame durations (sorts a copy; called twice a second only).

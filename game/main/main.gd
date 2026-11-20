@@ -3,8 +3,10 @@ extends Node
 ## Application root. Hosts the active scene and the UI layer.
 
 const SCALE_TEST_PATTERN_PATH: String = "res://debug/scale_test_pattern.tscn"
+const BULLET_LOAD_TEST_PATH: String = "res://debug/bullet_load_test.tscn"
 
 var _last_scale_factor: int = -1
+var _load_test_active: bool = false
 
 @onready var _active_scene: Node = %ActiveScene
 
@@ -14,7 +16,7 @@ func _ready() -> void:
 	if OS.is_debug_build():
 		_check_viewport_size()
 		_check_collision_layer_names()
-		_spawn_scale_test_pattern()
+		_show_debug_scene(SCALE_TEST_PATTERN_PATH)
 	get_window().size_changed.connect(_on_window_size_changed)
 	_on_window_size_changed()
 
@@ -36,12 +38,24 @@ func _check_collision_layer_names() -> void:
 			assert(false, "Collision layer names out of sync with Const")
 
 
-func _spawn_scale_test_pattern() -> void:
-	var pattern_scene: PackedScene = load(SCALE_TEST_PATTERN_PATH) as PackedScene
-	if pattern_scene == null:
-		Log.warn("ui", "scale test pattern not found at %s" % SCALE_TEST_PATTERN_PATH)
+func _unhandled_input(event: InputEvent) -> void:
+	if not OS.is_debug_build():
 		return
-	_active_scene.add_child(pattern_scene.instantiate())
+	if event.is_action_pressed("debug_load_test"):
+		_load_test_active = not _load_test_active
+		_show_debug_scene(BULLET_LOAD_TEST_PATH if _load_test_active else SCALE_TEST_PATTERN_PATH)
+		get_viewport().set_input_as_handled()
+
+
+## Debug only: replaces the content of ActiveScene by a debug scene.
+func _show_debug_scene(path: String) -> void:
+	var debug_scene: PackedScene = load(path) as PackedScene
+	if debug_scene == null:
+		Log.warn("ui", "debug scene not found at %s" % path)
+		return
+	for child: Node in _active_scene.get_children():
+		child.queue_free()
+	_active_scene.add_child(debug_scene.instantiate())
 
 
 func _on_window_size_changed() -> void:

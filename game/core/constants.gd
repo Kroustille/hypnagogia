@@ -4,6 +4,9 @@ class_name Const
 const TILE_SIZE: int = 16
 const VIEWPORT: Vector2i = Vector2i(640, 360)
 
+## Node group of every BulletManager, read by the F3 overlay.
+const GROUP_BULLET_MANAGERS: StringName = &"bullet_managers"
+
 ## Integer scale factor the engine applies to a window of this size (0 when the window is smaller than the viewport, e.g. minimized).
 @warning_ignore("integer_division")
 static func integer_scale(window_size: Vector2i) -> int:
