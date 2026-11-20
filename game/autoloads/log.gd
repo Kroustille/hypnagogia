@@ -56,5 +56,10 @@ func _write(level: String, category: String, message: String) -> String:
 
 
 func _timestamp() -> String:
-	var millis: int = int(fposmod(Time.get_unix_time_from_system(), 1.0) * 1000.0)
-	return "%s.%03d" % [Time.get_time_string_from_system(), millis]
+	# Single clock read so the seconds and the milliseconds can never disagree.
+	var now: float = Time.get_unix_time_from_system()
+	var time_zone: Dictionary = Time.get_time_zone_from_system()
+	var bias_minutes: int = time_zone.get("bias", 0)
+	var local_seconds: int = int(now) + bias_minutes * 60
+	var millis: int = int((now - floorf(now)) * 1000.0)
+	return "%s.%03d" % [Time.get_time_string_from_unix_time(local_seconds), millis]

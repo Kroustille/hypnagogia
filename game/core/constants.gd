@@ -4,6 +4,12 @@ class_name Const
 const TILE_SIZE: int = 16
 const VIEWPORT: Vector2i = Vector2i(640, 360)
 
+## Integer scale factor the engine applies to a window of this size (0 when the window is smaller than the viewport, e.g. minimized).
+@warning_ignore("integer_division")
+static func integer_scale(window_size: Vector2i) -> int:
+	return mini(window_size.x / VIEWPORT.x, window_size.y / VIEWPORT.y)
+
+
 ## Physics layer bitmasks. Must stay aligned with [layer_names] in project.godot.
 const LAYER_WALLS: int = 1 << 0
 const LAYER_HIGH_OBSTACLES: int = 1 << 1

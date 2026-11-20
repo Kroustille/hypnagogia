@@ -4,15 +4,27 @@ extends Node
 
 const SCALE_TEST_PATTERN_PATH: String = "res://debug/scale_test_pattern.tscn"
 
+var _last_scale_factor: int = -1
+
 @onready var _active_scene: Node = %ActiveScene
 
 
 func _ready() -> void:
+	get_window().min_size = Const.VIEWPORT
 	if OS.is_debug_build():
+		_check_viewport_size()
 		_check_collision_layer_names()
 		_spawn_scale_test_pattern()
 	get_window().size_changed.connect(_on_window_size_changed)
 	_on_window_size_changed()
+
+
+func _check_viewport_size() -> void:
+	var width: int = ProjectSettings.get_setting("display/window/size/viewport_width", 0)
+	var height: int = ProjectSettings.get_setting("display/window/size/viewport_height", 0)
+	if Vector2i(width, height) != Const.VIEWPORT:
+		Log.error("ui", "project viewport is %dx%d, Const.VIEWPORT is %s" % [width, height, Const.VIEWPORT])
+		assert(false, "Viewport size out of sync with Const")
 
 
 func _check_collision_layer_names() -> void:
@@ -34,5 +46,10 @@ func _spawn_scale_test_pattern() -> void:
 
 func _on_window_size_changed() -> void:
 	var size: Vector2i = get_window().size
-	var factor: int = maxi(1, mini(size.x / Const.VIEWPORT.x, size.y / Const.VIEWPORT.y))
-	Log.info("ui", "window resized size=%dx%d scale=x%d" % [size.x, size.y, factor])
+	var factor: int = Const.integer_scale(size)
+	# Only log real scale changes: size_changed fires continuously while the user drags a window edge.
+	# A factor of 0 means the window is minimized.
+	if factor < 1 or factor == _last_scale_factor:
+		return
+	_last_scale_factor = factor
+	Log.info("ui", "window scale changed size=%dx%d scale=x%d" % [size.x, size.y, factor])
