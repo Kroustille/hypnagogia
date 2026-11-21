@@ -4,7 +4,7 @@ baseline_commit: 816127d83f82b0b0a7a2c5eae6428368f349e668
 
 # Story 2.2 : Mourir et relancer en moins de 3 secondes
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -38,32 +38,32 @@ afin de relancer sans attendre.
 
 ## Tâches / sous-tâches
 
-- [ ] **T1. Lexique** (AR32 : un terme entre dans le lexique **avant** le code)
-  - [ ] `game-architecture.md`, section « Lexique » : ajouter `Run, nuit, partie ; mort ; issue de la run ; écran de réveil ; se rendormir, relancer ; emplacement de salle ; transition ; couche de décor | run ; death ; outcome ; wake_screen ; restart ; room_slot ; transition ; decor`.
-  - [ ] `game-architecture.md`, section « Temps (D7) » : une ligne « pendant l'écran de réveil, `Main` fige aussi `ActiveScene` et `GameClock.paused`, sans menu de pause (story 2.2) ». Section « Rendu (D13) » : une ligne « couches de décor en `z_index` = `Const.Z_INDEX_DECOR` : le joueur vit dans `Run`, hors de la salle (story 2.2) ».
-- [ ] **T2. Ordre du coup mortel et mort du joueur** (CA 2, 4, 5, 6)
-  - [ ] `combat/health.gd` : `changed` avant `died` (voir « `Health` »).
-  - [ ] `player/player.gd` : signal local `died`, `_die()`, mort traitée après `Events.player_hit`, `_update_blink()` aux transitions seulement (voir « Joueur »).
-- [ ] **T3. `Run`** (CA 1, 2, 3, 5)
-  - [ ] `run/run.tscn` + `run/run.gd` : `Player` et `RoomSlot`, arène instanciée en code, joueur placé, `Events.run_ended`, logs `run` (voir « `Run` »).
-  - [ ] `autoloads/events.gd` : signal `run_ended(outcome: int)`.
-  - [ ] `core/constants.gd` : `Z_INDEX_DECOR`.
-- [ ] **T4. Arène sans joueur propre** (CA 1, 10)
-  - [ ] `rooms/arena/arena.tscn` : retirer le nœud `Player`. `rooms/arena/arena.gd` : `setup(player)`, `player_spawn_position()`, décor en `Const.Z_INDEX_DECOR` (voir « Arène »).
-- [ ] **T5. Écran de réveil** (CA 2, 3, 7, 8)
-  - [ ] Action `restart` (R) dans `project.godot`.
-  - [ ] `ui/menus/wake_screen.tscn/.gd` : titre, bouton « Se rendormir (R) », garde de 0,3 s, signal `restart_requested` (voir « Écran de réveil »).
-  - [ ] `localization/strings.csv` : `UI_WAKE_TITLE`, `UI_WAKE_RESTART` ; réimporter.
-- [ ] **T6. `Main`** (CA 1, 3, 7)
-  - [ ] `main/main.tscn` : `Transition` (`CanvasLayer`, `layer = 2`).
-  - [ ] `main/main.gd` : `_start_run()`, `_freeze()`, `_run_over`, écran de réveil, relance, F5 entre test de charge et partie (voir « `Main` »).
-- [ ] **T7. Panneau F1** (CA 9)
-  - [ ] `combat/bullets/bullet_manager.gd` : `has_hurtbox(hurtbox) -> bool` (lecture seule).
-  - [ ] `debug/debug_panel.gd` : `_find_enemy_manager()` par `has_hurtbox(player.hurtbox)`.
-- [ ] **T8. Vérifications headless** (CA 1 à 12) : scripts jetables du scratchpad (voir « Stratégie de test »).
-- [ ] **T9. Vérifications fenêtrées sous WSLg** (CA 2, 7, 10) : écran de réveil lisible, ordre de dessin, curseur, captures.
-- [ ] **T10. Régression** : import et lancement sans erreur, recherche des interdits, marche, dash, tir, coups, pause, F1 à F5, test de charge.
-- [ ] **T11. Reports** : mettre à jour `deferred-work.md` (entrées résolues, voir « Reports traités par cette story » ; nouvelles entrées NON ÉVALUÉ / NON VÉRIFIÉ, voir « Stratégie de test » point 10).
+- [x] **T1. Lexique** (AR32 : un terme entre dans le lexique **avant** le code)
+  - [x] `game-architecture.md`, section « Lexique » : ajouter `Run, nuit, partie ; mort ; issue de la run ; écran de réveil ; se rendormir, relancer ; emplacement de salle ; transition ; couche de décor | run ; death ; outcome ; wake_screen ; restart ; room_slot ; transition ; decor`.
+  - [x] `game-architecture.md`, section « Temps (D7) » : une ligne « pendant l'écran de réveil, `Main` fige aussi `ActiveScene` et `GameClock.paused`, sans menu de pause (story 2.2) ». Section « Rendu (D13) » : une ligne « couches de décor en `z_index` = `Const.Z_INDEX_DECOR` : le joueur vit dans `Run`, hors de la salle (story 2.2) ».
+- [x] **T2. Ordre du coup mortel et mort du joueur** (CA 2, 4, 5, 6)
+  - [x] `combat/health.gd` : `changed` avant `died` (voir « `Health` »).
+  - [x] `player/player.gd` : signal local `died`, `_die()`, mort traitée après `Events.player_hit`, `_update_blink()` aux transitions seulement (voir « Joueur »).
+- [x] **T3. `Run`** (CA 1, 2, 3, 5)
+  - [x] `run/run.tscn` + `run/run.gd` : `Player` et `RoomSlot`, arène instanciée en code, joueur placé, `Events.run_ended`, logs `run` (voir « `Run` »).
+  - [x] `autoloads/events.gd` : signal `run_ended(outcome: int)`.
+  - [x] `core/constants.gd` : `Z_INDEX_DECOR`.
+- [x] **T4. Arène sans joueur propre** (CA 1, 10)
+  - [x] `rooms/arena/arena.tscn` : retirer le nœud `Player`. `rooms/arena/arena.gd` : `setup(player)`, `player_spawn_position()`, décor en `Const.Z_INDEX_DECOR` (voir « Arène »).
+- [x] **T5. Écran de réveil** (CA 2, 3, 7, 8)
+  - [x] Action `restart` (R) dans `project.godot`.
+  - [x] `ui/menus/wake_screen.tscn/.gd` : titre, bouton « Se rendormir (R) », garde de 0,3 s, signal `restart_requested` (voir « Écran de réveil »).
+  - [x] `localization/strings.csv` : `UI_WAKE_TITLE`, `UI_WAKE_RESTART` ; réimporter.
+- [x] **T6. `Main`** (CA 1, 3, 7)
+  - [x] `main/main.tscn` : `Transition` (`CanvasLayer`, `layer = 2`).
+  - [x] `main/main.gd` : `_start_run()`, `_freeze()`, `_run_over`, écran de réveil, relance, F5 entre test de charge et partie (voir « `Main` »).
+- [x] **T7. Panneau F1** (CA 9)
+  - [x] `combat/bullets/bullet_manager.gd` : `has_hurtbox(hurtbox) -> bool` (lecture seule).
+  - [x] `debug/debug_panel.gd` : `_find_enemy_manager()` par `has_hurtbox(player.hurtbox)`.
+- [x] **T8. Vérifications headless** (CA 1 à 12) : scripts jetables du scratchpad (voir « Stratégie de test »).
+- [x] **T9. Vérifications fenêtrées sous WSLg** (CA 2, 7, 10) : écran de réveil lisible, ordre de dessin, curseur, captures.
+- [x] **T10. Régression** : import et lancement sans erreur, recherche des interdits, marche, dash, tir, coups, pause, F1 à F5, test de charge.
+- [x] **T11. Reports** : mettre à jour `deferred-work.md` (entrées résolues, voir « Reports traités par cette story » ; nouvelles entrées NON ÉVALUÉ / NON VÉRIFIÉ, voir « Stratégie de test » point 10).
 
 ## Dev Notes
 
@@ -488,14 +488,42 @@ Aucune bloquante. Points à faire valider par Kroustille en fin d'epic : les dé
 
 ### Agent Model Used
 
+Claude Sonnet 5.5 (`claude-sonnet-5-5`), workflow `gds-dev-story` en mode pipeline non interactif.
+
 ### Debug Log References
+
+- Vérifications du scratchpad (`game/.scratch`, exclu de git) : `run_all.sh` lance `t_health`, `t_arena`, `t_misc`, `t_death`, `t_isolated`, `t_load`, `t_invalid` ; `t_shots22` (captures fenêtrées, `SHOT_DIR=...`) et `probe_focus` (sonde Entrée) à part. Dernier passage : 7 scènes `PASS` (t_health 16, t_arena 23, t_misc 30, t_death 86, t_isolated 6, t_load 3, t_invalid 1 contrôles `ok`), zéro `SCRIPT ERROR`, zéro `Parse Error` ; `--import` puis `--quit-after 120` : seul `settings.cfg missing` (connu).
+- Contrôles par mutation (le mécanisme est absent, le contrôle doit échouer), faits à la main puis annulés : sans `set_physics_process(false)` dans `_die()` → 2 échecs de `t_isolated` ; sans `_freeze(true)` dans `Main` → 4 échecs de `t_death` (gel, bullet en vol, F5) ; avec le `visible = true` forcé dans `_update_blink()` → 2 échecs de `t_death` (clignotement).
+- Recherche des interdits : seules des occurrences en commentaires (`main.gd`, `perf_overlay.gd`, `dash.gd`, `game_clock.gd`) ; `GameClock.paused` n'est écrit que dans `main.gd` (`_freeze()`) ; aucune chaîne française dans `game/ui/` ni `game/run/`.
 
 ### Completion Notes List
 
 - Analyse de contexte terminée : guide d'implémentation complet créé (create-story, 2026-11-21).
+- **Implémenté** (T1 à T7, T10, T11) : lexique et lignes D7/D13 ; `Health` émet `changed` avant `died` ; `Player.died`, `_die()`, mort traitée après `Events.player_hit`, `_update_blink()` aux transitions ; `Run` (`Player` puis `RoomSlot`, arène instanciée en code, `Outcome.DEATH = 0`, `Events.run_ended`) ; arène sans joueur (`setup()`, `player_spawn_position()`, décor en `Z_INDEX_DECOR`) ; action `restart` (R), `WakeScreen` (garde de 0,3 s en ticks bruts) ; `Main` (`_start_run()`, `_freeze()`, `_run_over`, `Transition` vide, F5 entre test de charge et partie) ; `BulletManager.has_hurtbox()` et panneau F1.
+- **Ordre du coup mortel** : `Run` est le premier auditeur de `Player.died` ; son `run_ended` part donc *pendant* l'émission de `died`, avant qu'un auditeur ajouté plus tard ne la reçoive. Le contrôle enregistre `[changed, player_hit, run_ended, died]` et prouve par la pile d'appels que `run_ended` sort du gestionnaire `_on_player_died` (même image physique pour les quatre). C'est l'ordre voulu (`player_hit` → mort du joueur → `run_ended`) ; le tableau de la story le lisait comme l'ordre d'*émission* de `died` et de *déclenchement* de `run_ended`.
+- **Chaque contrôle isole son mécanisme** : le gel (`Main`) est isolé par un projectile déjà en vol (position exacte gardée 60 ticks ; contrôle : il avance quand la partie tourne) ; l'arrêt du joueur mort (`_die()`) par `t_isolated` sans `Main` (contrôle : le joueur vivant avance et tire sous les mêmes entrées) ; le clignotement par un sprite masqué hors invulnérabilité (l'ancien code le montrait au tick suivant) ; la garde de 0,3 s par une relance ignorée à 5 ticks (touche, Entrée, clic) puis acceptée une fois armée (trois chemins : R, Entrée sur le bouton focalisé, clic de souris simulé) ; le cache par l'`instance_id` des `PackedScene` arène et `run` identique avant et après cinq relances ; F1 par `player.get_parent() != eb.get_parent()` (l'ancienne règle du parent partagé aurait échoué).
+- **Un seul `run_ended` par mort** : deux balles mortelles au même tick (cycle 1 de `t_death`) → un seul ; deux `receive()` mortels au même tick sur un `Run` isolé → le second est refusé.
+- **Relance** : arbre stable à 106 nœuds après chaque relance (cycles 1 à 5, mesure une image après), 0 orphelin, `enemy_damaged` sans connexion en plus. NFR3 : garde armée 18 ticks après l'ouverture ; relance demandée à ≈ 340 à 370 ms de la mort, `_start_run()` ≈ 30 à 70 ms en headless (inclut 2 ticks de latence d'entrée simulée).
+- **Découvertes d'environnement** : (1) un `Button` ne se presse qu'au *relâchement* (`action_mode` par défaut) : pour `ui_accept` il faut un `InputEventKey` Entrée pressé puis relâché, et une action `ui_accept` simulée (`InputEventAction`) n'atteint pas le bouton ; (2) un clic simulé doit être exprimé en pixels de fenêtre (coordonnées du viewport × échelle de fenêtre) ; (3) les `Callable` d'un test connectés à `Player.died` passent après `Run` (voir ci-dessus).
+- **Vérifications de 2.1 relancées**, adaptées là où 2.2 change le comportement : `t_arena`, `t_misc`, `t_shot`, `p_dash` trouvent l'arène par `Run/RoomSlot` (le joueur n'est plus son frère) ; `t_arena` : le joueur mort a le sprite **masqué** (était visible), l'aller-retour F5 commence par une relance (F5 est ignoré derrière l'écran de réveil), « joueur mort intouchable » est désormais aussi couvert par le gel (le mécanisme propre est prouvé par `t_isolated`), et le contrôle dash K=1, qui échouait déjà au commit de base `816127d` (le coup arrive un tick avant que l'entrée n'atteigne le joueur), est affirmé comme un coup. `t_health` et `t_invalid` inchangés (`t_invalid` affirme maintenant son résultat attendu : deux refus et deux assertions).
+- **Écarts** : `strings.fr.translation` n'est pas versionné (`*.translation` est dans `.gitignore`), la story annonçait le contraire : rien à commiter. `_show_scene()` prend une `PackedScene` et renvoie toujours `true` (la signature `bool` est conservée) ; le chargement du test de charge reste par `load()` dans la branche F5, avec `Log.warn` si introuvable.
+- **NON ÉVALUÉ / NON VÉRIFIÉ** (étapes humaines, consignées dans `deferred-work.md`) : ressenti de la relance et de la garde de 0,3 s ; lisibilité de l'écran de réveil à l'œil ; relance en moins de 3 s sur la machine de référence et en export (story 1.8) ; bouton A à la manette et invite « (R) » (story 1.7) ; tirs au-dessus du joueur non photographiés. Captures WSLg faites : écran de réveil pendant et après la garde, partie, nouvelle partie ; curseur visible sur l'écran, caché en jeu (`Input.mouse_mode` 0 puis 1), F1 lisible au-dessus de l'écran.
 
 ### File List
+
+- `game/combat/health.gd` (modifié)
+- `game/combat/bullets/bullet_manager.gd` (modifié : `has_hurtbox()`)
+- `game/player/player.gd` (modifié)
+- `game/autoloads/events.gd`, `game/core/constants.gd` (modifiés)
+- `game/run/run.tscn`, `game/run/run.gd`, `game/run/run.gd.uid` (nouveaux)
+- `game/rooms/arena/arena.tscn`, `game/rooms/arena/arena.gd` (modifiés)
+- `game/ui/menus/wake_screen.tscn`, `game/ui/menus/wake_screen.gd`, `game/ui/menus/wake_screen.gd.uid` (nouveaux)
+- `game/main/main.tscn`, `game/main/main.gd` (modifiés)
+- `game/project.godot` (action `restart`), `game/localization/strings.csv` (`UI_WAKE_*`)
+- `game/debug/debug_panel.gd` (modifié)
+- `_bmad-output/game-architecture.md` (lexique, D7, D13), `_bmad-output/implementation-artifacts/deferred-work.md`, `sprint-status.yaml`, cette story
 
 ### Change Log
 
 - 2026-11-21 : story 2.2 créée (`ready-for-dev`).
+- 2026-11-21 : story 2.2 implémentée, vérifiée en headless et sous WSLg, passée en `review`.
