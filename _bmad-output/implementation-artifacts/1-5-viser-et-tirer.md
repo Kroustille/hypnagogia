@@ -1,6 +1,10 @@
+---
+baseline_commit: f8c2c0fc37d85ce9bdaa7d6d4f62452ba11d9ccf
+---
+
 # Story 1.5 : Viser et tirer
 
-Status: ready-for-dev
+Status: in-progress
 
 ## Story
 

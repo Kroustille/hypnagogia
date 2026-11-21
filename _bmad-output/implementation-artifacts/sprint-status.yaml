@@ -48,7 +48,7 @@ development_status:
   1-2-valider-400-projectiles-a-60-fps: done
   1-3-se-deplacer-dans-l-arene: done
   1-4-dasher: done
-  1-5-viser-et-tirer: ready-for-dev
+  1-5-viser-et-tirer: in-progress
   1-6-mettre-en-pause-et-regler-le-jeu: backlog
   1-7-jouer-a-la-manette-ou-au-clavier-souris-avec-ses-propres-touches: backlog
   1-8-exporter-pour-windows-et-macos-et-mesurer-la-latence: backlog

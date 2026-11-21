@@ -668,6 +668,7 @@ hypnagogia/
 | Renfort ; télégraphe | `reinforcement` ; `telegraph` |
 | Arène ; bande de HUD | `arena` ; `hud_band` |
 | Dash ; invulnérabilité du dash ; recharge ; tampon d'entrée | `dash` ; `dash_invulnerability` ; `cooldown` ; `input_buffer` |
+| Tir ; cadence ; recul du tir ; visée ; réticule ; cible d'entraînement | `shot` ; `fire_rate` ; `recoil` ; `aim` ; `reticle` ; `training_target` |
 
 Tout nouveau terme du GDD entre dans ce lexique avant d'apparaître dans le code.
 
