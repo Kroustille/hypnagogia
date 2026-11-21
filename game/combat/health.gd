@@ -7,7 +7,7 @@ extends Node
 
 ## Half-hearts, max half-hearts or armor changed.
 signal changed
-## Emitted once, when half-hearts reach 0.
+## Emitted once, after changed, when half-hearts reach 0.
 signal died
 
 ## Margin against floating point rounding when comparing ticks.
@@ -85,10 +85,11 @@ func apply_damage(info: DamageInfo) -> int:
 	if half_hearts <= 0:
 		_dead = true
 		_hit_ticks_left = 0.0
+		changed.emit()
 		died.emit()
 	else:
 		_hit_ticks_left = _hit_ticks
-	changed.emit()
+		changed.emit()
 	return taken_armor + taken_hearts
 
 
