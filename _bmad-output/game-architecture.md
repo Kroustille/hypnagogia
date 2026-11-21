@@ -667,6 +667,7 @@ hypnagogia/
 | Pacte ; salle d'oubli ; meubles du rêve ; trous | `pact` ; `oblivion_room` ; `furniture` ; `pits` |
 | Renfort ; télégraphe | `reinforcement` ; `telegraph` |
 | Arène ; bande de HUD | `arena` ; `hud_band` |
+| Dash ; invulnérabilité du dash ; recharge ; tampon d'entrée | `dash` ; `dash_invulnerability` ; `cooldown` ; `input_buffer` |
 
 Tout nouveau terme du GDD entre dans ce lexique avant d'apparaître dans le code.
 
