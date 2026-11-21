@@ -57,8 +57,8 @@ development_status:
   epic-1-retrospective: optional
 
   # Epic 2: Survivre aux cauchemars de l'Endormissement
-  epic-2: backlog
-  2-1-encaisser-des-coups: backlog
+  epic-2: in-progress
+  2-1-encaisser-des-coups: ready-for-dev
   2-2-mourir-et-relancer-en-moins-de-3-secondes: backlog
   2-3-affronter-le-somnambule: backlog
   2-4-affronter-la-veilleuse-et-la-berceuse: backlog
