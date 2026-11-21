@@ -4,7 +4,7 @@ baseline_commit: 4edd0bc92bc1e7eaa0d3f058065e5a8d334d10fe
 
 # Story 1.6 : Mettre en pause et régler le jeu
 
-Status: review
+Status: done
 
 ## Story
 
@@ -67,6 +67,20 @@ afin de jouer dans de bonnes conditions.
 - [x] **T11. Vérifications fenêtrées sous WSLg** (CA 1, 2, 3, 5, 7, 8, 9) : menus, police nette, plein écran, curseur, captures.
 - [x] **T12. Régression** : import et lancement sans erreur, recherche des interdits, marche, dash, tir, F2 à F5 conformes.
 - [x] **T13. Reports** : mettre à jour `deferred-work.md` (entrées résolues : `GameClock.paused` ↔ `SceneTree.paused`, curseur en pause, lecteurs `Audio` figés en pause ; ce qui n'a pas pu être vérifié : manette réelle, plein écran sous Windows, VSync réelle).
+
+### Review Findings
+
+Revue de code du 2026-11-21 (chasseur aveugle, chasseur de cas limites, auditeur des critères) : aucun critère d'acceptation violé ; 4 corrections, 4 reports, 11 constats écartés.
+Les 4 corrections sont appliquées et vérifiées en headless (glissement interrompu par Échap : bus, `Settings` et fichier à 0,3 ; fichier illisible (erreur 43) mis en quarantaine, fichier impossible à ouvrir (erreur 12) laissé en place ; clic sans changement : aucun aperçu, pas au clavier : aperçu ; 0,83 affiché 85 %).
+
+- [x] [Review][Patch] Échap, Start ou B pendant le glissement d'un curseur de volume ferme le menu sans `drag_ended` : le bus garde le volume d'aperçu, `Settings` garde l'ancien, rien n'est écrit, le menu rouvert affiche l'ancienne valeur et le lancement suivant la restaure (reproduit en headless : Musique glissée à 30 %, Échap → bus à 0,3, `Settings.volume` à 1,0) [game/ui/menus/settings_menu.gd:74]
+- [x] [Review][Patch] Toute erreur de chargement autre que « fichier absent » (fichier verrouillé par un antivirus ou une synchro, droits : `ERR_FILE_CANT_OPEN`) renomme un `settings.cfg` sain en `.corrupt` : ne mettre en quarantaine que sur une erreur d'analyse [game/autoloads/settings.gd:68]
+- [x] [Review][Patch] L'aperçu sonore SFX joue même quand le volume ne change pas (clic sur la poignée sans la bouger, glissement relâché au point de départ), contre CA 14 « quand le volume SFX change » [game/ui/menus/settings_menu.gd:87]
+- [x] [Review][Patch] À l'ouverture, le pourcentage affiché (`roundf(volume × 100)`, par exemple 83 %) peut différer de la position du curseur arrondie au pas de 5 (85) [game/ui/menus/settings_menu.gd:64]
+- [x] [Review][Defer] `settings.cfg.tmp` resté après un plantage ou un renommage raté : ni nettoyé ni récupéré au chargement [game/autoloads/settings.gd:61] — deferred, latent
+- [x] [Review][Defer] `Settings.fullscreen` jamais resynchronisé avec un mode de fenêtre changé par le système ; le retour du plein écran oublie l'état maximisé [game/autoloads/settings.gd:201] — deferred, plein écran sous Windows (story 1.8)
+- [x] [Review][Defer] Montant des chiffres de dégâts non validé (NaN → nombre aberrant, négatif, fraction < 0,5 → « 0 », plus de 4 chiffres débordent le `Label` de 40 px) [game/vfx/damage_number.gd:44] — deferred, latent (dégâts fixes à 10 aujourd'hui)
+- [x] [Review][Defer] `Events.enemy_damaged` est émis pour tout coup reçu, même si l'ennemi l'ignore (invulnérable, déjà mort) : chiffres et télémétrie compteraient des dégâts fictifs [game/combat/hurtbox.gd:41] — deferred, à trancher avec `Health` et la mort (story 2.1)
 
 ## Dev Notes
 
@@ -544,3 +558,4 @@ Claude Opus 5.5 (claude-opus-5-5)
 ### Change Log
 
 - 2026-11-21 : implémentation de la story 1.6 (pause et réglages persistants, localisation, police pixel et thème, chiffres de dégâts) ; correction du suivi de la taille de fenêtre de `Main` ; statut → review.
+- 2026-11-21 : revue de code (4 corrections appliquées, 4 reports dans `deferred-work.md`) ; statut → done.

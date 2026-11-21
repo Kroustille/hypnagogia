@@ -75,3 +75,10 @@
 - **`HSlider` ne dessine pas le style `focus`** en Godot 4.7 : le focus d'un curseur se voit par le curseur et le remplissage éclairés (thème). À revoir avec la palette de la story 7.2.
 - **Police pixel provisoire** (Pixel Operator, CC0) et couleurs du thème provisoires : à revoir avec la story 7.2. Chiffres de dégâts (0,5 s, 8 px, décalages 0/−6/6/−3/3 px) à juger à l'œil.
 - **`settings.cfg` sans section `[input]`** : réservée à la story 1.7.
+
+## Deferred from: code review of story 1-6 (2026-11-21)
+
+- `settings.cfg.tmp` laissé par un plantage entre l'écriture et le renommage, ou par un renommage raté : `load_from()` l'ignore (ni nettoyage, ni récupération si le fichier principal manque). Latent.
+- `Settings.fullscreen` n'est jamais resynchronisé avec `Window.mode` quand le système change le mode (bouton agrandir, raccourci de la plateforme, mode refusé) : la case affiche alors un état faux et un clic peut être sans effet. Le retour du plein écran force `MODE_WINDOWED` et oublie l'état maximisé. À revoir avec le plein écran sous Windows (story 1.8).
+- Montant des chiffres de dégâts non validé dans `DamageNumber` / `DamageNumbers` : `roundi(NAN)` donne un nombre aberrant, une fraction < 0,5 affiche « 0 », un négatif s'affiche tel quel, plus de 4 chiffres débordent le `Label` de 40 px. Latent (dégâts fixes à 10).
+- `Hurtbox.receive()` émet `Events.enemy_damaged` pour tout coup, même ignoré par l'ennemi (invulnérable, déjà mort) : à n'émettre qu'après application des dégâts, avec `Health` et la mort (story 2.1).
