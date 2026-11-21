@@ -3,7 +3,7 @@ extends Area2D
 ## The zone where an entity takes hits. Holds no HP (its owner entrusts them to Health): receive() only emits
 ## a signal that the owner listens to, and does nothing when the hurtbox cannot be hit (is_hittable()).
 ## BulletManagers do not use physics (D1): they read world_rect() of the hurtboxes registered with them.
-## The collision layer is for future Area2D consumers (contact, epic 2).
+## The collision layer is for future physics readers (the Glide ray cast, epic 3): contact is the Hitbox, tested by hand.
 ## Its CollisionShape2D child must hold a RectangleShape2D; it joins the F2 debug group.
 
 ## Local signal: the owner (parent) listens.
@@ -16,6 +16,7 @@ signal damage_received(info: DamageInfo)
 ## Set on the player's hurtbox: its first hit opens the invulnerability (story 2.1).
 @export var one_hit_per_tick: bool = false
 
+var _refused: bool = false
 var _filter_error_reported: bool = false
 var _hit_filter: Callable # set by the owner; returns bool: "can this hurtbox be hit now?"
 var _shape_node: CollisionShape2D
@@ -63,16 +64,28 @@ func is_hittable() -> bool:
 
 ## Emits damage_received. The only entry point for damage (AR: DamageInfo -> Hurtbox.receive()).
 ## Returns false and emits nothing when the hurtbox cannot be hit.
+## Also returns false, without Events.enemy_damaged, when the owner refused the hit in its handler (refuse_hit()).
 ## An enemy hurtbox also notifies Events.enemy_damaged (damage numbers, telemetry)
 ## after damage_received (the owner applies the hit synchronously in its handler).
 func receive(info: DamageInfo) -> bool:
 	if not is_hittable():
 		return false
+	_refused = false
 	damage_received.emit(info)
+	if _refused:
+		return false
 	if camp == BulletManager.Camp.ENEMY and _rectangle != null:
 		var rect: Rect2 = world_rect()
 		Events.enemy_damaged.emit(Vector2(rect.get_center().x, rect.position.y), info.amount)
 	return true
+
+
+## Called by the owner from its damage_received handler when it does not apply the hit (invalid amount, already
+## dead): receive() then returns false and notifies nothing more (no Events.enemy_damaged).
+## The owner is the only listener of damage_received. Outside a handler it has no effect (the flag is reset by
+## the next receive()).
+func refuse_hit() -> void:
+	_refused = true
 
 
 ## Axis-aligned rectangle of the shape, in global coordinates. Rotation and scale are ignored.

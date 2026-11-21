@@ -59,3 +59,10 @@ const Z_INDEX_DECOR: int = -1
 ## Physics tick priority of every BulletManager: they tick after the entities (priority 0), whatever their place
 ## in the tree, so hit tests read this tick's state of the hurtboxes (story 2.1).
 const PHYSICS_PRIORITY_BULLETS: int = 100
+
+## Physics tick priority of the contact Hitboxes: they tick after the entities (0) and before the BulletManagers
+## (100): they read this tick's positions and invulnerabilities (story 2.3).
+const PHYSICS_PRIORITY_HITBOXES: int = 50
+
+## Node group of the active room, one at a time (D14): found by debug tools without a node path.
+const GROUP_ROOM: StringName = &"room"

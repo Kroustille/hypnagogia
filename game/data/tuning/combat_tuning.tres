@@ -8,3 +8,5 @@ starting_half_hearts = 6
 heart_cap_half_hearts = 24
 hit_damage_half_hearts = 1
 hit_invulnerability_duration = 1.0
+min_telegraph = 0.4
+min_spawn_distance = 3.0
