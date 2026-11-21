@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ShotTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/shot_tuning.gd" id="1_tuning"]
+
+[resource]
+script = ExtResource("1_tuning")
+damage = 10.0
+fire_rate = 4.0
+bullet_speed = 14.0
+hitbox_size = 0.25
+lifetime = 10.0
+recoil_distance = 0.0625
+recoil_duration = 0.05
+impact_flash_duration = 0.05
+impact_knockback_distance = 0.125
+impact_knockback_duration = 0.05

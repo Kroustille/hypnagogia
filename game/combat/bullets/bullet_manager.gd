@@ -4,6 +4,8 @@ extends Node2D
 ## Bullets live in fixed-size parallel arrays with a free-slot stack, and are drawn by one
 ## MultiMeshInstance2D per appearance. Positions are local to this node, which must sit at the
 ## origin of the scene together with the solid TileMapLayers passed to setup().
+## Hurtboxes of the opposite camp are registered by the room that creates them (register_hurtbox()):
+## a bullet that overlaps one is freed and its damage is delivered through Hurtbox.receive().
 ## Never log from the update loops: counters are shown by the F3 overlay.
 
 enum Camp { ENEMY, PLAYER }
@@ -38,8 +40,19 @@ var _free_top: int = 0
 ## 1 + the highest slot ever used: upper bound of every loop.
 var _high_water: int = 0
 
+var _damages: PackedFloat32Array = PackedFloat32Array()
+
 var _multimeshes: Array[MultiMesh] = []
 var _render_counts: PackedInt32Array = PackedInt32Array()
+
+## Registered targets, in registration order: a bullet hits the first one it overlaps.
+var _targets: Array[Hurtbox] = []
+## Rect of each target in this node's space, refreshed once per tick (reused, never reallocated per tick).
+var _target_rects: Array[Rect2] = []
+## Hits of the current tick, delivered after the bullet loop (reused lists).
+var _hit_targets: Array[Hurtbox] = []
+var _hit_amounts: PackedFloat32Array = PackedFloat32Array()
+var _hit_directions: PackedVector2Array = PackedVector2Array()
 
 
 ## Dependency injection: call before add_child(). The layers (Walls, HighObstacles) stop bullets.
@@ -67,6 +80,7 @@ func _ready() -> void:
 	_lifetimes.resize(capacity)
 	_flags.resize(capacity)
 	_appearances.resize(capacity)
+	_damages.resize(capacity)
 	_free_slots.resize(capacity)
 	for i: int in capacity:
 		_free_slots[i] = capacity - 1 - i # pops give slot 0 first
@@ -96,6 +110,33 @@ func add_appearance(texture: Texture2D) -> int:
 	return _multimeshes.size() - 1
 
 
+## Adds a hurtbox of the opposite camp to the hit tests. It unregisters itself when it leaves the tree.
+func register_hurtbox(hurtbox: Hurtbox) -> void:
+	var problem: String = ""
+	if hurtbox == null:
+		problem = "no hurtbox"
+	elif hurtbox.camp == camp:
+		problem = "hurtbox %s is in the same camp as the bullets" % hurtbox.get_path()
+	elif _targets.has(hurtbox):
+		problem = "hurtbox %s is already registered" % hurtbox.get_path()
+	if not problem.is_empty():
+		Log.error("combat", "register_hurtbox() refused: %s" % problem)
+		assert(false, "Invalid hurtbox registration: %s" % problem)
+		return
+	_targets.append(hurtbox)
+	hurtbox.tree_exiting.connect(unregister_hurtbox.bind(hurtbox), CONNECT_ONE_SHOT)
+
+
+func unregister_hurtbox(hurtbox: Hurtbox) -> void:
+	var index: int = _targets.find(hurtbox)
+	if index == -1:
+		return
+	_targets.remove_at(index)
+	var callback: Callable = unregister_hurtbox.bind(hurtbox)
+	if hurtbox.tree_exiting.is_connected(callback):
+		hurtbox.tree_exiting.disconnect(callback)
+
+
 ## Fires one bullet. origin is in this node's local space, direction must be normalized.
 ## Returns false, without error or log, when the pool is full (the refusal is counted).
 func fire(params: BulletParams, origin: Vector2, direction: Vector2) -> bool:
@@ -113,6 +154,7 @@ func fire(params: BulletParams, origin: Vector2, direction: Vector2) -> bool:
 	_lifetimes[i] = params.lifetime
 	_flags[i] = FLAG_ACTIVE
 	_appearances[i] = params.appearance
+	_damages[i] = params.damage
 	_high_water = maxi(_high_water, i + 1)
 	active_count += 1
 	return true
@@ -134,6 +176,8 @@ func _is_shot_valid(params: BulletParams, direction: Vector2) -> bool:
 		problem = "lifetime %s must be finite and positive" % params.lifetime
 	elif not (params.radius >= 0.0):
 		problem = "radius %s must not be negative" % params.radius
+	elif not is_finite(params.damage) or params.damage < 0.0:
+		problem = "damage %s must be finite and not negative" % params.damage
 	elif not is_equal_approx(direction.length_squared(), 1.0):
 		problem = "direction %s is not normalized" % direction
 	if problem.is_empty():
@@ -147,13 +191,21 @@ func _physics_process(delta: float) -> void:
 	var step: float = delta * GameClock.scale(_clock_group) # one read per tick
 	if step <= 0.0:
 		return
+	var target_count: int = _targets.size()
+	if target_count > 0:
+		_refresh_target_rects()
 	for i: int in _high_water:
 		if _flags[i] & FLAG_ACTIVE == 0:
 			continue
 		_positions[i] += _velocities[i] * step
 		_lifetimes[i] -= step
-		if _lifetimes[i] <= 0.0 or _hits_solid(_positions[i]):
+		# Targets before walls: a shot that reaches a target standing against a wall still counts.
+		if target_count > 0 and _test_targets(i):
 			_free(i)
+		elif _lifetimes[i] <= 0.0 or _hits_solid(_positions[i]):
+			_free(i)
+	if not _hit_targets.is_empty():
+		_deliver_hits()
 
 
 func _process(_delta: float) -> void:
@@ -169,6 +221,46 @@ func _process(_delta: float) -> void:
 		_render_counts[appearance] = n + 1
 	for a: int in _multimeshes.size():
 		_multimeshes[a].visible_instance_count = _render_counts[a]
+
+
+func _refresh_target_rects() -> void:
+	_target_rects.resize(_targets.size())
+	for t: int in _targets.size():
+		var rect: Rect2 = _targets[t].world_rect()
+		rect.position = to_local(rect.position) # the manager sits at the origin, unscaled
+		_target_rects[t] = rect
+
+
+## Circle against rectangle, in registration order: one bullet hits at most one target (no pierce before epic 5).
+## Records the hit for _deliver_hits(); never calls a target during the loop.
+func _test_targets(i: int) -> bool:
+	var pos: Vector2 = _positions[i]
+	var radius_sq: float = _radii[i] * _radii[i]
+	for t: int in _target_rects.size():
+		var rect: Rect2 = _target_rects[t]
+		if rect.size == Vector2.ZERO:
+			continue
+		var closest: Vector2 = Vector2(
+			clampf(pos.x, rect.position.x, rect.end.x), clampf(pos.y, rect.position.y, rect.end.y)
+		)
+		if pos.distance_squared_to(closest) <= radius_sq:
+			_hit_targets.append(_targets[t])
+			_hit_amounts.append(_damages[i])
+			_hit_directions.append(_velocities[i].normalized())
+			return true
+	return false
+
+
+## After the loop: a receive() that frees its target must not touch the arrays being iterated.
+func _deliver_hits() -> void:
+	for h: int in _hit_targets.size():
+		var target: Hurtbox = _hit_targets[h]
+		# PLAYER_SHOT is the only source so far: the enemy camp adds its own with epic 2.
+		if is_instance_valid(target):
+			target.receive(DamageInfo.from_bullet(_hit_amounts[h], _hit_directions[h], DamageInfo.Source.PLAYER_SHOT))
+	_hit_targets.clear()
+	_hit_amounts.clear()
+	_hit_directions.clear()
 
 
 func _hits_solid(pos: Vector2) -> bool:
