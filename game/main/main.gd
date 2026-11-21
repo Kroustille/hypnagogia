@@ -12,6 +12,7 @@ const PAUSE_MENU_SCENE: PackedScene = preload("res://ui/menus/pause_menu.tscn")
 const SETTINGS_MENU_SCENE: PackedScene = preload("res://ui/menus/settings_menu.tscn")
 
 var _last_scale_factor: int = -1
+var _last_window_size: Vector2i = Vector2i.ZERO
 var _load_test_active: bool = false
 var _pause_menu: PauseMenu
 var _settings_menu: SettingsMenu
@@ -28,8 +29,7 @@ func _ready() -> void:
 		_ui.add_child(CollisionDrawer.new())
 	_setup_menus()
 	_show_scene(ARENA_PATH)
-	get_window().size_changed.connect(_on_window_size_changed)
-	_on_window_size_changed()
+	_check_window_scale()
 
 
 func _check_viewport_size() -> void:
@@ -141,10 +141,18 @@ func _on_settings_menu_back_requested() -> void:
 	_pause_menu.open(true)
 
 
-func _on_window_size_changed() -> void:
+## Window size polled each frame: size_changed only fires when the root viewport changes, and the viewport
+## stretch mode keeps it at 640x360 whatever the window (resize, fullscreen setting). Logs on scale changes only.
+func _process(_delta: float) -> void:
+	if get_window().size != _last_window_size:
+		_check_window_scale()
+
+
+func _check_window_scale() -> void:
 	var size: Vector2i = get_window().size
+	_last_window_size = size
 	var factor: int = Const.integer_scale(size)
-	# Only log real scale changes: size_changed fires continuously while the user drags a window edge.
+	# Only log real scale changes: the size changes continuously while the user drags a window edge.
 	# A factor of 0 means the window is minimized.
 	if factor < 1 or factor == _last_scale_factor:
 		return
