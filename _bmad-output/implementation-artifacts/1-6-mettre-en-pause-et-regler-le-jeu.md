@@ -30,6 +30,13 @@ afin de jouer dans de bonnes conditions.
 11. Le son continue de jouer pendant la pause (les lecteurs d'`Audio` ne sont pas dans `ActiveScene` : rien à changer, mais à vérifier) ; un changement de volume s'entend aussitôt.
 12. Marche, dash, tir, F2, F3, F4, F5 et le test de charge de 1.1 à 1.5 sont inchangés quand le jeu n'est pas en pause.
 
+**Ajouts décidés par Kroustille le 2026-11-21** (réponses aux questions ouvertes de la création) :
+
+13. **Pause automatique** : quand l'application perd le focus (alt-tab, clic hors de la fenêtre), le jeu se met en pause et le menu de pause s'ouvre, exactement comme avec Échap. Il ne reprend **pas** tout seul au retour du focus : le joueur reprend lui-même.
+14. **Aperçu sonore** : quand le volume `SFX` change dans les réglages (au relâchement du curseur, ou à chaque pas au clavier ou à la manette), le son de tir provisoire est joué sur le bus `SFX`, pour entendre aussitôt le niveau choisi. Pas d'aperçu pour `Master`, `Music` et `UI` (aucun son de musique ni d'interface n'existe encore).
+15. **Volume général à 80 % par défaut** (`Master` = 0,8) ; `Music`, `SFX` et `UI` à 100 %.
+16. **Un chiffre par coup** : chaque coup affiche son propre chiffre, décalé de façon déterministe par rapport au précédent sur la même zone pour rester lisible (pas de cumul, pas d'aléatoire).
+
 ## Tâches / sous-tâches
 
 - [ ] **T1. Lexique** (AR32 : un terme entre dans le lexique **avant** le code)
@@ -45,9 +52,9 @@ afin de jouer dans de bonnes conditions.
 - [ ] **T5. Action `pause`** (CA 1)
   - [ ] `project.godot` : action `pause` (Échap, Start) (voir « Entrées »).
 - [ ] **T6. Pause dans `Main`** (CA 1, 6, 7, 10)
-  - [ ] `main/main.gd` : `_set_paused()`, menus instanciés dans `UI`, gestion des entrées réorganisée (voir « `Main` et la pause »).
+  - [ ] `main/main.gd` : `_set_paused()`, menus instanciés dans `UI`, gestion des entrées réorganisée, pause automatique à la perte du focus (CA 13) (voir « `Main` et la pause »).
 - [ ] **T7. Menus** (CA 1, 2, 5, 9)
-  - [ ] `ui/menus/pause_menu.tscn/.gd` et `ui/menus/settings_menu.tscn/.gd` (voir « Menus »).
+  - [ ] `ui/menus/pause_menu.tscn/.gd` et `ui/menus/settings_menu.tscn/.gd`, avec l'aperçu sonore du volume `SFX` (CA 14) (voir « Menus »).
 - [ ] **T8. Curseur et réticule pendant la pause** (CA 8)
   - [ ] `player/reticle.gd` : `NOTIFICATION_DISABLED` / `NOTIFICATION_ENABLED` (voir « Réticule »).
 - [ ] **T9. Chiffres de dégâts** (CA 3)
@@ -72,7 +79,6 @@ Un menu de pause, un menu de réglages persistants, une police et un thème, la 
 | Écran de mort, « cette mort était-elle juste ? » | 2.2, 2.8 |
 | HUD | 2.7 |
 | Sons d'interface (bus `UI`), musique (bus `Music`), filtre passe-bas | 3.x, 7.x |
-| Pause automatique à la perte du focus de la fenêtre | non demandée (question ouverte) |
 | Langue autre que le français, choix de la langue | non demandé |
 
 ### État actuel du dépôt (stories 1.1 à 1.5 `done`)
@@ -112,7 +118,7 @@ Un menu de pause, un menu de réglages persistants, une police et un thème, la 
 
 | Section | Clé | Type | Défaut | Application |
 |---|---|---|---|---|
-| `audio` | `master` | `float` linéaire [0, 1] | 1,0 | volume du bus `Master` |
+| `audio` | `master` | `float` linéaire [0, 1] | **0,8** (décision de Kroustille) | volume du bus `Master` |
 | `audio` | `music` | `float` [0, 1] | 1,0 | bus `Music` |
 | `audio` | `sfx` | `float` [0, 1] | 1,0 | bus `SFX` |
 | `audio` | `ui` | `float` [0, 1] | 1,0 | bus `UI` |
@@ -202,6 +208,7 @@ func _set_paused(value: bool) -> void:
   - `SettingsMenu.back_requested` → cacher les réglages, remontrer le menu de pause, focus sur le bouton Réglages.
 - **Aucun tir parasite à la reprise** : les `Button` gardent `action_mode = ACTION_MODE_BUTTON_RELEASE` (défaut). Le clic qui valide « Reprendre » est donc déjà relâché quand le joueur relit `shoot`. Le vérifier en fenêtré (clic sur Reprendre → aucun tir).
 - Pause pendant le test de charge (F5) : autorisée, sans effet particulier (le test de charge se fige aussi).
+- **Pause automatique à la perte du focus** (CA 13) : dans `Main._notification(what)`, sur `NOTIFICATION_APPLICATION_FOCUS_OUT`, appeler `_set_paused(true)` (sans effet si le jeu est déjà en pause : `_set_paused` sort tout de suite). **Rien** sur `NOTIFICATION_APPLICATION_FOCUS_IN` : le joueur reprend lui-même. Vérifier en 4.7 (Context7) que cette notification arrive bien sur un nœud de la scène sur desktop (sinon, `NOTIFICATION_WM_WINDOW_FOCUS_OUT` de la fenêtre racine via `get_window().focus_exited`) et la consigner. `Log.info("ui", "game paused (focus lost)")` pour distinguer la cause. À noter pour les vérifications fenêtrées : un script de test qui fait perdre le focus à la fenêtre (clic dans le terminal) met le jeu en pause.
 
 ### Menus (FR10, FR66, AR22, CA 1, 2, 5, 9)
 
@@ -218,6 +225,7 @@ Deux scènes dans `game/ui/menus/` (arborescence de l'architecture : « menus : 
 - Les widgets appellent les setters de `Settings` (règle des frontières : `ui/` ne modifie que les réglages, et seulement via `Settings`). Curseurs : `preview_volume()` pendant le glissement, `set_volume()` sinon (voir « `Settings` »).
 - `_unhandled_input` : `pause` ou `ui_cancel` → `back_requested.emit()` (seulement si visible).
 - Signal local : `back_requested`.
+- **Aperçu sonore du volume `SFX`** (CA 14) : à chaque appel de `Settings.set_volume(&"SFX", …)` déclenché par le menu (donc au relâchement du curseur, ou à chaque pas au clavier ou à la manette, **jamais** pendant le glissement), jouer `Audio.play_sfx(PREVIEW_SOUND)`. `const PREVIEW_SOUND: AudioStream = preload("res://audio/sfx/sfx_player_shot.wav")` dans `settings_menu.gd`, commentée « placeholder preview, replaced with story 7.7 » (`ui/` ne dépend pas de `player/` : ne pas lire `Player.SHOT_SOUND`). La limite de voix d'`Audio` (3) évite l'empilement quand on maintient une flèche. Pas d'aperçu à l'ouverture du menu ni pour les autres bus.
 - Tout tient dans 640×360 avec la bande de HUD libre ou non (le menu recouvre l'écran) : 1 titre + 8 lignes d'environ 18 px. Vérifier sur une capture qu'aucun texte n'est coupé.
 
 **Textes** (CA 5) : tous assignés **en code** par `tr(&"CLE")` dans `_ready()` (le critère cite `tr("CLE")` : pas de texte littéral dans les `.tscn`, ni de reliance implicite sur la traduction automatique des `Control`). Les pourcentages par `tr(&"UI_SETTINGS_PERCENT") % valeur`. Aucun texte français dans le code.
@@ -312,6 +320,7 @@ signal enemy_damaged(world_position: Vector2, amount: float)
    - Créée **en code** par `Arena._ready()` et ajoutée **après** `PlayerBullets` (dessinée au-dessus des tirs) ; à l'origine de l'arène.
    - `_ready()` : `Events.enemy_damaged.connect(_on_events_enemy_damaged)` ; `_exit_tree()` : déconnecter (l'arène est recréée par F5).
    - `_on_events_enemy_damaged(world_position, amount)` : si `not Settings.damage_numbers`, ne rien faire ; sinon créer un `DamageNumber` (`setup(amount)` **avant** `add_child()`), position = `to_local(world_position)` + un petit décalage vers le haut.
+   - **Un chiffre par coup** (CA 16, pas de cumul) : pour que des chiffres rapprochés ne se recouvrent pas, chaque nouveau chiffre reçoit un décalage horizontal pris dans une courte liste constante, parcourue en boucle par un compteur de la couche (par exemple `[0, -6, 6, -3, 3]` px : valeurs visuelles locales). **Aucun aléatoire** (ni RNG global ni flux de `RunRng`, qui n'existe pas encore) : le décalage est déterministe.
    - Pas de pool : quelques nœuds par seconde au plus (4 tirs/s). L'architecture n'impose un pool qu'aux projectiles et effets d'impact ; si le profilage le demande plus tard, on en ajoutera un.
    - Activer le réglage pendant la partie prend effet au coup suivant (la valeur est lue à chaque coup) ; le désactiver laisse finir les chiffres déjà affichés.
 
@@ -370,7 +379,7 @@ Aucun framework de test (AR26 : avant le jalon B). Scripts jetables du scratchpa
 1. **Import et lancement** : `--import` puis `--quit-after 120` : zéro `SCRIPT ERROR`, zéro `Parse Error`, aucun avertissement nouveau ; `project.godot` sans bruit parasite ; la police, le CSV et le thème sont importés.
 2. **Localisation** : avec `TranslationServer.set_locale("en")` puis `"fr"`, `tr(&"UI_PAUSE_RESUME") == "Reprendre"` et `tr(&"UI_SETTINGS_FULLSCREEN") == "Plein écran"` ; aucune clé du CSV ne se traduit par elle-même ; recherche de chaînes littérales françaises dans `game/ui/` et `game/vfx/` : aucune.
 3. **`Settings`** :
-   - fichier absent → valeurs par défaut (`vsync == true`, `damage_numbers == false`, volumes à 1,0, `fullscreen == false`) et **un** `Log.warn` ; aucun fichier créé au démarrage ;
+   - fichier absent → valeurs par défaut (`vsync == true`, `damage_numbers == false`, `Master` à 0,8 et les trois autres volumes à 1,0, `fullscreen == false`) et **un** `Log.warn` ; aucun fichier créé au démarrage ;
    - fichier illisible (texte invalide écrit à la main) → défauts, `Log.warn`, fichier renommé en `.corrupt` ;
    - clé de mauvais type (`master="abc"`) ou hors bornes (`sfx=5.0`) → défaut ou borne, un `Log.warn` par clé ;
    - `set_volume(&"SFX", 0.5)` → `AudioServer.get_bus_volume_linear(SFX) ≈ 0.5`, le fichier contient `sfx=0.5`, aucun `.tmp` ne traîne ; `set_volume(&"Music", 0.0)` → bus `Music` muet ; `preview_volume()` applique sans écrire (date de modification ou contenu inchangé) ;
@@ -384,8 +393,11 @@ Aucun framework de test (AR26 : avant le jalon B). Scripts jetables du scratchpa
    - F5 et F4 simulés pendant la pause → ignorés (scène et `global_multiplier` inchangés) ; F3 et F2 → basculent ;
    - Quitter → `get_tree().quit()` appelé (vérifier par un log ou en le laissant fermer le processus du test).
    - **Notifications** : compter `NOTIFICATION_DISABLED` / `ENABLED` reçues par le réticule à la pause et à la reprise (1 et 1).
+   - **Pause automatique** (CA 13) : `main.notification(NOTIFICATION_APPLICATION_FOCUS_OUT)` simulé → jeu en pause, menu ouvert ; `NOTIFICATION_APPLICATION_FOCUS_IN` → **toujours** en pause ; perte de focus pendant une pause déjà ouverte (réglages affichés) → rien ne change. En fenêtré : alt-tab réel.
+   - **Aperçu sonore** (CA 14) : changer le volume `SFX` au clavier dans le menu → `Audio.voices_of(PREVIEW_SOUND)` passe à 1 ; pendant un glissement simulé (`drag_started` sans `drag_ended`) → aucun son ; volume `Music` changé → aucun son.
 5. **Chiffres de dégâts** :
    - réglage désactivé : un tir touche une cible → `Events.enemy_damaged` émis une fois (position = haut centre du rectangle de la hurtbox, `amount = 10`), **aucun** `DamageNumber` créé ;
+   - trois coups rapprochés sur la même cible → trois chiffres distincts, aux décalages horizontaux de la liste, identiques d'une exécution à l'autre (CA 16) ;
    - réglage activé : un `DamageNumber` dont le texte est `"10"`, au-dessus de la cible, qui monte puis se libère au bout de la durée prévue (en ticks) ; figé en pause ; quatre fois plus lent sous F4 ;
    - F5 aller-retour : aucun signal connecté à une couche libérée (pas d'erreur au coup suivant).
 6. **Fenêtré sous WSLg** (indicatif, avec captures `get_viewport().get_texture().get_image().save_png()`) :
@@ -427,21 +439,29 @@ Il n'y a pas de `project-context.md`. Règles tirées de `CLAUDE.md` et de la m�
 2. **Quitter ferme le jeu** (pas d'écran titre au jalon A).
 3. **Plein écran sans bordure** (`MODE_FULLSCREEN`) ; l'exclusif reste une option de la story 1.8.
 4. **VSync en booléen** (activée / désactivée) ; mailbox éventuelle : story 1.8.
-5. **Volumes linéaires de 0 à 100 % au pas de 5 %**, muet à 0, tous à 100 % par défaut.
+5. **Volumes linéaires de 0 à 100 % au pas de 5 %**, muet à 0 ; `Master` à 80 % par défaut, les autres à 100 % (Kroustille).
 6. **Curseur glissé : appliqué en continu, écrit au relâchement.**
 7. **Fichier absent : avertissement journalisé** (le critère 4 le demande, même au premier lancement). Fichier illisible : renommé en `.corrupt`.
 8. **Textes assignés en code par `tr()`**, aucun texte dans les `.tscn`.
 9. **Chiffres de dégâts par `Events.enemy_damaged`** émis par `Hurtbox.receive()`, affichés par une couche `DamageNumbers` de la salle, sans pool, en ticks `FX`.
 10. **Le réticule garde la propriété du curseur**, par `NOTIFICATION_DISABLED` / `ENABLED`.
 11. **Langue de repli `fr`**, pour qu'un système en anglais affiche le français et non les clés.
+12. **Pause automatique à la perte du focus**, sans reprise automatique (Kroustille).
+13. **Aperçu sonore du volume `SFX`** avec le son de tir provisoire (Kroustille).
+14. **Un chiffre de dégâts par coup**, décalage déterministe, pas de cumul (Kroustille).
+15. **Police pixel provisoire**, revue avec la palette et la direction artistique de la story 7.2 (Kroustille) : la choisir vite selon les critères, sans chercher la police définitive.
 
-### Questions ouvertes (sans effet bloquant sur le code)
+### Questions ouvertes
 
-1. **Pause automatique** quand la fenêtre perd le focus (alt-tab) : utile pour un jeu nerveux, non demandée par le GDD. À trancher au playtest.
-2. **Aperçu sonore** en réglant `SFX` (rejouer le son de tir) et `UI` (aucun son d'interface n'existe encore) : non fait ; à ajouter avec les sons de la story 7.7.
-3. **Valeurs par défaut des volumes** : 100 % partout ; un `Master` à 80 % est plus prudent pour les oreilles. À juger à l'écoute.
-4. **Chiffres de dégâts** : durée, montée et couleur provisoires, à juger à l'œil ; faut-il les cumuler sur une même cible (tirs rapprochés qui se chevauchent) ?
-5. **Choix de la police** : définitif ou provisoire jusqu'à l'epic 7 ? Proposé : provisoire, revue avec la story 7.2.
+Réponses de Kroustille du 2026-11-21 aux cinq questions de la création (intégrées aux CA 13 à 16 et aux décisions 5, 12 à 15) :
+
+1. Pause automatique à la perte du focus → **oui**, sans reprise automatique.
+2. Aperçu sonore → **oui dès 1.6**, pour `SFX` seulement (aucun son d'interface ni de musique encore).
+3. Volume par défaut → **`Master` à 80 %**, les autres à 100 %.
+4. Chiffres qui se chevauchent → **un chiffre par coup**, légèrement décalé. Durée, montée et couleur restent provisoires, à juger à l'œil.
+5. Police → **provisoire**, revue avec la story 7.2.
+
+Plus aucune question ouverte.
 
 ### References
 
