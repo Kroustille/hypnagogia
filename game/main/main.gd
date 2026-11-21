@@ -6,6 +6,7 @@ extends Node
 
 const ARENA_PATH: String = "res://rooms/arena/arena.tscn"
 const BULLET_LOAD_TEST_PATH: String = "res://debug/bullet_load_test.tscn"
+const DEBUG_PANEL_PATH: String = "res://debug/debug_panel.tscn"
 ## Debug slow motion factor (F4). A debug tool, not a gameplay value.
 const SLOW_MOTION_SCALE: float = 0.25
 const PAUSE_MENU_SCENE: PackedScene = preload("res://ui/menus/pause_menu.tscn")
@@ -27,6 +28,10 @@ func _ready() -> void:
 		_check_viewport_size()
 		_check_collision_layer_names()
 		_ui.add_child(CollisionDrawer.new())
+		# Loaded here, not preloaded: release code holds no reference to debug/ (F1 panel, AR24).
+		var panel_scene: PackedScene = load(DEBUG_PANEL_PATH) as PackedScene
+		if panel_scene != null:
+			_ui.add_child(panel_scene.instantiate())
 	_setup_menus()
 	_show_scene(ARENA_PATH)
 	_check_window_scale()
