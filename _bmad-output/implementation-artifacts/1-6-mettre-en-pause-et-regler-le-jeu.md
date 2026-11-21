@@ -4,7 +4,7 @@ baseline_commit: 4edd0bc92bc1e7eaa0d3f058065e5a8d334d10fe
 
 # Story 1.6 : Mettre en pause et régler le jeu
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -43,30 +43,30 @@ afin de jouer dans de bonnes conditions.
 
 ## Tâches / sous-tâches
 
-- [ ] **T1. Lexique** (AR32 : un terme entre dans le lexique **avant** le code)
-  - [ ] `game-architecture.md`, section « Lexique » : ajouter `Pause ; menu de pause ; réglages ; volume ; plein écran ; VSync ; chiffres de dégâts | pause ; pause_menu ; settings ; volume ; fullscreen ; vsync ; damage_numbers`.
-  - [ ] `game-architecture.md`, section « Temps (D7) » : consigner la règle de la pause (CA 6) en une ligne.
-- [ ] **T2. Localisation** (CA 5, NFR10)
-  - [ ] `game/localization/strings.csv` (voir « Localisation »), import, traduction déclarée dans `project.godot`, langue de repli `fr`.
-- [ ] **T3. Police pixel et `Theme`** (CA 5, AR22)
-  - [ ] Police pixel libre de droits avec les accents français, sa licence à côté, import sans anticrénelage (voir « Police et `Theme` »).
-  - [ ] `game/ui/theme/theme.tres`, déclaré comme thème du projet (`gui/theme/custom`).
-- [ ] **T4. `Settings`** (CA 2, 4)
-  - [ ] `autoloads/settings.gd` : valeurs, valeurs par défaut, chargement, validation, application, écriture atomique (voir « `Settings` »).
-- [ ] **T5. Action `pause`** (CA 1)
-  - [ ] `project.godot` : action `pause` (Échap, Start) (voir « Entrées »).
-- [ ] **T6. Pause dans `Main`** (CA 1, 6, 7, 10)
-  - [ ] `main/main.gd` : `_set_paused()`, menus instanciés dans `UI`, gestion des entrées réorganisée, pause automatique à la perte du focus (CA 13) (voir « `Main` et la pause »).
-- [ ] **T7. Menus** (CA 1, 2, 5, 9)
-  - [ ] `ui/menus/pause_menu.tscn/.gd` et `ui/menus/settings_menu.tscn/.gd`, avec l'aperçu sonore du volume `SFX` (CA 14) (voir « Menus »).
-- [ ] **T8. Curseur et réticule pendant la pause** (CA 8)
-  - [ ] `player/reticle.gd` : `NOTIFICATION_DISABLED` / `NOTIFICATION_ENABLED` (voir « Réticule »).
-- [ ] **T9. Chiffres de dégâts** (CA 3)
-  - [ ] `Events.enemy_damaged`, émis par `Hurtbox.receive()` ; `vfx/damage_numbers.gd` et `vfx/damage_number.gd` ; ajout dans l'arène (voir « Chiffres de dégâts »).
-- [ ] **T10. Vérifications headless** (CA 1 à 12) : scripts jetables du scratchpad (voir « Stratégie de test »).
-- [ ] **T11. Vérifications fenêtrées sous WSLg** (CA 1, 2, 3, 5, 7, 8, 9) : menus, police nette, plein écran, curseur, captures.
-- [ ] **T12. Régression** : import et lancement sans erreur, recherche des interdits, marche, dash, tir, F2 à F5 conformes.
-- [ ] **T13. Reports** : mettre à jour `deferred-work.md` (entrées résolues : `GameClock.paused` ↔ `SceneTree.paused`, curseur en pause, lecteurs `Audio` figés en pause ; ce qui n'a pas pu être vérifié : manette réelle, plein écran sous Windows, VSync réelle).
+- [x] **T1. Lexique** (AR32 : un terme entre dans le lexique **avant** le code)
+  - [x] `game-architecture.md`, section « Lexique » : ajouter `Pause ; menu de pause ; réglages ; volume ; plein écran ; VSync ; chiffres de dégâts | pause ; pause_menu ; settings ; volume ; fullscreen ; vsync ; damage_numbers`.
+  - [x] `game-architecture.md`, section « Temps (D7) » : consigner la règle de la pause (CA 6) en une ligne.
+- [x] **T2. Localisation** (CA 5, NFR10)
+  - [x] `game/localization/strings.csv` (voir « Localisation »), import, traduction déclarée dans `project.godot`, langue de repli `fr`.
+- [x] **T3. Police pixel et `Theme`** (CA 5, AR22)
+  - [x] Police pixel libre de droits avec les accents français, sa licence à côté, import sans anticrénelage (voir « Police et `Theme` »).
+  - [x] `game/ui/theme/theme.tres`, déclaré comme thème du projet (`gui/theme/custom`).
+- [x] **T4. `Settings`** (CA 2, 4)
+  - [x] `autoloads/settings.gd` : valeurs, valeurs par défaut, chargement, validation, application, écriture atomique (voir « `Settings` »).
+- [x] **T5. Action `pause`** (CA 1)
+  - [x] `project.godot` : action `pause` (Échap, Start) (voir « Entrées »).
+- [x] **T6. Pause dans `Main`** (CA 1, 6, 7, 10)
+  - [x] `main/main.gd` : `_set_paused()`, menus instanciés dans `UI`, gestion des entrées réorganisée, pause automatique à la perte du focus (CA 13) (voir « `Main` et la pause »).
+- [x] **T7. Menus** (CA 1, 2, 5, 9)
+  - [x] `ui/menus/pause_menu.tscn/.gd` et `ui/menus/settings_menu.tscn/.gd`, avec l'aperçu sonore du volume `SFX` (CA 14) (voir « Menus »).
+- [x] **T8. Curseur et réticule pendant la pause** (CA 8)
+  - [x] `player/reticle.gd` : `NOTIFICATION_DISABLED` / `NOTIFICATION_ENABLED` (voir « Réticule »).
+- [x] **T9. Chiffres de dégâts** (CA 3)
+  - [x] `Events.enemy_damaged`, émis par `Hurtbox.receive()` ; `vfx/damage_numbers.gd` et `vfx/damage_number.gd` ; ajout dans l'arène (voir « Chiffres de dégâts »).
+- [x] **T10. Vérifications headless** (CA 1 à 12) : scripts jetables du scratchpad (voir « Stratégie de test »).
+- [x] **T11. Vérifications fenêtrées sous WSLg** (CA 1, 2, 3, 5, 7, 8, 9) : menus, police nette, plein écran, curseur, captures.
+- [x] **T12. Régression** : import et lancement sans erreur, recherche des interdits, marche, dash, tir, F2 à F5 conformes.
+- [x] **T13. Reports** : mettre à jour `deferred-work.md` (entrées résolues : `GameClock.paused` ↔ `SceneTree.paused`, curseur en pause, lecteurs `Audio` figés en pause ; ce qui n'a pas pu être vérifié : manette réelle, plein écran sous Windows, VSync réelle).
 
 ## Dev Notes
 
@@ -489,10 +489,58 @@ Plus aucune question ouverte.
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5)
+
 ### Debug Log References
+
+- Vérifications jetables dans le scratchpad (hors dépôt), lancées comme scènes par un lien symbolique local `game/.scratch` (exclu de git par `.git/info/exclude`) : `settings_test` (25 contrôles, plus 3 dans un second processus pour la restauration), `main_test` (58 contrôles : marche et tir hors pause, pause par Échap et par l'action, gel de 60 ticks avec déplacement, tir et dash tenus, reprise, notifications du réticule 1/1, navigation `ui_*` entre les menus, F2 à F5 en pause, perte de focus, aperçu sonore, cases à cocher, chiffres de dégâts, aller-retour F5, Quitter), `regress_test` (dash 48 px, test de charge `Bullets 400 | refused 0`, pause pendant le test de charge), `loc_test` (traductions avec les locales `en`, `fr`, `de`), `window_test` sous WSLg (10 contrôles et 9 captures). Tous verts.
+- Les scripts de vérification avec `class_name` ne sont pas vus depuis un dossier caché : `preload()` à la place. `@warning_ignore_start` pour les avertissements `unsafe_*` des scripts jetables seulement.
+- `HSlider` ne dessine pas le style `focus` en 4.7 (capture : aucun contour sur le curseur focalisé) : corrigé dans le thème par `grabber_highlight` blanc et `grabber_area_highlight` clair.
+- `Window.size_changed` ne part jamais quand seule la fenêtre change (stretch `viewport` : le viewport racine reste à 640×360), ni par programme, ni en plein écran ; un rappel différé lit encore l'ancienne taille. `Main` compare donc la taille de la fenêtre à chaque image (`_process`, aucun log hors changement de facteur). Relog vérifié : ×6 en plein écran, ×2 au retour, ×3 à 1920×1080.
+- L'avertissement « Could not set V-Sync mode » au lancement fenêtré sous WSLg vient du moteur (présent au commit de base, vérifié dans un `git worktree` temporaire). `Settings` n'appelle plus `window_set_vsync_mode()` que si le mode diffère.
+- `NOTIFICATION_DISABLED` / `NOTIFICATION_ENABLED` se propagent bien aux descendants quand `ActiveScene.process_mode` change (une sonde sous l'arène les reçoit une fois chacune) : le repli `Events.game_paused` n'a pas été nécessaire.
+- Les menus reçoivent `pause` et `ui_cancel` avant `Main` (enfants plus profonds) : aucun conflit entre Échap = `pause` et Échap = `ui_cancel`.
+- Interpolation physique : deux captures à 7 images d'écart pendant la pause, joueur lancé à pleine vitesse au moment de la pause, sont identiques à l'octet près ; `reset_physics_interpolation()` inutile.
 
 ### Completion Notes List
 
 - Analyse de contexte terminée : guide d'implémentation complet créé (create-story, 2026-11-21).
+- T1 : lexique (`pause`, `pause_menu`, `settings`, `volume`, `fullscreen`, `vsync`, `damage_numbers`) et règle de la pause dans « Temps (D7) », commités avant le code.
+- T2 : `localization/strings.csv` (14 clés, `keys,fr`, espace insécable dans `UI_SETTINGS_PERCENT`), traduction déclarée, langue de repli `fr` : le français s'affiche avec une locale `en` ou `de`. Le `strings.fr.translation` généré à côté du CSV est ignoré par git (`*.translation`) : il est régénéré par `godot --import`, comme `.godot/`.
+- T3 : police **Pixel Operator** de Jayvee Enaguas (`PixelOperator.ttf`, renommée `pixel_operator.ttf`), licence **CC0 1.0** vérifiée sur la page d'origine (https://www.dafont.com/pixel-operator.font, téléchargée le 2026-11-21) et dans le `LICENSE.txt` de l'archive, copié en `pixel_operator_LICENSE.txt`. Taille native 16 px (capitales de 9 px), glyphes Latin-1, `%` et U+00A0 présents. Import : `antialiasing=0`, `hinting=0`, `subpixel_positioning=0`, `allow_system_fallback=false` (texte en 2 couleurs sur les captures). `theme.tres` généré une fois par script : police par défaut, `StyleBoxFlat` sans arrondi ni anticrénelage, focus en contour blanc de 1 px, interrupteurs 16×8 et curseurs dessinés au pixel, variante `DamageNumberLabel` (blanc, contour sombre). Couleurs provisoires (story 7.2).
+- T4 : `Settings` : valeurs par défaut en constantes (`Master` 0,8, autres bus 1,0, fenêtré, VSync activée, chiffres désactivés), `load_from()` public pour les vérifications, avertissement si le fichier manque, `.corrupt` s'il est illisible, un avertissement par clé fautive, valeurs bornées (non finies → défaut), jamais d'écriture au démarrage, écriture atomique (`.tmp` puis `DirAccess.rename_absolute`), setters sans réécriture pour une valeur inchangée, `preview_volume()` sans écriture, signal local `changed`. `SFX_BUS` réutilise `Audio.SFX_BUS`.
+- T5 : action `pause` (Échap, Start) ; import sans bruit dans `project.godot`.
+- T6 : `Main._set_paused()` seul point d'écriture de `GameClock.paused` et d'`ActiveScene.process_mode` ; `pause` gérée dans tous les builds, F4 et F5 en debug et hors pause seulement ; menus instanciés dans `UI` après les overlays ; Quitter journalise puis ferme ; pause automatique sur `NOTIFICATION_APPLICATION_FOCUS_OUT` (« game paused (focus lost) »), rien au retour du focus. Correction du suivi de la taille de fenêtre (voir Debug Log).
+- T7 : `PauseMenu` et `SettingsMenu` (conteneurs, aucun texte dans les `.tscn`, `tr()` en code, focus au premier bouton ou curseur, retour Réglages → Pause avec focus sur Réglages) ; curseurs : aperçu pendant le glissement, écriture au relâchement et à chaque pas au clavier ou à la manette ; aperçu sonore du volume SFX à chaque écriture déclenchée par le menu, jamais pendant le glissement ni pour les autres bus.
+- T8 : `Reticle` : curseur visible et réticule caché sur `NOTIFICATION_DISABLED`, l'inverse sur `NOTIFICATION_ENABLED` (vérifié en fenêtré, clic sur Reprendre → aucun tir).
+- T9 : `Events.enemy_damaged(world_position, amount)` émis par `Hurtbox.receive()` pour le camp ennemi ; `DamageNumbers` (couche créée par l'arène après `PlayerBullets`, branchée dans `_enter_tree()` / `_exit_tree()`, décalages déterministes 0, −6, 6, −3, 3 px) ; `DamageNumber` (`Node2D` + `Label`, ticks `FX` dans `_physics_process`, 0,5 s, montée de 8 px, fondu sur la seconde moitié, position au pixel entier, interpolation coupée). Pas de `tr()` pour les nombres.
+- T10 à T12 : vérifications vertes (voir Debug Log) ; recherche des interdits : seules les occurrences attendues (commentaires, `log.gd`) ; aucun texte français dans `ui/`, `vfx/`, `main/`, `autoloads/` ; aucun `Log.` par frame ni par coup ; aucun vrai `settings.cfg` créé par les vérifications.
+- T13 : `deferred-work.md` : trois entrées résolues, nouvelle section 1.6 (manette réelle, plein écran et VSync sous Windows, volumes à l'oreille, renommage sous Windows, alt-tab réel, suivi de la fenêtre, focus des curseurs, police provisoire).
+- **Écarts au guide** : `Main` compare la taille de la fenêtre à chaque image au lieu d'écouter `size_changed` (signal muet avec le stretch `viewport`) ; le style de focus du curseur passe par le curseur éclairé ; `DamageNumber` est un `Node2D` qui porte un `Label`.
+- **Étapes humaines non faites** (à ne pas considérer vérifiées) : Start et B sur une vraie manette, plein écran et VSync sous Windows natif, volumes à l'oreille, alt-tab réel.
 
 ### File List
+
+- `_bmad-output/game-architecture.md` (modifié : lexique, règle de la pause)
+- `_bmad-output/implementation-artifacts/1-6-mettre-en-pause-et-regler-le-jeu.md` (modifié)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (modifié)
+- `_bmad-output/implementation-artifacts/deferred-work.md` (modifié)
+- `.gitignore` (modifié : `*.translation`)
+- `game/project.godot` (modifié : action `pause`, `gui/theme/custom`, traduction, langue de repli)
+- `game/autoloads/settings.gd` (modifié)
+- `game/autoloads/events.gd` (modifié)
+- `game/main/main.gd` (modifié)
+- `game/combat/hurtbox.gd` (modifié)
+- `game/player/reticle.gd` (modifié)
+- `game/rooms/arena/arena.gd` (modifié)
+- `game/vfx/damage_numbers.gd`, `game/vfx/damage_numbers.gd.uid` (nouveaux)
+- `game/vfx/damage_number.gd`, `game/vfx/damage_number.gd.uid` (nouveaux)
+- `game/ui/menus/pause_menu.tscn`, `game/ui/menus/pause_menu.gd`, `game/ui/menus/pause_menu.gd.uid` (nouveaux)
+- `game/ui/menus/settings_menu.tscn`, `game/ui/menus/settings_menu.gd`, `game/ui/menus/settings_menu.gd.uid` (nouveaux)
+- `game/ui/theme/theme.tres` (nouveau)
+- `game/ui/theme/fonts/pixel_operator.ttf`, `game/ui/theme/fonts/pixel_operator.ttf.import`, `game/ui/theme/fonts/pixel_operator_LICENSE.txt` (nouveaux)
+- `game/localization/strings.csv`, `game/localization/strings.csv.import` (nouveaux)
+
+### Change Log
+
+- 2026-11-21 : implémentation de la story 1.6 (pause et réglages persistants, localisation, police pixel et thème, chiffres de dégâts) ; correction du suivi de la taille de fenêtre de `Main` ; statut → review.
