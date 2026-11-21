@@ -12,7 +12,8 @@ signal player_hit(damage: int, source: int)
 signal enemy_damaged(world_position: Vector2, amount: float)
 
 ## A run ended. outcome: Run.Outcome as an int (autoloads/ depends on no feature folder).
-## Emitted once per run, after the Events.player_hit of the lethal hit. Listeners: Main (wake screen),
+## Emitted once per run, after the Events.player_hit of the lethal hit, from the Run's handler of Player.died,
+## in the tick of the lethal hit. Listeners: Main (wake screen),
 ## telemetry (story 2.8).
 @warning_ignore("unused_signal")
 signal run_ended(outcome: int)

@@ -17,6 +17,8 @@ var _ended: bool = false
 
 
 func _ready() -> void:
+	# First, so that the end of the run is notified even when the room below fails to load (AR28).
+	_player.died.connect(_on_player_died)
 	var arena: Arena = ARENA_SCENE.instantiate() as Arena
 	if arena == null:
 		Log.error("run", "arena scene root is not an Arena")
@@ -26,7 +28,6 @@ func _ready() -> void:
 	_room_slot.add_child(arena)
 	_player.global_position = arena.player_spawn_position()
 	_player.reset_physics_interpolation() # the player does not trail from (0, 0)
-	_player.died.connect(_on_player_died)
 	Log.info("run", "run started")
 
 

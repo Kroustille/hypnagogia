@@ -137,18 +137,24 @@ func _unhandled_input(event: InputEvent) -> void:
 func _start_run() -> void:
 	_wake_screen.hide()
 	_run_over = false
-	# Unfreeze before adding the new run: a node added under a disabled parent would miss NOTIFICATION_DISABLED/ENABLED.
+	# Remove the old run while still frozen, unfreeze, then add the new one: it must enter an enabled tree.
+	_clear_active_scene()
 	_freeze(false)
-	_show_scene(RUN_SCENE)
+	_active_scene.add_child(RUN_SCENE.instantiate())
 	_load_test_active = false
 
 
-## Replaces the content of ActiveScene by an instance of scene.
-func _show_scene(scene: PackedScene) -> bool:
+## Removes every child of ActiveScene.
+func _clear_active_scene() -> void:
 	for child: Node in _active_scene.get_children():
 		# Out of the tree at once, so its node groups (bullet managers, debug shapes) stop counting this frame.
 		_active_scene.remove_child(child)
 		child.queue_free()
+
+
+## Replaces the content of ActiveScene by an instance of scene.
+func _show_scene(scene: PackedScene) -> bool:
+	_clear_active_scene()
 	_active_scene.add_child(scene.instantiate())
 	return true
 

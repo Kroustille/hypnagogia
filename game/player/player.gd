@@ -6,7 +6,9 @@ extends CharacterBody2D
 
 ## Emitted when a dash finishes, after its last movement.
 signal dash_ended
-## Emitted once, when the player dies: after the Events.player_hit of the lethal hit. The Run listens.
+## Emitted once, when the player dies: after the Events.player_hit of the lethal hit.
+## The Run is its only listener: it emits Events.run_ended inside this emission, so any other listener of died
+## runs after run_ended and after Main froze the game; cross-system listeners use Events.run_ended.
 signal died
 
 ## Placeholder sprite size in pixels (structural, not gameplay). Real sprites come with epic 7.

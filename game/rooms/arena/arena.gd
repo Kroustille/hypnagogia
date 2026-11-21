@@ -66,13 +66,13 @@ func _setup_player_bullets() -> void:
 	var solid_layers: Array[TileMapLayer] = [_walls]
 	bullets.setup(solid_layers) # before add_child()
 	add_child(bullets)
-	if _player == null:
-		return
-	_player.equip_bullets(bullets)
+	# The targets do not need the player: register them even when setup() was skipped.
 	for child: Node in _targets.get_children():
 		var target: TrainingTarget = child as TrainingTarget
 		if target != null:
 			bullets.register_hurtbox(target.hurtbox)
+	if _player != null:
+		_player.equip_bullets(bullets)
 
 
 ## The enemy BulletManager, at the room origin. It has no look: whoever fires adds its own appearance.
