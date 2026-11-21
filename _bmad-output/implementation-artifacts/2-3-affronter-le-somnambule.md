@@ -4,7 +4,7 @@ baseline_commit: 7480bdb6de885872a5ed27cbe1757ae30a852665
 
 # Story 2.3 : Affronter Le Somnambule
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -39,29 +39,29 @@ afin d'apprendre à lire un télégraphe.
 
 ## Tâches / sous-tâches
 
-- [ ] **T1. Lexique et architecture** (AR32 : un terme entre dans le lexique **avant** le code)
-  - [ ] `game-architecture.md`, section « Lexique » : ajouter `Ennemi ; PV ; dégâts au contact ; zone de contact ; apparition ; distance minimale d'apparition ; ennemis vivants ; poursuite ; accélération du Somnambule ; lever les bras | enemy ; hp (HitPoints) ; contact_damage ; Hitbox ; spawn ; min_spawn_distance ; alive_enemies ; chase ; rush ; raise_arms`.
-  - [ ] `game-architecture.md` : une ligne dans « Projectiles (D1) » (ordre : entités à 0, `Hitbox` de contact à `Const.PHYSICS_PRIORITY_HITBOXES` (50), `BulletManager` à 100) ; une ligne dans « Dégâts et unités » (PV des ennemis dans `HitPoints`, pas dans `Health` ; `Hurtbox.refuse_hit()`) ; une ligne dans « Création d'entités » (apparition à ≥ `min_spawn_distance` du joueur, remplacement déterministe sans RNG avant l'epic 4 ; pas de pool d'ennemis).
-- [ ] **T2. `CombatTuning`** (CA 1, 3) : `min_telegraph` (0,4 s) et `min_spawn_distance` (3 tuiles), script et `.tres` (voir « `CombatTuning` »).
-- [ ] **T3. Composants de combat** (CA 3, 4, 5, 6, 7)
-  - [ ] `combat/hit_points.gd` : `HitPoints` (voir « `HitPoints` »).
-  - [ ] `combat/telegraph.gd` : `Telegraph` (voir « `Telegraph` »).
-  - [ ] `combat/hitbox.gd` : `Hitbox` de contact (voir « `Hitbox` »).
-  - [ ] `combat/hurtbox.gd` : `refuse_hit()`, commentaire d'en-tête (voir « `Hurtbox` »).
-  - [ ] `combat/damage_info.gd` : `Source.CONTACT = 3`.
-  - [ ] `core/constants.gd` : `PHYSICS_PRIORITY_HITBOXES` (50), `GROUP_ROOM` (`&"room"`).
-- [ ] **T4. Base des ennemis** (CA 2, 5, 7, 8) : `enemies/enemy_def.gd` (`EnemyDef`) et `enemies/enemy.gd` (`Enemy`) (voir « `EnemyDef` » et « `Enemy` »).
-- [ ] **T5. Le Somnambule** (CA 2, 3, 4, 5)
-  - [ ] `enemies/sleepwalker/sleepwalker_def.gd` (`SleepwalkerDef extends EnemyDef`), `data/enemies/sleepwalker.tres`.
-  - [ ] `enemies/sleepwalker/sleepwalker.tscn` + `sleepwalker.gd` (machine à états, textures provisoires) (voir « Le Somnambule »).
-  - [ ] `audio/sfx/sfx_enemy_sleepwalker_telegraph.wav` généré par script (voir « Son du télégraphe »).
-- [ ] **T6. Joueur** (CA 5, 6) : `player/player.gd` : `collision_mask` avec `Const.LAYER_ENEMIES` ; `hurtbox.refuse_hit()` quand `Health` refuse le coup (voir « Joueur »).
-- [ ] **T7. Arène** (CA 1, 8, 10, 11) : `rooms/arena/arena.tscn` (nœud `Enemies`), `rooms/arena/arena.gd` (`spawn_enemy()`, `alive_enemy_count()`, groupe `room`, `_player_bullets` gardé) (voir « Arène »).
-- [ ] **T8. Panneau F1** (CA 12) : touche 6 (voir « Panneau F1 »).
-- [ ] **T9. Vérifications headless** (CA 1 à 13) : scènes du scratchpad, `run_all.sh` étendu (voir « Stratégie de test »).
-- [ ] **T10. Vérifications fenêtrées sous WSLg** (CA 2, 5, 11) : marche bras tendus, bras levés, flash, ordre de dessin, F2, captures.
-- [ ] **T11. Régression** : import et lancement sans erreur, recherche des interdits, `run_all.sh` complet (anciennes et nouvelles scènes).
-- [ ] **T12. Reports** : mettre à jour `deferred-work.md` (entrées résolues, voir « Reports traités par cette story » ; nouvelles entrées NON ÉVALUÉ / NON VÉRIFIÉ, voir « Stratégie de test » point 14).
+- [x] **T1. Lexique et architecture** (AR32 : un terme entre dans le lexique **avant** le code)
+  - [x] `game-architecture.md`, section « Lexique » : ajouter `Ennemi ; PV ; dégâts au contact ; zone de contact ; apparition ; distance minimale d'apparition ; ennemis vivants ; poursuite ; accélération du Somnambule ; lever les bras | enemy ; hp (HitPoints) ; contact_damage ; Hitbox ; spawn ; min_spawn_distance ; alive_enemies ; chase ; rush ; raise_arms`.
+  - [x] `game-architecture.md` : une ligne dans « Projectiles (D1) » (ordre : entités à 0, `Hitbox` de contact à `Const.PHYSICS_PRIORITY_HITBOXES` (50), `BulletManager` à 100) ; une ligne dans « Dégâts et unités » (PV des ennemis dans `HitPoints`, pas dans `Health` ; `Hurtbox.refuse_hit()`) ; une ligne dans « Création d'entités » (apparition à ≥ `min_spawn_distance` du joueur, remplacement déterministe sans RNG avant l'epic 4 ; pas de pool d'ennemis).
+- [x] **T2. `CombatTuning`** (CA 1, 3) : `min_telegraph` (0,4 s) et `min_spawn_distance` (3 tuiles), script et `.tres` (voir « `CombatTuning` »).
+- [x] **T3. Composants de combat** (CA 3, 4, 5, 6, 7)
+  - [x] `combat/hit_points.gd` : `HitPoints` (voir « `HitPoints` »).
+  - [x] `combat/telegraph.gd` : `Telegraph` (voir « `Telegraph` »).
+  - [x] `combat/hitbox.gd` : `Hitbox` de contact (voir « `Hitbox` »).
+  - [x] `combat/hurtbox.gd` : `refuse_hit()`, commentaire d'en-tête (voir « `Hurtbox` »).
+  - [x] `combat/damage_info.gd` : `Source.CONTACT = 3`.
+  - [x] `core/constants.gd` : `PHYSICS_PRIORITY_HITBOXES` (50), `GROUP_ROOM` (`&"room"`).
+- [x] **T4. Base des ennemis** (CA 2, 5, 7, 8) : `enemies/enemy_def.gd` (`EnemyDef`) et `enemies/enemy.gd` (`Enemy`) (voir « `EnemyDef` » et « `Enemy` »).
+- [x] **T5. Le Somnambule** (CA 2, 3, 4, 5)
+  - [x] `enemies/sleepwalker/sleepwalker_def.gd` (`SleepwalkerDef extends EnemyDef`), `data/enemies/sleepwalker.tres`.
+  - [x] `enemies/sleepwalker/sleepwalker.tscn` + `sleepwalker.gd` (machine à états, textures provisoires) (voir « Le Somnambule »).
+  - [x] `audio/sfx/sfx_enemy_sleepwalker_telegraph.wav` généré par script (voir « Son du télégraphe »).
+- [x] **T6. Joueur** (CA 5, 6) : `player/player.gd` : `collision_mask` avec `Const.LAYER_ENEMIES` ; `hurtbox.refuse_hit()` quand `Health` refuse le coup (voir « Joueur »).
+- [x] **T7. Arène** (CA 1, 8, 10, 11) : `rooms/arena/arena.tscn` (nœud `Enemies`), `rooms/arena/arena.gd` (`spawn_enemy()`, `alive_enemy_count()`, groupe `room`, `_player_bullets` gardé) (voir « Arène »).
+- [x] **T8. Panneau F1** (CA 12) : touche 6 (voir « Panneau F1 »).
+- [x] **T9. Vérifications headless** (CA 1 à 13) : scènes du scratchpad, `run_all.sh` étendu (voir « Stratégie de test »).
+- [x] **T10. Vérifications fenêtrées sous WSLg** (CA 2, 5, 11) : marche bras tendus, bras levés, flash, ordre de dessin, F2, captures.
+- [x] **T11. Régression** : import et lancement sans erreur, recherche des interdits, `run_all.sh` complet (anciennes et nouvelles scènes).
+- [x] **T12. Reports** : mettre à jour `deferred-work.md` (entrées résolues, voir « Reports traités par cette story » ; nouvelles entrées NON ÉVALUÉ / NON VÉRIFIÉ, voir « Stratégie de test » point 14).
 
 ## Dev Notes
 
@@ -648,6 +648,10 @@ Il n'y a pas de `project-context.md`. Règles tirées de `CLAUDE.md`, de la mém
 24. **Groupe `room`** pour que F1 trouve la salle active — Raison : pas de chemin absolu (D3) ; même mécanisme que le groupe `player`.
 25. **Touche 6 de F1 : un Somnambule demandé en haut au centre** ; arène vide au lancement — Raison : les vagues sont la 2.6 ; sans commande de debug, l'ennemi ne pourrait pas être essayé. En build de release, aucun ennemi avant la 2.6.
 26. **Les décisions de 2.1 et 2.2 restent valables** (filtre de hurtbox, un coup par tick sur le joueur, ordre des managers, ordre du coup mortel, gel par `Main`, joueur dans `Run`, F1 par `has_hurtbox()`). La décision 10 de 2.1 (cible devenue intouchable entre le test et la livraison : un projectile perdu) s'applique aux deux tirs mortels du même tick (point 8) : accepté.
+27. **Chemins d'erreur : état sûr posé avant l'assert, `_assert_failed()` pour les retours** (écart d'implémentation, 2.3) — Question : comment tenir AR28 alors qu'un `assert` qui échoue interrompt la fonction en build de debug ? Choix : poser `maximum`/`current`, `process_mode`, `set_physics_process(false)` avant `Log.error` + `assert`, et isoler l'assert dans `_assert_failed()` quand la fonction doit encore retourner une valeur bornée (`Telegraph.start()`, `Enemy._pixel_size()`, `Sleepwalker._bounded_px()`). Raison : constaté par `t_invalid23` (la première version renvoyait la valeur par défaut du type).
+28. **Apparition : zone valide inclusive, constantes techniques dans `Arena`** — `SPAWN_MARGIN_TILES` (1) et `SPAWN_DISTANCE_EPSILON` (1e-3 px) ; la zone réduite est testée bords compris (`Rect2.has_point` exclut le bord bas et droit, donc refuserait les coins, qui sont des candidats de remplacement). Raison : la story garantit qu'un coin valide existe toujours.
+29. **`Enemy` incomplet désactivé aussi si la cible ou sa hurtbox manque** — `setup()` oublié ou cible nulle : `process_mode = DISABLED`, `Log.error` + `assert` (la story ne citait que la `Def` nulle). Raison : une `Hitbox` sans cible serait inactive de toute façon ; l'ennemi entier l'est avec un message clair.
+30. **Sprite provisoire un peu plus large** (corps 8×16 px de la toile 16×24 au lieu de 6×16) — Raison : à 640×360 la silhouette de 6 px était trop fine à côté du joueur ; à relire au jeu avec les tailles (point 11).
 
 ### Questions ouvertes
 
@@ -674,14 +678,60 @@ Aucune bloquante. Points à faire valider par Kroustille en fin d'epic : les dé
 
 ### Agent Model Used
 
+Claude Sonnet 5.5 (`claude-sonnet-5-5`), workflow `gds-dev-story`, pipeline automatisé de l'epic 2.
+
 ### Debug Log References
+
+**Vérifications headless** (scènes de `game/.scratch`, toutes lancées par `run_all.sh`, 11 scènes `PASS`) :
+
+| Scène | Contrôles `ok` | Couvre |
+|---|---|---|
+| `t_health`, `t_arena`, `t_misc`, `t_death`, `t_isolated`, `t_load`, `t_invalid` (2.1 et 2.2) | 16, 23, 30, 115, 9, 3, 1 | **inchangées** : aucune n'a été adaptée, le comportement de 2.1 et 2.2 n'a pas bougé (le masque du joueur et `refuse_hit()` n'y changent rien) ; `t_load` : `Bullets 400 \| refused 0` |
+| `t_enemy_parts` (nouvelle) | 31 | points 2 à 4 : `HitPoints` ; `Telegraph` (24, 24, témoins 36 et 51, plancher sur le produit, son, F4 96 ticks, pause) ; `Hitbox` (un coup par tick, bords exclus, direction, filtre, pause, même tick qu'une entité à 0) ; `refuse_hit()` |
+| `t_sleepwalker` (nouvelle) | 85 | points 5 à 9 : apparition (3 tuiles, 47,9 / 48,0, mur, coin, déterminisme) ; marche 20 px en 30 ticks (témoin `Def` dupliquée à 5,0 : 40 px) ; déclenchement à 32 px ; télégraphe 25 ticks immobile, accélération 36 ticks à 4/3 px, 48 px, cap qui suit le joueur ; cycle sans récupération ; F4 (1/6 px, 96 et 144 ticks) ; contact (un coup, source `CONTACT`, second coup à exactement +60 ticks, témoin zone de la taille du corps, invulnérabilité forcée et témoin, deux ennemis, coup mortel et `run_ended` une fois) ; tirs (PV 30, 20, 10, 0, flash, recul, retour à (0, 0)), vrais tirs du joueur, mort (corps retiré de l'espace physique, `can_process()` faux, libéré, compte à 0), tirs qui traversent un propriétaire à 0 PV, deux tirs mortels au même tick, un mort ne bloque plus (témoin : vivant bloque) ; dash arrêté par le corps (témoin 48 px sans ennemi) et sans coup pendant l'invulnérabilité du dash alors que les zones se recouvrent |
+| `t_enemy_main` (nouvelle, `main.tscn`) | 31 | points 10 à 12 : F1 + touche 6, texte du panneau, ordre de dessin, pause (position, état, ticks du télégraphe, texture figés 60 ticks puis reprise), F4, F5 (« no room », retour), « hit ignored » et témoin « hit applied », écran de réveil (2 ennemis figés 60 ticks), relance (aucun `Sleepwalker`, arène à 0), 5 cycles avec 2 ennemis vivants (nœuds 106 / 106, orphelins 0, connexions 2 et 1 stables) |
+| `t_invalid23` (nouvelle) | 16 | point 12 : valeurs sûres et refus, 11 messages d'assertion attendus comptés un par un par `run_all.sh` |
+
+`run_all.sh` ajoute : machine à états du Somnambule (`_state =` une seule fois, dans `_enter()`, un `_process_<état>()` par état, témoins : copie qui écrit `_state` ailleurs, copie sans `_process_rush()`), nombres du GDD absents du code de jeu de `enemies/` et `combat/` (témoin planté ; les lignes `@export` des `Def`, qui reflètent les `.tres`, sont exclues), aucun `Log.` dans un `_physics_process` (témoin planté), logs `room` (`spawned` en DEBUG, jamais en INFO, ligne de position remplacée).
+
+**Contrôles par mutation** (mécanisme retiré, la scène doit échouer, puis annulé et vérifié par somme de contrôle) :
+
+| Mutation | Scène | Résultat |
+|---|---|---|
+| sans le plancher `min_telegraph` | `t_enemy_parts` | 3 FAIL (0,1 s : 6 ticks au lieu de 24 ; 0,6 × 0,5 : 18) |
+| zone de contact à la taille du corps | `t_sleepwalker` | 3 FAIL (aucun contact obtenu) |
+| sans `refuse_hit()` dans `Enemy` | `t_invalid23` | 2 FAIL |
+| `refuse_hit()` sans effet dans `Hurtbox` | `t_enemy_parts`, `t_invalid23` | 3 et 3 FAIL |
+| sans `LAYER_ENEMIES` dans le masque du joueur | `t_sleepwalker` | 4 FAIL (le dash et la marche traversent) |
+| sans remplacement de position | `t_sleepwalker` | 6 FAIL |
+| télégraphe sauté (`_enter(RUSH)` direct) | `t_sleepwalker` | 13 FAIL |
+| sans `PROCESS_MODE_DISABLED` à la mort | `t_sleepwalker` | 3 FAIL (voir la limite : contrôle structurel) |
+| sans la priorité de la `Hitbox` | `t_enemy_parts` | 2 FAIL (le coup arrive au tick 4 au lieu de 3) |
+| filtre de la hurtbox ouvert (`_can_be_hit` vrai) | `t_sleepwalker` | 1 FAIL (le tir ne traverse plus un propriétaire à 0 PV) |
+| `_state` écrit hors de `_enter()` ; `_process_rush()` absent | `run_all.sh` | contrôles du script : échouent comme attendu |
+
+**Import et lancement** : `--import` puis `--quit-after 120` : zéro `SCRIPT ERROR`, zéro `Parse Error`, seul avertissement `settings.cfg missing` ; `project.godot` inchangé. **Fenêtré sous WSLg** (captures `game/.scratch`, indicatives) : Somnambule qui marche bras tendus, bras levés pendant le télégraphe, flash au tir (`is_flashing()` vrai), F2 (corps, hurtbox et zone de contact dessinés), ennemi au-dessus du sol.
 
 ### Completion Notes List
 
 - Analyse de contexte terminée : guide d'implémentation complet créé (create-story, 2026-11-21).
+- Implémentation de la story 2.3 (dev-story, 2026-11-21) : lexique et architecture (AR32) avant le code ; `CombatTuning` (`min_telegraph` 0,4 s, `min_spawn_distance` 3 tuiles) ; `HitPoints`, `Telegraph`, `Hitbox`, `Hurtbox.refuse_hit()`, `DamageInfo.Source.CONTACT`, `PHYSICS_PRIORITY_HITBOXES`, `GROUP_ROOM` ; `EnemyDef`, `Enemy`, `SleepwalkerDef`, `Sleepwalker` (scène, textures provisoires, son généré par script) ; masque du joueur avec `LAYER_ENEMIES` ; `Arena.spawn_enemy()`, `alive_enemy_count()`, groupe `room`, nœud `Enemies` ; touche 6 du panneau F1. Les 13 critères d'acceptation sont couverts par les scènes ci-dessus.
+- **Aucune scène de 2.1 ou 2.2 n'a été modifiée** ; elles passent telles quelles. `run_all.sh` passe de 7 à 11 scènes.
+- Mesures relevées (écart avec la rédaction de la story signalé) : centres du joueur et du Somnambule bloqués à 8,00 px (la story annonçait ≈ 8,08 ; la zone de contact recouvre quand même la hurtbox : 6 + 3 = 9 > 8) ; les demandes d'apparition « à 33 px » des scènes sont remplacées par 48 px (règle de la distance minimale), le déclenchement est donc mesuré en marchant jusqu'à 32 px.
+- **Limite de test assumée** : « un mort ne touche plus » n'est vérifié que par structure (voir `deferred-work.md`), les tirs qui traversent un propriétaire à 0 PV le sont par comportement.
+- **Un assert qui échoue interrompt la fonction** : sur les chemins d'erreur, l'état sûr est posé avant `Log.error` + `assert`, et `Telegraph.start()`, `Enemy._pixel_size()` et `Sleepwalker._bounded_px()` passent par `_assert_failed()` pour que l'appelant garde la valeur bornée.
+- **NON ÉVALUÉ / NON VÉRIFIÉ** (étapes humaines, reportées dans `deferred-work.md`) : lisibilité du télégraphe et son à l'oreille ; ressenti de la poursuite, de l'accélération (cap qui suit, absence de récupération) et du contact ; tailles provisoires ; mesure de 10 minutes à 400 projectiles (story 1.2, toujours **NON FAITE**).
+- Revue de code non lancée (hors rôle du développeur).
 
 ### File List
+
+Nouveaux : `game/combat/hit_points.gd`, `game/combat/hitbox.gd`, `game/combat/telegraph.gd` (+ `.uid`) ; `game/enemies/enemy.gd`, `game/enemies/enemy_def.gd`, `game/enemies/sleepwalker/sleepwalker.gd`, `game/enemies/sleepwalker/sleepwalker_def.gd` (+ `.uid`), `game/enemies/sleepwalker/sleepwalker.tscn` ; `game/data/enemies/sleepwalker.tres` ; `game/audio/sfx/sfx_enemy_sleepwalker_telegraph.wav` (+ `.import`).
+
+Modifiés : `game/combat/hurtbox.gd`, `game/combat/damage_info.gd`, `game/core/combat_tuning.gd`, `game/core/constants.gd`, `game/data/tuning/combat_tuning.tres`, `game/player/player.gd`, `game/rooms/arena/arena.gd`, `game/rooms/arena/arena.tscn`, `game/debug/debug_panel.gd` ; `_bmad-output/game-architecture.md` ; `_bmad-output/implementation-artifacts/deferred-work.md`, `sprint-status.yaml` et ce fichier.
+
+Hors dépôt (`game/.scratch`, exclu de git) : `t_enemy_parts`, `t_sleepwalker`, `t_enemy_main`, `t_invalid23`, `t_shots23` (captures), `run_all.sh` étendu.
 
 ### Change Log
 
 - 2026-11-21 : story 2.3 créée (`ready-for-dev`).
+- 2026-11-21 : story 2.3 implémentée, vérifiée en headless (11 scènes `PASS`, mutations consignées) et passée en `review`.
