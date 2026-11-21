@@ -65,7 +65,12 @@ func load_from(path: String) -> void:
 	var err: Error = config.load(path)
 	if err == ERR_FILE_NOT_FOUND:
 		Log.warn("save", "%s missing, using defaults" % path.get_file())
+	elif err != OK and err != ERR_PARSE_ERROR and err != ERR_FILE_CORRUPT:
+		# Cannot open or read (locked by an antivirus or a sync tool, permissions): the content may be fine,
+		# so leave the file where it is.
+		Log.warn("save", "%s cannot be read (error %d), using defaults" % [path.get_file(), err])
 	elif err != OK:
+		# Unreadable content: quarantined.
 		var corrupt_path: String = path + ".corrupt"
 		var rename_err: Error = DirAccess.rename_absolute(path, corrupt_path)
 		Log.warn("save", "%s unreadable (error %d), using defaults, moved to %s (rename error %d)" % [

@@ -57,13 +57,25 @@ func _ready() -> void:
 	hide()
 
 
+## A slider hidden mid-drag (Escape, Start or B while the mouse holds it) never gets drag_ended: save the
+## previewed value now, so the bus, Settings and settings.cfg stay in sync.
+func _notification(what: int) -> void:
+	if what != NOTIFICATION_VISIBILITY_CHANGED or is_visible_in_tree():
+		return
+	for bus: StringName in _dragging:
+		if _dragging[bus]:
+			_dragging[bus] = false
+			_commit_volume(bus, _sliders[bus].value)
+
+
 ## Reads every value from Settings (without writing anything back), shows the menu, focus on the first slider.
 func open() -> void:
 	for bus: StringName in _sliders:
 		_dragging[bus] = false
-		var percent: float = roundf(Settings.volume(bus) * PERCENT)
-		_sliders[bus].set_value_no_signal(percent)
-		_show_percent(bus, percent)
+		var slider: HSlider = _sliders[bus]
+		slider.set_value_no_signal(roundf(Settings.volume(bus) * PERCENT))
+		# The slider snaps to its step: show its value, not the stored one (0.83 shows 85 %, like the slider).
+		_show_percent(bus, slider.value)
 	_fullscreen_button.set_pressed_no_signal(Settings.fullscreen)
 	_vsync_button.set_pressed_no_signal(Settings.vsync)
 	_damage_numbers_button.set_pressed_no_signal(Settings.damage_numbers)
@@ -83,10 +95,11 @@ func _show_percent(bus: StringName, percent: float) -> void:
 	_values[bus].text = tr(&"UI_SETTINGS_PERCENT") % roundi(percent)
 
 
-## Saves the volume (Settings skips an unchanged value) and plays the SFX preview.
+## Saves the volume (Settings skips an unchanged value) and plays the SFX preview if the volume changed.
 func _commit_volume(bus: StringName, percent: float) -> void:
+	var before: float = Settings.volume(bus)
 	Settings.set_volume(bus, percent / PERCENT)
-	if bus == Settings.SFX_BUS:
+	if bus == Settings.SFX_BUS and Settings.volume(bus) != before:
 		Audio.play_sfx(PREVIEW_SOUND)
 
 
