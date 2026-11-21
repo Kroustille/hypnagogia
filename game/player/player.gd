@@ -60,7 +60,7 @@ var _blinking: bool = false
 func _ready() -> void:
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 	collision_layer = Const.LAYER_PLAYER
-	collision_mask = Const.LAYER_WALLS
+	collision_mask = Const.LAYER_WALLS | Const.LAYER_ENEMIES # the dash and the walk stop on enemy bodies (FR4)
 	_motor = PlayerMotor.new(Tuning.PLAYER)
 	_dash = Dash.new(Tuning.DASH)
 	_dash.ended.connect(_on_dash_ended)
@@ -217,6 +217,7 @@ func _can_be_hit() -> bool:
 func _on_hurtbox_damage_received(info: DamageInfo) -> void:
 	var lost: int = health.apply_damage(info)
 	if lost <= 0:
+		hurtbox.refuse_hit() # no "hit applied" for a refused hit (story 2.3)
 		return
 	Events.player_hit.emit(lost, info.source)
 	Audio.play_sfx(HIT_SOUND)
