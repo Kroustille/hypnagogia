@@ -4,6 +4,8 @@ extends Node
 
 const ARENA_PATH: String = "res://rooms/arena/arena.tscn"
 const BULLET_LOAD_TEST_PATH: String = "res://debug/bullet_load_test.tscn"
+## Debug slow motion factor (F4). A debug tool, not a gameplay value.
+const SLOW_MOTION_SCALE: float = 0.25
 
 var _last_scale_factor: int = -1
 var _load_test_active: bool = false
@@ -49,6 +51,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		# Flip the flag only after a successful load, so a failed load cannot desynchronize it.
 		if _show_scene(path):
 			_load_test_active = wants_load_test
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("debug_slow_motion"):
+		# The state lives in GameClock, so it survives scene changes (F5).
+		var was_slow: bool = GameClock.global_multiplier < 1.0
+		GameClock.global_multiplier = 1.0 if was_slow else SLOW_MOTION_SCALE
+		Log.info("input", "slow motion %s" % ("off" if was_slow else "on"))
 		get_viewport().set_input_as_handled()
 
 

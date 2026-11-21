@@ -4,3 +4,4 @@ class_name Tuning
 ## Each story adds its own Resource here. They are read-only at runtime: never assign to them.
 
 const PLAYER: PlayerTuning = preload("res://data/tuning/player_tuning.tres")
+const DASH: DashTuning = preload("res://data/tuning/dash_tuning.tres")
