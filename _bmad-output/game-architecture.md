@@ -310,6 +310,7 @@ func _physics_process(delta: float) -> void:
 - Tout code de gameplay multiplie son `delta` par l'échelle de son groupe. Les timers de gameplay sont des compteurs manuels, pas des nœuds `Timer` ni des `SceneTreeTimer`.
 - La pause passe par `GameClock` et par `process_mode` de l'arbre de jeu ; `Engine.time_scale` reste à 1.
 - Seul `Main` met en pause et reprend : il écrit ensemble `GameClock.paused` et `ActiveScene.process_mode` (`PROCESS_MODE_DISABLED`) ; `SceneTree.paused` n'est jamais utilisé, et aucun autre script n'écrit `GameClock.paused` (story 1.6).
+- Pendant l'écran de réveil, `Main` fige aussi `ActiveScene` et `GameClock.paused`, sans menu de pause (story 2.2).
 
 ### Seeds et RNG (D8)
 
@@ -351,6 +352,7 @@ Ordre des couches, de bas en haut :
 | Combat | Télégraphes, projectiles joueur, projectiles ennemis (au-dessus de tout le reste) | Non |
 | HUD | Interface | Non |
 
+- Couches de décor en `z_index` = `Const.Z_INDEX_DECOR` : le joueur vit dans `Run`, hors de la salle (story 2.2).
 - Les couches du monde suivent la caméra (`follow_viewport_enabled`).
 - L'intensité de distorsion = f(palier) × réglage d'accessibilité.
 - Plus tard, la vision réduite des salles sombres s'insère entre Entités et Combat, en épargnant les ennemis de contact.
@@ -673,6 +675,7 @@ hypnagogia/
 | Tir ; cadence ; recul du tir ; visée ; réticule ; cible d'entraînement | `shot` ; `fire_rate` ; `recoil` ; `aim` ; `reticle` ; `training_target` |
 | Pause ; menu de pause ; réglages ; volume ; plein écran ; VSync ; chiffres de dégâts | `pause` ; `pause_menu` ; `settings` ; `volume` ; `fullscreen` ; `vsync` ; `damage_numbers` |
 | Santé ; cœur ; demi-cœur ; armure ; plafond de cœurs ; coup reçu ; invulnérabilité après un coup ; clignotement ; panneau de debug ; émetteur de test | `health` ; `heart` ; `half_heart` ; `armor` ; `heart_cap` ; `hit` ; `hit_invulnerability` ; `blink` ; `debug_panel` ; `test_emitter` |
+| Run, nuit, partie ; mort ; issue de la run ; écran de réveil ; se rendormir, relancer ; emplacement de salle ; transition ; couche de décor | `run` ; `death` ; `outcome` ; `wake_screen` ; `restart` ; `room_slot` ; `transition` ; `decor` |
 
 Tout nouveau terme du GDD entre dans ce lexique avant d'apparaître dans le code.
 
