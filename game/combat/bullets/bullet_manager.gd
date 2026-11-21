@@ -5,7 +5,8 @@ extends Node2D
 ## MultiMeshInstance2D per appearance. Positions are local to this node, which must sit at the
 ## origin of the scene together with the solid TileMapLayers passed to setup().
 ## Hurtboxes of the opposite camp are registered by the room that creates them (register_hurtbox()):
-## a bullet that overlaps one is freed and its damage is delivered through Hurtbox.receive().
+## a bullet that overlaps one that can be hit is freed and its damage is delivered through Hurtbox.receive().
+## Ticks after the entities (Const.PHYSICS_PRIORITY_BULLETS): hit tests read this tick's state of the hurtboxes.
 ## Never log from the update loops: counters are shown by the F3 overlay.
 
 enum Camp { ENEMY, PLAYER }
@@ -49,6 +50,8 @@ var _render_counts: PackedInt32Array = PackedInt32Array()
 var _targets: Array[Hurtbox] = []
 ## Rect of each target in this node's space, refreshed once per tick (reused, never reallocated per tick).
 var _target_rects: Array[Rect2] = []
+## is_hittable() of each target, read once per tick (reused). A one_hit_per_tick target turns false after its hit.
+var _target_hittable: Array[bool] = []
 ## Hits of the current tick, delivered after the bullet loop (reused lists). Targets are kept by instance id:
 ## a receive() may free a target that a later hit of the same tick still names.
 var _hit_target_ids: PackedInt64Array = PackedInt64Array()
@@ -62,6 +65,7 @@ func setup(solid_layers: Array[TileMapLayer]) -> void:
 
 
 func _ready() -> void:
+	process_physics_priority = Const.PHYSICS_PRIORITY_BULLETS
 	assert(capacity > 0, "BulletManager capacity must be positive")
 	capacity = maxi(capacity, 1)
 	assert(position == Vector2.ZERO, "BulletManager must sit at the scene origin")
@@ -233,10 +237,12 @@ func _process(_delta: float) -> void:
 
 func _refresh_target_rects() -> void:
 	_target_rects.resize(_targets.size())
+	_target_hittable.resize(_targets.size())
 	for t: int in _targets.size():
 		var rect: Rect2 = _targets[t].world_rect()
 		rect.position = to_local(rect.position) # the manager sits at the origin, unscaled
 		_target_rects[t] = rect
+		_target_hittable[t] = _targets[t].is_hittable()
 
 
 ## Circle against rectangle, in registration order: one bullet hits at most one target (no pierce before epic 5).
@@ -246,7 +252,7 @@ func _test_targets(i: int) -> bool:
 	var radius_sq: float = _radii[i] * _radii[i]
 	for t: int in _target_rects.size():
 		var rect: Rect2 = _target_rects[t]
-		if rect.size == Vector2.ZERO:
+		if rect.size == Vector2.ZERO or not _target_hittable[t]:
 			continue
 		var closest: Vector2 = Vector2(
 			clampf(pos.x, rect.position.x, rect.end.x), clampf(pos.y, rect.position.y, rect.end.y)
@@ -255,6 +261,8 @@ func _test_targets(i: int) -> bool:
 			_hit_target_ids.append(_targets[t].get_instance_id())
 			_hit_amounts.append(_damages[i])
 			_hit_directions.append(_velocities[i].normalized())
+			if _targets[t].one_hit_per_tick:
+				_target_hittable[t] = false # the next bullets of this tick pass through
 			return true
 	return false
 
@@ -263,12 +271,16 @@ func _test_targets(i: int) -> bool:
 ## A target freed, queued for deletion (itself or its owner) or unregistered by an earlier receive() of this
 ## tick gets nothing more.
 func _deliver_hits() -> void:
+	var source: DamageInfo.Source = (
+		DamageInfo.Source.PLAYER_SHOT if camp == Camp.PLAYER else DamageInfo.Source.ENEMY_BULLET
+	)
 	for h: int in _hit_target_ids.size():
 		var target: Hurtbox = instance_from_id(_hit_target_ids[h]) as Hurtbox # null once freed
 		if target == null or not _targets.has(target) or _is_being_deleted(target):
 			continue
-		# PLAYER_SHOT is the only source so far: the enemy camp adds its own with epic 2.
-		target.receive(DamageInfo.from_bullet(_hit_amounts[h], _hit_directions[h], DamageInfo.Source.PLAYER_SHOT))
+		# The result of receive() is ignored: the bullet is already freed (a target made untouchable between the
+		# test and the delivery of the same tick costs one bullet, no visible effect).
+		target.receive(DamageInfo.from_bullet(_hit_amounts[h], _hit_directions[h], source))
 	_hit_target_ids.clear()
 	_hit_amounts.clear()
 	_hit_directions.clear()

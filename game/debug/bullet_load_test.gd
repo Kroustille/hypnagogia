@@ -24,7 +24,7 @@ var _shot_counter: int = 0
 
 func _ready() -> void:
 	# Run after the manager's own tick, so the count read after a frame is the refilled one.
-	process_physics_priority = 1
+	process_physics_priority = Const.PHYSICS_PRIORITY_BULLETS + 1
 	var walls: TileMapLayer = _build_walls()
 	add_child(walls)
 	var solid_layers: Array[TileMapLayer] = [walls]

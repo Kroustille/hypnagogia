@@ -3,7 +3,8 @@ extends RefCounted
 ## One hit, from a source to a Hurtbox. Player: half-hearts (integers). Enemies: HP (floats).
 ## Always delivered through Hurtbox.receive(), never by calling the target directly.
 
-enum Source { PLAYER_SHOT } # extended by later stories (enemy bullet, contact, pit...)
+## PLAYER_SHOT stays first: its integer value must not change. Contact and pits come with stories 2.3 and 4.3.
+enum Source { PLAYER_SHOT, ENEMY_BULLET, DEBUG }
 
 var amount: float = 0.0
 var source: Source = Source.PLAYER_SHOT

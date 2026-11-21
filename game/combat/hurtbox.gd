@@ -1,7 +1,7 @@
 class_name Hurtbox
 extends Area2D
-## The zone where an entity takes hits. Holds no HP (Health: story 2.1): receive() only emits a signal
-## that the owner listens to. BulletManagers do not use physics (D1): they read world_rect() of the
+## The zone where an entity takes hits. Holds no HP (its owner entrusts them to Health): receive() only emits
+## a signal that the owner listens to, and does nothing when the hurtbox cannot be hit (is_hittable()). BulletManagers do not use physics (D1): they read world_rect() of the
 ## hurtboxes registered with them. The collision layer is for future Area2D consumers (contact, epic 2).
 ## Its CollisionShape2D child must hold a RectangleShape2D; it joins the F2 debug group.
 
@@ -11,6 +11,11 @@ signal damage_received(info: DamageInfo)
 ## Whose hurtbox this is: an ENEMY hurtbox is hit by the PLAYER camp's bullets, and the other way round.
 @export var camp: BulletManager.Camp = BulletManager.Camp.ENEMY
 
+## When true, once one bullet hits this hurtbox in a tick, the other bullets of that tick pass through.
+## Set on the player's hurtbox: its first hit opens the invulnerability (story 2.1).
+@export var one_hit_per_tick: bool = false
+
+var _hit_filter: Callable # set by the owner; returns bool: "can this hurtbox be hit now?"
 var _shape_node: CollisionShape2D
 var _rectangle: RectangleShape2D
 
@@ -34,13 +39,35 @@ func _ready() -> void:
 	_shape_node.add_to_group(Const.GROUP_DEBUG_SHAPES)
 
 
+## The owner's filter (invulnerability, death...). Must return a bool.
+func set_hit_filter(filter: Callable) -> void:
+	_hit_filter = filter
+
+
+## monitorable, shape enabled, in the tree, and the owner's filter (if any) says yes.
+func is_hittable() -> bool:
+	if _shape_node == null or not monitorable or _shape_node.disabled or not is_inside_tree():
+		return false
+	if _hit_filter.is_valid():
+		var answer: Variant = _hit_filter.call()
+		if answer is bool:
+			return answer
+		Log.error("combat", "hit filter of %s must return a bool" % get_path())
+		assert(false, "Hurtbox hit filter must return a bool")
+	return true
+
+
 ## Emits damage_received. The only entry point for damage (AR: DamageInfo -> Hurtbox.receive()).
-## An enemy hurtbox also notifies Events.enemy_damaged (damage numbers, telemetry).
-func receive(info: DamageInfo) -> void:
+## Returns false and emits nothing when the hurtbox cannot be hit.
+## An enemy hurtbox also notifies Events.enemy_damaged (damage numbers, telemetry) once the owner applied the hit.
+func receive(info: DamageInfo) -> bool:
+	if not is_hittable():
+		return false
 	damage_received.emit(info)
 	if camp == BulletManager.Camp.ENEMY and _rectangle != null:
 		var rect: Rect2 = world_rect()
 		Events.enemy_damaged.emit(Vector2(rect.get_center().x, rect.position.y), info.amount)
+	return true
 
 
 ## Axis-aligned rectangle of the shape, in global coordinates. Rotation and scale are ignored.
