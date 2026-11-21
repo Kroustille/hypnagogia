@@ -1,20 +1,27 @@
 class_name Main
 extends Node
-## Application root. Hosts the active scene and the UI layer, and owns the pause (story 1.6):
-## pausing disables ActiveScene (process_mode) and sets GameClock.paused, together and only here.
+## Application root. Hosts the active scene (the Run) and the UI layer, and owns the pause (story 1.6) and the
+## wake screen freeze (story 2.2): freezing disables ActiveScene (process_mode) and sets GameClock.paused,
+## together and only here.
 ## SceneTree.paused is never used, so the UI layer and the autoloads (Audio) keep running.
 
-const ARENA_PATH: String = "res://rooms/arena/arena.tscn"
+## Preloaded: keeps run.tscn, so its arena, in the resource cache for the whole session (restart without reload).
+const RUN_SCENE: PackedScene = preload("res://run/run.tscn")
 const BULLET_LOAD_TEST_PATH: String = "res://debug/bullet_load_test.tscn"
 const DEBUG_PANEL_PATH: String = "res://debug/debug_panel.tscn"
 ## Debug slow motion factor (F4). A debug tool, not a gameplay value.
 const SLOW_MOTION_SCALE: float = 0.25
+const WAKE_SCREEN_SCENE: PackedScene = preload("res://ui/menus/wake_screen.tscn")
 const PAUSE_MENU_SCENE: PackedScene = preload("res://ui/menus/pause_menu.tscn")
 const SETTINGS_MENU_SCENE: PackedScene = preload("res://ui/menus/settings_menu.tscn")
 
 var _last_scale_factor: int = -1
 var _last_window_size: Vector2i = Vector2i.ZERO
 var _load_test_active: bool = false
+## True while the wake screen is open (the run is over, the game is frozen behind it).
+var _run_over: bool = false
+var _run_ended_msec: int = 0
+var _wake_screen: WakeScreen
 var _pause_menu: PauseMenu
 var _settings_menu: SettingsMenu
 
@@ -33,7 +40,8 @@ func _ready() -> void:
 		if panel_scene != null:
 			_ui.add_child(panel_scene.instantiate())
 	_setup_menus()
-	_show_scene(ARENA_PATH)
+	Events.run_ended.connect(_on_events_run_ended)
+	_start_run()
 	_check_window_scale()
 
 
@@ -56,10 +64,13 @@ func _check_collision_layer_names() -> void:
 
 ## Hidden menus, added last to UI so they draw above the overlays.
 func _setup_menus() -> void:
+	_wake_screen = WAKE_SCREEN_SCENE.instantiate() as WakeScreen
 	_pause_menu = PAUSE_MENU_SCENE.instantiate() as PauseMenu
 	_settings_menu = SETTINGS_MENU_SCENE.instantiate() as SettingsMenu
+	_ui.add_child(_wake_screen)
 	_ui.add_child(_pause_menu)
 	_ui.add_child(_settings_menu)
+	_wake_screen.restart_requested.connect(_on_wake_screen_restart_requested)
 	_pause_menu.resume_requested.connect(_on_pause_menu_resume_requested)
 	_pause_menu.settings_requested.connect(_on_pause_menu_settings_requested)
 	_pause_menu.quit_requested.connect(_on_pause_menu_quit_requested)
@@ -72,12 +83,17 @@ func _notification(what: int) -> void:
 		_set_paused(true, "focus lost")
 
 
-## The only place that pauses or resumes the game. Never use get_tree().paused.
+## The only code that freezes or unfreezes the game (pause and wake screen). Never use get_tree().paused.
+func _freeze(frozen: bool) -> void:
+	GameClock.paused = frozen
+	_active_scene.process_mode = Node.PROCESS_MODE_DISABLED if frozen else Node.PROCESS_MODE_INHERIT
+
+
+## Pause and resume. Ignored behind the wake screen: no pause menu over it (it would reopen the dead game).
 func _set_paused(value: bool, reason: String = "") -> void:
-	if value == GameClock.paused:
+	if _run_over or value == GameClock.paused:
 		return
-	GameClock.paused = value
-	_active_scene.process_mode = Node.PROCESS_MODE_DISABLED if value else Node.PROCESS_MODE_INHERIT
+	_freeze(value)
 	if value:
 		_pause_menu.open()
 	else:
@@ -99,10 +115,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed("debug_load_test"):
 		var wants_load_test: bool = not _load_test_active
-		var path: String = BULLET_LOAD_TEST_PATH if wants_load_test else ARENA_PATH
-		# Flip the flag only after a successful load, so a failed load cannot desynchronize it.
-		if _show_scene(path):
-			_load_test_active = wants_load_test
+		if wants_load_test:
+			var load_test: PackedScene = load(BULLET_LOAD_TEST_PATH) as PackedScene
+			# Flip the flag only after a successful load, so a failed load cannot desynchronize it.
+			if load_test != null and _show_scene(load_test):
+				_load_test_active = true
+			else:
+				Log.warn("ui", "scene not found at %s" % BULLET_LOAD_TEST_PATH)
+		else:
+			_start_run()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("debug_slow_motion"):
 		# The state lives in GameClock, so it survives scene changes (F5).
@@ -112,18 +133,39 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-## Replaces the content of ActiveScene by the scene at path. Returns false if it cannot load.
-func _show_scene(path: String) -> bool:
-	var scene: PackedScene = load(path) as PackedScene
-	if scene == null:
-		Log.warn("ui", "scene not found at %s" % path)
-		return false
+## Starts a new run: the old Run (if any) is destroyed, a fresh one is instantiated (AR20).
+func _start_run() -> void:
+	_wake_screen.hide()
+	_run_over = false
+	# Unfreeze before adding the new run: a node added under a disabled parent would miss NOTIFICATION_DISABLED/ENABLED.
+	_freeze(false)
+	_show_scene(RUN_SCENE)
+	_load_test_active = false
+
+
+## Replaces the content of ActiveScene by an instance of scene.
+func _show_scene(scene: PackedScene) -> bool:
 	for child: Node in _active_scene.get_children():
 		# Out of the tree at once, so its node groups (bullet managers, debug shapes) stop counting this frame.
 		_active_scene.remove_child(child)
 		child.queue_free()
 	_active_scene.add_child(scene.instantiate())
 	return true
+
+
+## The run ended (death): freeze the game and show the wake screen. Synchronous, in the tick of the lethal hit.
+func _on_events_run_ended(_outcome: int) -> void:
+	if _run_over:
+		return
+	_run_over = true
+	_run_ended_msec = Time.get_ticks_msec()
+	_freeze(true)
+	_wake_screen.open()
+
+
+func _on_wake_screen_restart_requested() -> void:
+	Log.info("run", "restart requested %d ms after the end of the run" % (Time.get_ticks_msec() - _run_ended_msec))
+	_start_run()
 
 
 func _on_pause_menu_resume_requested() -> void:

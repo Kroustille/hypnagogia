@@ -12,4 +12,8 @@ unique_name_in_owner = true
 [node name="UI" type="CanvasLayer" parent="."]
 unique_name_in_owner = true
 
+[node name="Transition" type="CanvasLayer" parent="."]
+unique_name_in_owner = true
+layer = 2
+
 [node name="PerfOverlay" parent="UI" instance=ExtResource("2_perf")]
