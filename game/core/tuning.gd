@@ -6,3 +6,4 @@ class_name Tuning
 const PLAYER: PlayerTuning = preload("res://data/tuning/player_tuning.tres")
 const DASH: DashTuning = preload("res://data/tuning/dash_tuning.tres")
 const SHOT: ShotTuning = preload("res://data/tuning/shot_tuning.tres")
+const COMBAT: CombatTuning = preload("res://data/tuning/combat_tuning.tres")

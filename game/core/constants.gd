@@ -48,3 +48,10 @@ const LAYER_NAMES: Array[String] = [
 
 ## Color reserved for the player's shots (NFR8): no other entity uses it. Final value set by story 7.2.
 const COLOR_PLAYER_SHOT: Color = Color(0.55, 0.95, 1.0)
+
+## Node group of the player, found by debug tools without a node path.
+const GROUP_PLAYER: StringName = &"player"
+
+## Physics tick priority of every BulletManager: they tick after the entities (priority 0), whatever their place
+## in the tree, so hit tests read this tick's state of the hurtboxes (story 2.1).
+const PHYSICS_PRIORITY_BULLETS: int = 100

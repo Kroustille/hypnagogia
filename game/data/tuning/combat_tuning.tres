@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="CombatTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/combat_tuning.gd" id="1_tuning"]
+
+[resource]
+script = ExtResource("1_tuning")
+starting_half_hearts = 6
+heart_cap_half_hearts = 24
+hit_damage_half_hearts = 1
+hit_invulnerability_duration = 1.0
