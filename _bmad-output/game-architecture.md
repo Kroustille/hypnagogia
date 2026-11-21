@@ -268,6 +268,7 @@ func _physics_process(delta: float) -> void:
   - projectiles joueur contre les hurtbox ennemies (peu nombreuses : test direct) ;
   - tous contre les murs et obstacles hauts par lecture de cellule du `TileMapLayer`, et contre les meubles.
 - Ordre de traitement (story 2.1) : tout `BulletManager` règle `process_physics_priority = Const.PHYSICS_PRIORITY_BULLETS` (100) et tique donc après les entités (priorité 0), où qu'il soit dans l'arbre : les tests de touche lisent l'état du tick courant (invulnérabilité du dash, hurtbox).
+- Ordre de traitement (story 2.3) : les `Hitbox` de contact (zones de contact des ennemis) règlent `process_physics_priority = Const.PHYSICS_PRIORITY_HITBOXES` (50) : entités à 0, `Hitbox` à 50, `BulletManager` à 100. Le contact est testé à la main dans le tick courant, sans recouvrement physique.
 - Les effets d'objets (traversée, tir arrière, taille) passent par des paramètres de tir, jamais par du code spécifique dans la boucle.
 - Repli si le test à 400 projectiles échoue : porter la boucle de mise à jour en GDExtension, sans changer l'interface.
 
@@ -676,6 +677,7 @@ hypnagogia/
 | Pause ; menu de pause ; réglages ; volume ; plein écran ; VSync ; chiffres de dégâts | `pause` ; `pause_menu` ; `settings` ; `volume` ; `fullscreen` ; `vsync` ; `damage_numbers` |
 | Santé ; cœur ; demi-cœur ; armure ; plafond de cœurs ; coup reçu ; invulnérabilité après un coup ; clignotement ; panneau de debug ; émetteur de test | `health` ; `heart` ; `half_heart` ; `armor` ; `heart_cap` ; `hit` ; `hit_invulnerability` ; `blink` ; `debug_panel` ; `test_emitter` |
 | Run, nuit, partie ; mort ; issue de la run ; écran de réveil ; se rendormir, relancer ; emplacement de salle ; transition ; couche de décor | `run` ; `death` ; `outcome` ; `wake_screen` ; `restart` ; `room_slot` ; `transition` ; `decor` |
+| Ennemi ; PV ; dégâts au contact ; zone de contact ; apparition ; distance minimale d'apparition ; ennemis vivants ; poursuite ; accélération du Somnambule ; lever les bras | `enemy` ; `hp` (`HitPoints`) ; `contact_damage` ; `Hitbox` ; `spawn` ; `min_spawn_distance` ; `alive_enemies` ; `chase` ; `rush` ; `raise_arms` |
 
 Tout nouveau terme du GDD entre dans ce lexique avant d'apparaître dans le code.
 
@@ -830,6 +832,7 @@ func _ready() -> void:
 - Toute apparition de ramassable passe par `Drops.spawn(kind, position, rng)`.
 - Injection de dépendances : `setup()` est appelée **avant** `add_child()`. Les dépendances internes à la scène passent par `@export` ou `%NomUnique`.
 - Pools uniquement pour les projectiles et les effets d'impact.
+- Apparition d'un ennemi (story 2.3) : à au moins `min_spawn_distance` (3 tuiles) du joueur ; une position trop proche ou hors de la zone jouable est remplacée de façon déterministe (sans RNG avant l'epic 4). Un ennemi n'est jamais mis en pool ni déplacé d'un parent à l'autre.
 
 ```gdscript
 func spawn_enemy(def: EnemyDef, pos: Vector2) -> Enemy:
@@ -875,6 +878,7 @@ const COMBAT: CombatTuning = preload("res://data/tuning/combat_tuning.tres")
 
 - Les dégâts passent toujours par `DamageInfo` (`amount`, `source`, `is_heavy`) → `Hurtbox.receive()` → `Health.apply_damage()`.
 - Joueur : dégâts en **demi-cœurs** (entiers), armure consommée en premier. Ennemis : dégâts en PV (flottants).
+- Les PV d'un ennemi sont dans `HitPoints` (flottants, ni armure ni invulnérabilité), pas dans `Health` (réservée au joueur). Un propriétaire qui n'applique pas un coup appelle `Hurtbox.refuse_hit()` dans son gestionnaire : `receive()` renvoie `false` et n'émet pas `Events.enemy_damaged` (story 2.3).
 - Resources : distances en **tuiles**, durées en **secondes**, angles en **degrés**. Code : pixels et radians, convertis à la lecture (`Const.TILE_SIZE`, `deg_to_rad`).
 
 ### Règles de cohérence
