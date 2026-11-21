@@ -4,7 +4,7 @@ baseline_commit: f8c2c0fc37d85ce9bdaa7d6d4f62452ba11d9ccf
 
 # Story 1.5 : Viser et tirer
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -36,35 +36,35 @@ afin que chaque tir se sente.
 
 ## Tâches / sous-tâches
 
-- [ ] **T1. Lexique** (AR32 : un terme entre dans le lexique **avant** le code)
-  - [ ] `game-architecture.md`, section « Lexique » : ajouter `Tir ; cadence ; recul du tir ; visée ; réticule ; cible d'entraînement | shot ; fire_rate ; recoil ; aim ; reticle ; training_target`.
-- [ ] **T2. Réglages du tir** (CA 3, 5, 6)
-  - [ ] `core/shot_tuning.gd` : `class_name ShotTuning extends Resource` (voir « `ShotTuning` »).
-  - [ ] `data/tuning/shot_tuning.tres` (valeurs du GDD) et `Tuning.SHOT` (`preload`).
-- [ ] **T3. Entrées** (CA 1 à 3)
-  - [ ] `project.godot` : actions `aim_left`, `aim_right`, `aim_up`, `aim_down` (stick droit) et `shoot` (clic gauche, RT) (voir « Entrées »).
-- [ ] **T4. Bus audio et `Audio`** (CA 5)
-  - [ ] `default_bus_layout.tres` : `Master`, `Music`, `SFX`, `UI`.
-  - [ ] `autoloads/audio.gd` : pool de lecteurs, limite de voix par son, `play_sfx()` (voir « `Audio` »).
-  - [ ] `audio/sfx/sfx_player_shot.wav` : son provisoire généré par script (voir « Son provisoire »).
-- [ ] **T5. Dégâts et `Hurtbox`** (CA 6)
-  - [ ] `combat/damage_info.gd`, `combat/hurtbox.gd` (voir « `DamageInfo` et `Hurtbox` »).
-- [ ] **T6. `BulletManager` : dégâts et cibles** (CA 3, 6, 10)
-  - [ ] `BulletParams.damage`, tableau `_damages`, `register_hurtbox()`, test cercle contre rectangle (voir « `BulletManager` »).
-- [ ] **T7. Retour d'impact réutilisable** (CA 5, 6, 9)
-  - [ ] `vfx/sprite_kick.gd`, `vfx/shaders/hit_flash.gdshader`, `combat/hit_feedback.gd` (voir « Retours »).
-- [ ] **T8. Visée, cadence, réticule** (CA 1 à 4, 7, 8)
-  - [ ] `player/aim.gd`, `player/shooter.gd`, `player/reticle.gd` (voir « `Aim` », « `Shooter` », « `Reticle` »).
-- [ ] **T9. `Player`** (CA 1 à 5, 7, 11)
-  - [ ] Brancher visée, cadence, tir, recul, réticule ; `equip_bullets()` (voir « `Player` »).
-- [ ] **T10. Arène et cible d'entraînement** (CA 3, 6, 10)
-  - [ ] `rooms/arena/training_target.gd` + `.tscn`, `arena.tscn` (conteneur `Targets`), `arena.gd` (`BulletManager` du joueur, enregistrement des cibles) (voir « Arène »).
-- [ ] **T11. Vérifications headless** (CA 1 à 10)
-  - [ ] Scripts jetables dans le scratchpad (pas dans le dépôt) : voir « Stratégie de test ».
-- [ ] **T12. Vérifications fenêtrées sous WSLg** (CA 1, 3, 5, 6, 11)
-  - [ ] Tir visible, réticule, conversion souris→monde, flash et recul de la cible, capture d'écran.
-- [ ] **T13. Régression** : import et lancement headless sans erreur, recherche des interdits, marche, dash, F2, F3, F4 et F5 de 1.1 à 1.4 toujours conformes, test de charge sans régression de coût.
-- [ ] **T14. Reports** : consigner dans `deferred-work.md` ce qui n'a pas pu être vérifié (manette réelle : stick droit et RT ; ressenti ; son provisoire ; curseur et pause pour 1.6).
+- [x] **T1. Lexique** (AR32 : un terme entre dans le lexique **avant** le code)
+  - [x] `game-architecture.md`, section « Lexique » : ajouter `Tir ; cadence ; recul du tir ; visée ; réticule ; cible d'entraînement | shot ; fire_rate ; recoil ; aim ; reticle ; training_target`.
+- [x] **T2. Réglages du tir** (CA 3, 5, 6)
+  - [x] `core/shot_tuning.gd` : `class_name ShotTuning extends Resource` (voir « `ShotTuning` »).
+  - [x] `data/tuning/shot_tuning.tres` (valeurs du GDD) et `Tuning.SHOT` (`preload`).
+- [x] **T3. Entrées** (CA 1 à 3)
+  - [x] `project.godot` : actions `aim_left`, `aim_right`, `aim_up`, `aim_down` (stick droit) et `shoot` (clic gauche, RT) (voir « Entrées »).
+- [x] **T4. Bus audio et `Audio`** (CA 5)
+  - [x] `default_bus_layout.tres` : `Master`, `Music`, `SFX`, `UI`.
+  - [x] `autoloads/audio.gd` : pool de lecteurs, limite de voix par son, `play_sfx()` (voir « `Audio` »).
+  - [x] `audio/sfx/sfx_player_shot.wav` : son provisoire généré par script (voir « Son provisoire »).
+- [x] **T5. Dégâts et `Hurtbox`** (CA 6)
+  - [x] `combat/damage_info.gd`, `combat/hurtbox.gd` (voir « `DamageInfo` et `Hurtbox` »).
+- [x] **T6. `BulletManager` : dégâts et cibles** (CA 3, 6, 10)
+  - [x] `BulletParams.damage`, tableau `_damages`, `register_hurtbox()`, test cercle contre rectangle (voir « `BulletManager` »).
+- [x] **T7. Retour d'impact réutilisable** (CA 5, 6, 9)
+  - [x] `vfx/sprite_kick.gd`, `vfx/shaders/hit_flash.gdshader`, `combat/hit_feedback.gd` (voir « Retours »).
+- [x] **T8. Visée, cadence, réticule** (CA 1 à 4, 7, 8)
+  - [x] `player/aim.gd`, `player/shooter.gd`, `player/reticle.gd` (voir « `Aim` », « `Shooter` », « `Reticle` »).
+- [x] **T9. `Player`** (CA 1 à 5, 7, 11)
+  - [x] Brancher visée, cadence, tir, recul, réticule ; `equip_bullets()` (voir « `Player` »).
+- [x] **T10. Arène et cible d'entraînement** (CA 3, 6, 10)
+  - [x] `rooms/arena/training_target.gd` + `.tscn`, `arena.tscn` (conteneur `Targets`), `arena.gd` (`BulletManager` du joueur, enregistrement des cibles) (voir « Arène »).
+- [x] **T11. Vérifications headless** (CA 1 à 10)
+  - [x] Scripts jetables dans le scratchpad (pas dans le dépôt) : voir « Stratégie de test ».
+- [x] **T12. Vérifications fenêtrées sous WSLg** (CA 1, 3, 5, 6, 11)
+  - [x] Tir visible, réticule, conversion souris→monde, flash et recul de la cible, capture d'écran.
+- [x] **T13. Régression** : import et lancement headless sans erreur, recherche des interdits, marche, dash, F2, F3, F4 et F5 de 1.1 à 1.4 toujours conformes, test de charge sans régression de coût.
+- [x] **T14. Reports** : consigner dans `deferred-work.md` ce qui n'a pas pu être vérifié (manette réelle : stick droit et RT ; ressenti ; son provisoire ; curseur et pause pour 1.6).
 
 ## Dev Notes
 
@@ -548,12 +548,74 @@ Il n'y a pas de `project-context.md`. Règles tirées de `CLAUDE.md` et de la m�
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 5.5 (claude-opus-5-5)
 
 ### Debug Log References
+
+- Vérifications jetables dans le scratchpad (hors dépôt), lancées comme scènes (`godot --headless --path game --scene <scène>`) : `unit_test` (Aim, Shooter, DamageInfo, SpriteKick, Audio et bus : 39 contrôles), `arena_test` (entrées, CA 2 à 7, cibles, enregistrement, marche et dash, joueur non équipé : 57 contrôles), `main_test` (F2, F3, F4, F5, curseur : 10 contrôles), `tuning_test` (modification de `shot_tuning.tres`), `perf_test` (coût du test de charge contre le commit de base, via un `git worktree` temporaire), `window_test` sous WSLg (conversion souris → monde à ×2 et ×3, réticule, touche visée, flash à la capture, curseur caché puis rendu : 11 contrôles). Tous verts.
+- `Shooter` : la première version reportait la fraction de tick avec un plancher à 0 qui la perdait (8 tirs/s donnait 8 ticks au lieu de 7,5), puis comptait une recharge déjà écoulée comme une dette (tirs à 0, 14, 29…). Corrigé : seule la fraction du tick où la recharge se termine est reportée (8 tirs/s → 80 tirs en 600 ticks ; 4 tirs/s → 0, 15, 30, 45 ; aucune rafale après une attente).
+- `Input.parse_input_event()` est mis en tampon et appliqué au tick suivant : les faux échecs du stick venaient du script de test (relâchement du stick arrivé après le premier tick d'une nouvelle arène). Le jeu n'est pas en cause ; noté dans `deferred-work.md`.
+- Shader `hit_flash` : `COLOR` vaut déjà texture × modulate dans `fragment()` (vérifié à l'écran) : centre de la cible blanc pur pendant le flash, `#d87f33` sans flash (texture d'origine, arrondi 8 bits de 0,85), pixels hors du sprite inchangés (alpha conservé).
+- `Input.mouse_mode` est ignoré en headless (reste à VISIBLE) : CA 11 vérifié en fenêtré seulement.
+- Mesure indicative du test de charge (headless, médiane du temps de physique) : ≈ 212 µs contre ≈ 202 µs au commit de base, dans le bruit ; `Bullets 400 | refused 0`.
 
 ### Completion Notes List
 
 - Analyse de contexte terminée : guide d'implémentation complet créé (create-story, 2026-11-20).
+- T1 : lexique complété (`shot`, `fire_rate`, `recoil`, `aim`, `reticle`, `training_target`), commité avant le code.
+- T2 : `ShotTuning` (`core/shot_tuning.gd`, bornes `@export_range`), `shot_tuning.tres` aux valeurs du GDD, `Tuning.SHOT`. Modifier `damage`, `fire_rate`, `bullet_speed` et `hitbox_size` change le tir sans toucher au code (vérifié puis restauré).
+- T3 : actions `aim_*` (stick droit, axes 2 et 3, zone morte 0,2) et `shoot` (clic gauche, RT axe 5, zone morte 0,5) ; import sans bruit dans `project.godot`.
+- T4 : `default_bus_layout.tres` (Master, Music, SFX, UI, tous vers Master) ; `Audio` : pool de 16 lecteurs sur `SFX`, limite de voix par flux, `dropped_count`, `voices_of()` (ajout pour les vérifications). En headless, le compteur de voix se vide bien à la fin des sons. Son provisoire généré par script (`uv run python`, module `wave`, 0,06 s, 900 → 400 Hz).
+- T5 : `DamageInfo` (avec `direction`, écart assumé) et `Hurtbox` (camp, couches, `world_rect()`, forme ajoutée au groupe F2).
+- T6 : `BulletParams.damage` validé dans `fire()` ; `BulletManager.register_hurtbox()` / `unregister_hurtbox()` (refus du même camp et des doublons, désenregistrement à `tree_exiting`) ; test cercle contre rectangle après le déplacement et avant le mur, un tir touche au plus une cible, dégâts livrés après la boucle ; rien n'est calculé sans cible.
+- T7 : `SpriteKick` (décalage par `position`, en ticks de jeu, sans cumul), shader `hit_flash`, `HitFeedback` (matériau par instance, flash et recul depuis `Tuning.SHOT.impact_*`, ignore tout de son propriétaire).
+- T8 : `Aim` (bascule provisoire souris ↔ stick), `Shooter` (cadence en ticks, recharge qui court pendant le dash, report de la fraction de tick), `Reticle` (dessin en rectangles de 1 px, position arrondie au pixel, interpolation coupée, curseur caché puis rendu à `_exit_tree()`).
+- T9 : `Player` : `_update_shooting()` appelé après `_dash.tick()` et avant le mouvement, `equip_bullets()`, `aim_direction()`, `aim_source()` (ajout lu par le réticule), `_fire()` (recul et son seulement si le tir part), texture 4×4 à alpha 0,7 dans `Const.COLOR_PLAYER_SHOT`.
+- T10 : `TrainingTarget` (sprite orange, `Hurtbox` 12×20 dans la scène en `resource_local_to_scene`, car la `Hurtbox` lit sa forme dans son propre `_ready()`, `HitFeedback` sur `ENEMIES`) ; arène : conteneur `Targets` avec 3 cibles, `PlayerBullets` (capacité 128) créé en code après les tuiles, cibles enregistrées.
+- T11 à T13 : vérifications headless et fenêtrées vertes (voir Debug Log), recherche des interdits propre, aucun `Log.` par frame ; marche (96 px/s, mur à 589), dash (48 px), F2, F3, F4, F5 conformes.
+- T14 : reports consignés dans `deferred-work.md` (manette réelle, ressenti, son jamais écouté, curseur et pause, bascule provisoire, coût du test de charge, tampon de `parse_input_event`).
 
 ### File List
+
+- `_bmad-output/game-architecture.md` (modifié : lexique)
+- `_bmad-output/implementation-artifacts/1-5-viser-et-tirer.md` (modifié)
+- `_bmad-output/implementation-artifacts/deferred-work.md` (modifié)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (modifié)
+- `game/project.godot` (modifié : `aim_*`, `shoot`)
+- `game/default_bus_layout.tres` (nouveau)
+- `game/autoloads/audio.gd` (modifié)
+- `game/audio/sfx/sfx_player_shot.wav` (nouveau)
+- `game/audio/sfx/sfx_player_shot.wav.import` (nouveau)
+- `game/core/constants.gd` (modifié : `COLOR_PLAYER_SHOT`)
+- `game/core/tuning.gd` (modifié : `SHOT`)
+- `game/core/shot_tuning.gd` (nouveau)
+- `game/core/shot_tuning.gd.uid` (nouveau)
+- `game/data/tuning/shot_tuning.tres` (nouveau)
+- `game/combat/damage_info.gd` (nouveau)
+- `game/combat/damage_info.gd.uid` (nouveau)
+- `game/combat/hurtbox.gd` (nouveau)
+- `game/combat/hurtbox.gd.uid` (nouveau)
+- `game/combat/hit_feedback.gd` (nouveau)
+- `game/combat/hit_feedback.gd.uid` (nouveau)
+- `game/combat/bullets/bullet_manager.gd` (modifié)
+- `game/combat/bullets/bullet_params.gd` (modifié)
+- `game/vfx/sprite_kick.gd` (nouveau)
+- `game/vfx/sprite_kick.gd.uid` (nouveau)
+- `game/vfx/shaders/hit_flash.gdshader` (nouveau)
+- `game/vfx/shaders/hit_flash.gdshader.uid` (nouveau)
+- `game/player/player.gd` (modifié)
+- `game/player/aim.gd` (nouveau)
+- `game/player/aim.gd.uid` (nouveau)
+- `game/player/shooter.gd` (nouveau)
+- `game/player/shooter.gd.uid` (nouveau)
+- `game/player/reticle.gd` (nouveau)
+- `game/player/reticle.gd.uid` (nouveau)
+- `game/rooms/arena/arena.gd` (modifié)
+- `game/rooms/arena/arena.tscn` (modifié)
+- `game/rooms/arena/training_target.gd` (nouveau)
+- `game/rooms/arena/training_target.gd.uid` (nouveau)
+- `game/rooms/arena/training_target.tscn` (nouveau)
+
+### Change Log
+
+- 2026-11-21 : implémentation de la story 1.5 (visée souris et stick, cadence, tir du joueur par `BulletManager`, dégâts par `DamageInfo` → `Hurtbox`, retour d'impact réutilisable, bus audio et pool `Audio`, cibles d'entraînement). Statut → review.

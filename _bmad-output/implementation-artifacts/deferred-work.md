@@ -41,3 +41,13 @@
 
 - Lecture de l'invulnérabilité par un tiers dépendante de l'ordre dans l'arbre : l'état du dash avance dans le `_physics_process` du joueur ; un ennemi ou un `BulletManager` qui passe avant lit l'état du tick précédent (trou d'un tick au départ). La story 2.1 doit fixer une convention de lecture (par exemple depuis `Hurtbox`, après le joueur).
 - Pas de marge d'arrondi (`TICK_EPSILON`) sur les comparaisons d'invulnérabilité et de tampon dans `Dash` : les valeurs actuelles (0,15 s et 0,1 s à 60 Hz) tombent juste, mais un réglage futur peut gagner ou perdre un tick.
+
+## Deferred from: story 1-5 (2026-11-21)
+
+- **Stick droit et RT sur une vraie manette : NON VÉRIFIÉS.** Pas de manette sous WSL. Vérifié seulement par `InputEventJoypadMotion` simulés (stick à 0,5 : visée et tir automatique ; stick à 0,1 : rien ; RT simulé par l'action `shoot` : tir dans la dernière direction). Zone morte de la gâchette (0,5) et réticule au stick (4 tuiles) à juger sur une vraie manette, au plus tard avec la story 1.7.
+- **Ressenti du tir : NON ÉVALUÉ** (étapes humaines) : cadence de 4 tirs/s, recul de 1 px, flash et recul de 2 px de la cible, lisibilité du tir à côté des projectiles ennemis. Les captures fenêtrées montrent le tir, le réticule et le flash au bon tick, mais WSLg tourne sous llvmpipe : netteté et fluidité à regarder sous Windows. Latence mesurée : story 1.8.
+- **Son provisoire** (`sfx_player_shot.wav`, 0,06 s, généré par script) : jamais écouté (pas de sortie audio sous WSL, pilote factice). Sonorité, volume et limite de 3 voix à juger à l'oreille ; remplacé par la story 7.7.
+- **Curseur système** : caché par le réticule dans l'arène, rendu visible quand l'arène quitte l'arbre (vérifié en fenêtré). Le menu de pause (story 1.6) devra le rendre visible ; la gestion fine (bascule clavier-souris ↔ manette) est la story 1.7.
+- **Bascule souris ↔ stick provisoire** : le stick prend la main au-delà de la zone morte, la souris la reprend quand sa position de viewport change. À remplacer par l'état du dernier périphérique (story 1.7).
+- **Coût du test de charge** : médiane du temps de physique en headless ≈ 212 µs contre ≈ 202 µs au commit de base (3 mesures chacun, bruit du même ordre). Le surcoût par projectile sans cible est un test booléen ; la mesure de 10 minutes sur la machine de référence (story 1.2) reste à faire.
+- **`Input.parse_input_event()` est appliqué au tick suivant** (événements mis en tampon) : les scripts de vérification doivent attendre un tick après un événement de stick simulé. Rien à changer dans le jeu ; à savoir pour les futurs tests.
