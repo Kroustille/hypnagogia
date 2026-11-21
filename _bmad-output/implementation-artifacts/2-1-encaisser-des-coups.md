@@ -4,7 +4,7 @@ baseline_commit: 677739a03b12fc90b3efe98c41fd1f53b9827d5f
 
 # Story 2.1 : Encaisser des coups
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -40,32 +40,32 @@ afin de savoir exactement ce que me coûte une erreur.
 
 ## Tâches / sous-tâches
 
-- [ ] **T1. Lexique** (AR32 : un terme entre dans le lexique **avant** le code)
-  - [ ] `game-architecture.md`, section « Lexique » : ajouter `Santé ; cœur ; demi-cœur ; armure ; plafond de cœurs ; coup reçu ; invulnérabilité après un coup ; clignotement ; panneau de debug ; émetteur de test | health ; heart ; half_heart ; armor ; heart_cap ; hit ; hit_invulnerability ; blink ; debug_panel ; test_emitter`.
-  - [ ] `game-architecture.md`, section « Temps (D7) » ou « Projectiles (D1) » : consigner en une ligne la règle d'ordre (CA 10 : `BulletManager` en `process_physics_priority` = `Const.PHYSICS_PRIORITY_BULLETS`, après les entités).
-- [ ] **T2. `CombatTuning`** (CA 1, 2, 3, 5 ; AR9)
-  - [ ] `core/combat_tuning.gd`, `data/tuning/combat_tuning.tres`, `Tuning.COMBAT` (voir « `CombatTuning` »).
-- [ ] **T3. `Health`** (CA 1, 3, 5, 12, 13)
-  - [ ] `combat/health.gd` : demi-cœurs, armure, plafond, invulnérabilité après un coup en ticks, invulnérabilité forcée (F1), mort (voir « `Health` »).
-- [ ] **T4. `Hurtbox` touchable ou non** (CA 7, 8, 9)
-  - [ ] `combat/hurtbox.gd` : `set_hit_filter()`, `is_hittable()`, `one_hit_per_tick`, `receive()` qui renvoie `bool` et ne fait rien pour un coup refusé (voir « `Hurtbox` »).
-  - [ ] `combat/damage_info.gd` : sources `ENEMY_BULLET` et `DEBUG`.
-- [ ] **T5. `BulletManager`** (CA 2, 3, 4, 7, 8, 10, 11)
-  - [ ] Priorité de tick, état « touchable » des cibles lu une fois par tick, un coup par tick pour les cibles `one_hit_per_tick`, source selon le camp (voir « `BulletManager` »).
-  - [ ] `debug/bullet_load_test.gd` : garder son ordre relatif (priorité au-dessus de celle des managers).
-- [ ] **T6. Joueur** (CA 1 à 5, 12, 13)
-  - [ ] `player/player.gd` : `Health` et `Hurtbox` créés en code, filtre de touche, `Events.player_hit`, son de coup, clignotement, mort journalisée, groupe `player` (voir « Joueur »).
-  - [ ] `autoloads/events.gd` : signal `player_hit`.
-  - [ ] `audio/sfx/sfx_player_hit.wav` : son provisoire généré par script (voir « Son de coup »).
-- [ ] **T7. Projectiles ennemis dans l'arène** (CA 2)
-  - [ ] `rooms/arena/arena.gd` : `EnemyBullets` (`BulletManager`, camp `ENEMY`) qui enregistre la hurtbox du joueur (voir « Arène »).
-- [ ] **T8. Panneau F1** (CA 6, 13)
-  - [ ] Action `debug_toggle_panel` (F1) dans `project.godot`.
-  - [ ] `debug/debug_panel.tscn/.gd` : invulnérabilité, armure, −½ cœur, émetteur de test (salve et tir automatique), état affiché ; instancié par `Main` en debug seulement (voir « Panneau F1 »).
-- [ ] **T9. Vérifications headless** (CA 1 à 14) : scripts jetables du scratchpad (voir « Stratégie de test »).
-- [ ] **T10. Vérifications fenêtrées sous WSLg** (CA 3, 6) : clignotement, panneau lisible, captures.
-- [ ] **T11. Régression** : import et lancement sans erreur, recherche des interdits, marche, dash, tir, pause, F2 à F5, test de charge.
-- [ ] **T12. Reports** : mettre à jour `deferred-work.md` (entrées résolues, voir « Reports traités par cette story » ; ce qui n'a pas pu être vérifié : ressenti du clignotement et du son, son à l'oreille).
+- [x] **T1. Lexique** (AR32 : un terme entre dans le lexique **avant** le code)
+  - [x] `game-architecture.md`, section « Lexique » : ajouter `Santé ; cœur ; demi-cœur ; armure ; plafond de cœurs ; coup reçu ; invulnérabilité après un coup ; clignotement ; panneau de debug ; émetteur de test | health ; heart ; half_heart ; armor ; heart_cap ; hit ; hit_invulnerability ; blink ; debug_panel ; test_emitter`.
+  - [x] `game-architecture.md`, section « Temps (D7) » ou « Projectiles (D1) » : consigner en une ligne la règle d'ordre (CA 10 : `BulletManager` en `process_physics_priority` = `Const.PHYSICS_PRIORITY_BULLETS`, après les entités).
+- [x] **T2. `CombatTuning`** (CA 1, 2, 3, 5 ; AR9)
+  - [x] `core/combat_tuning.gd`, `data/tuning/combat_tuning.tres`, `Tuning.COMBAT` (voir « `CombatTuning` »).
+- [x] **T3. `Health`** (CA 1, 3, 5, 12, 13)
+  - [x] `combat/health.gd` : demi-cœurs, armure, plafond, invulnérabilité après un coup en ticks, invulnérabilité forcée (F1), mort (voir « `Health` »).
+- [x] **T4. `Hurtbox` touchable ou non** (CA 7, 8, 9)
+  - [x] `combat/hurtbox.gd` : `set_hit_filter()`, `is_hittable()`, `one_hit_per_tick`, `receive()` qui renvoie `bool` et ne fait rien pour un coup refusé (voir « `Hurtbox` »).
+  - [x] `combat/damage_info.gd` : sources `ENEMY_BULLET` et `DEBUG`.
+- [x] **T5. `BulletManager`** (CA 2, 3, 4, 7, 8, 10, 11)
+  - [x] Priorité de tick, état « touchable » des cibles lu une fois par tick, un coup par tick pour les cibles `one_hit_per_tick`, source selon le camp (voir « `BulletManager` »).
+  - [x] `debug/bullet_load_test.gd` : garder son ordre relatif (priorité au-dessus de celle des managers).
+- [x] **T6. Joueur** (CA 1 à 5, 12, 13)
+  - [x] `player/player.gd` : `Health` et `Hurtbox` créés en code, filtre de touche, `Events.player_hit`, son de coup, clignotement, mort journalisée, groupe `player` (voir « Joueur »).
+  - [x] `autoloads/events.gd` : signal `player_hit`.
+  - [x] `audio/sfx/sfx_player_hit.wav` : son provisoire généré par script (voir « Son de coup »).
+- [x] **T7. Projectiles ennemis dans l'arène** (CA 2)
+  - [x] `rooms/arena/arena.gd` : `EnemyBullets` (`BulletManager`, camp `ENEMY`) qui enregistre la hurtbox du joueur (voir « Arène »).
+- [x] **T8. Panneau F1** (CA 6, 13)
+  - [x] Action `debug_toggle_panel` (F1) dans `project.godot`.
+  - [x] `debug/debug_panel.tscn/.gd` : invulnérabilité, armure, −½ cœur, émetteur de test (salve et tir automatique), état affiché ; instancié par `Main` en debug seulement (voir « Panneau F1 »).
+- [x] **T9. Vérifications headless** (CA 1 à 14) : scripts jetables du scratchpad (voir « Stratégie de test »).
+- [x] **T10. Vérifications fenêtrées sous WSLg** (CA 3, 6) : clignotement, panneau lisible, captures.
+- [x] **T11. Régression** : import et lancement sans erreur, recherche des interdits, marche, dash, tir, pause, F2 à F5, test de charge.
+- [x] **T12. Reports** : mettre à jour `deferred-work.md` (entrées résolues, voir « Reports traités par cette story » ; ce qui n'a pas pu être vérifié : ressenti du clignotement et du son, son à l'oreille).
 
 ## Dev Notes
 
@@ -403,6 +403,9 @@ Il n'y a pas de `project-context.md`. Règles tirées de `CLAUDE.md`, de la mém
 17. **Son de coup** : `sfx_player_hit.wav` provisoire généré par script, grave (220 → 90 Hz, 0,15 s). Raison : FR13 demande un son ; Kroustille a trouvé le son de tir trop aigu.
 18. **`Events.player_hit(damage: int, source: int)`**, émis par `Player` — Raison : types primitifs sur le bus ; la cause servira à la télémétrie (2.8), le montant au HUD et aux règles de lucidité.
 19. **Mesure de 10 minutes à 400 projectiles non faite** (report de 1.2 « avant le combat ennemi ») : pas bloquante pour cette story (aucun motif ennemi ajouté) ; à rappeler en fin d'epic.
+20. **Contrôle de l'ordre du clignotement** — Choix : clignotement dérivé du compteur de `Health` (`hit_ticks_left()` exposé) plutôt que d'un second compteur ; le sprite est caché pendant les 6 premiers ticks. Raison : un seul compteur pondéré, figé en pause et ralenti sous F4 sans code de plus.
+21. **Écart de la spec : accesseurs de `Health`** — Ajouts : `hit_ticks_left()`, `is_forced_invulnerable()`, `cap_half_hearts()` (lecture seule, pour le clignotement et le panneau F1 ; le panneau n'a pas à lire de champ privé). Raison : respecter « méthodes publiques » du CA 6.
+22. **Test du dash au tout premier tick** — Le coup au même tick que l'entrée du dash (contact un tick avant que l'entrée n'atteigne le joueur) reste un coup légitime ; vérifié pour un contact 2 à 4 ticks après l'entrée (donc dont le premier tick du dash). Raison : `Input.parse_input_event()` s'applique au tick suivant.
 
 ### Questions ouvertes
 
@@ -431,10 +434,38 @@ Aucune bloquante. Points à faire valider par Kroustille en fin d'epic : les dé
 
 ### Agent Model Used
 
+Claude (Sonnet 5.5), pipeline automatisé de l'epic 2.
+
 ### Debug Log References
+
+- Vérifications jetables (scratchpad, `game/.scratch`, non versionnées) : `t_health` (Health seule, 17 contrôles), `t_invalid` (montants invalides), `t_arena` (arène complète via `main.tscn`, 22 contrôles), `t_misc` (hurtbox, cibles, panneau F1, F4, pause, F5, test de charge, 32 contrôles), `t_shot` (captures WSLg).
 
 ### Completion Notes List
 
 - Analyse de contexte terminée : guide d'implémentation complet créé (create-story, 2026-11-21).
+- T1 : lexique (10 termes) et règle d'ordre des `BulletManager` ajoutés à `game-architecture.md` avant le code.
+- T2/T3 : `CombatTuning` (6 / 24 / 1 / 1,0 s) et `Tuning.COMBAT` ; `Health` (demi-cœurs entiers, armure d'abord, plafond cœurs max + armure, invulnérabilité après un coup en ticks pondérés, invulnérabilité forcée, mort unique). Coup accepté puis nouveau coup accepté exactement 60 ticks plus tard ; 240 ticks sous F4 ; compteur figé en pause.
+- T4/T5 : `Hurtbox.is_hittable()` / `set_hit_filter()` / `one_hit_per_tick`, `receive()` renvoie `bool` sans rien émettre si refusé ; `DamageInfo.Source` étendue ; `BulletManager` en priorité 100, état touchable lu une fois par tick, un coup par tick sur le joueur, source selon le camp. Le test de charge garde son ordre (priorité 101) et reste à `Bullets 400 | refused 0`.
+- T6/T7 : joueur avec `Health` et `Hurtbox` créés en code, `Events.player_hit(damage, source)`, son de coup `sfx_player_hit.wav` généré par script, clignotement du `Sprite2D` (demi-période de 6 ticks), mort journalisée, groupe `player` ; arène avec `EnemyBullets` (512) qui enregistre la hurtbox du joueur.
+- T8 : action `debug_toggle_panel` (F1) et `debug_panel.tscn/.gd` instancié par `Main` en debug seulement (chargé par `load()`, aucune référence en release) ; touches 1 à 5 (invulnérabilité, armure, −½ cœur par `Hurtbox.receive()` source `DEBUG`, salve de 3, tir automatique à 4/s).
+- T9 (headless, tout vert) : 1 coup ennemi → 5/6, `player_hit(1, ENEMY_BULLET)`, projectile détruit, 1 voix de son ; second projectile pendant l'invulnérabilité traverse et finit au mur ; deux projectiles au même tick → un coup, un projectile libéré ; dash : aucun coup (contact 2 à 4 ticks après l'entrée), témoin sans dash touché ; clignotement (alternance 6 ticks, `modulate` intact, visible à la fin) ; pause fige compteur et clignotement ; mort : `died` une fois, projectiles traversent ; aller-retour F5 → 6/6 ; filtre `false`, `monitorable = false`, forme `disabled` → `receive()` renvoie `false`, ni `damage_received` ni `enemy_damaged` ; tirs du joueur toujours `PLAYER_SHOT` ; panneau F1 (touches 1 à 5, ignorées en pause et panneau caché, « no player » dans le test de charge F5, apparence ajoutée une fois par arène) ; F4 : un tir par 60 ticks.
+- T10 : captures WSLg : sprite caché puis visible à 6 ticks d'écart ; panneau lisible en haut à droite sans recouvrir F3 ; projectiles de test visibles. Réticule non vérifié à l'écran (souris hors fenêtre).
+- T11 : import et lancement sans `SCRIPT ERROR` ni `Parse Error` (seul avertissement : `settings.cfg missing`, déjà présent) ; recherche des interdits propre (commentaires seulement) ; `project.godot` sans bruit parasite.
+- T12 : `deferred-work.md` mis à jour (5 reports résolus, entrées NON ÉVALUÉ : clignotement, son, lisibilité en combat, réticule).
+- NON ÉVALUÉ (humain) : ressenti du clignotement, son de coup à l'oreille, lisibilité d'un coup en plein combat. Mesure de 10 min à 400 projectiles toujours non faite (rappel pour la fin d'epic).
+- Commit : la ligne `Co-Authored-By` suit le brief du pipeline (Claude Opus 5.5).
 
 ### File List
+
+- `_bmad-output/game-architecture.md` (lexique, ordre de tick)
+- `_bmad-output/implementation-artifacts/2-1-encaisser-des-coups.md`, `sprint-status.yaml`, `deferred-work.md`
+- `game/core/combat_tuning.gd` (+ `.uid`), `game/data/tuning/combat_tuning.tres`, `game/core/tuning.gd`, `game/core/constants.gd`
+- `game/combat/health.gd` (+ `.uid`), `game/combat/hurtbox.gd`, `game/combat/damage_info.gd`, `game/combat/bullets/bullet_manager.gd`
+- `game/player/player.gd`, `game/autoloads/events.gd`, `game/rooms/arena/arena.gd`
+- `game/audio/sfx/sfx_player_hit.wav` (+ `.import`)
+- `game/debug/debug_panel.tscn`, `game/debug/debug_panel.gd` (+ `.uid`), `game/debug/bullet_load_test.gd`
+- `game/main/main.gd`, `game/project.godot`
+
+### Change Log
+
+- 2026-11-21 : story 2.1 implémentée (santé, armure, invulnérabilité après un coup, projectiles ennemis sur la hurtbox du joueur, ordre de tick des managers, panneau F1) ; statut `review`.

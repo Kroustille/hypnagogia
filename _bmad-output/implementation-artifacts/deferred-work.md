@@ -39,7 +39,7 @@
 
 ## Deferred from: code review of story 1-4 (2026-11-21)
 
-- Lecture de l'invulnérabilité par un tiers dépendante de l'ordre dans l'arbre : l'état du dash avance dans le `_physics_process` du joueur ; un ennemi ou un `BulletManager` qui passe avant lit l'état du tick précédent (trou d'un tick au départ). La story 2.1 doit fixer une convention de lecture (par exemple depuis `Hurtbox`, après le joueur).
+- ~~Lecture de l'invulnérabilité par un tiers dépendante de l'ordre dans l'arbre : l'état du dash avance dans le `_physics_process` du joueur ; un ennemi ou un `BulletManager` qui passe avant lit l'état du tick précédent (trou d'un tick au départ). La story 2.1 doit fixer une convention de lecture (par exemple depuis `Hurtbox`, après le joueur).~~ (**résolu en story 2.1** : priorité de tick des `BulletManager`, voir `Const.PHYSICS_PRIORITY_BULLETS`)
 - Pas de marge d'arrondi (`TICK_EPSILON`) sur les comparaisons d'invulnérabilité et de tampon dans `Dash` : les valeurs actuelles (0,15 s et 0,1 s à 60 Hz) tombent juste, mais un réglage futur peut gagner ou perdre un tick.
 
 ## Deferred from: story 1-5 (2026-11-21)
@@ -54,11 +54,11 @@
 
 ## Deferred from: code review of story 1-5 (2026-11-21)
 
-- `BulletManager._deliver_hits()` livre toujours `DamageInfo.Source.PLAYER_SHOT`, quel que soit le camp du manager : à étendre quand les projectiles ennemis toucheront la `Hurtbox` du joueur (epic 2).
+- ~~`BulletManager._deliver_hits()` livre toujours `DamageInfo.Source.PLAYER_SHOT`, quel que soit le camp du manager : à étendre quand les projectiles ennemis toucheront la `Hurtbox` du joueur (epic 2).~~ (**résolu en story 2.1** : source selon le camp du manager)
 - Désenregistrement des hurtbox par `tree_exiting` en `CONNECT_ONE_SHOT` : une hurtbox déplacée (`remove_child` puis `add_child`) ou réutilisée par un pool n'est plus jamais touchée, sans erreur. À revoir avec un pool d'ennemis (epic 2).
-- Le test de touche ignore l'état de la `Hurtbox` (`monitorable`, forme `disabled`) : seul le désenregistrement empêche une touche. À trancher avec `Health`, la mort et l'invulnérabilité (story 2.1).
+- ~~Le test de touche ignore l'état de la `Hurtbox` (`monitorable`, forme `disabled`) : seul le désenregistrement empêche une touche. À trancher avec `Health`, la mort et l'invulnérabilité (story 2.1).~~ (**résolu en story 2.1** : `Hurtbox.is_hittable()` lu par le manager une fois par tick)
 - Test de touche discret (position de fin de tick, sans balayage) : traversée de cible, touche à travers un mur ou après expiration possibles seulement à des réglages extrêmes (`bullet_speed` élevé, `hitbox_size` à 0). Aucun saut aux valeurs du GDD (3,73 px/tick, cible de 12 px).
-- Ordre de traitement dans l'arbre : les rectangles des cibles sont lus dans le tick du `BulletManager` (ajouté en dernier dans l'arène), et `HitFeedback` dure 3 ticks seulement parce que les cibles passent avant lui. Un ennemi ajouté après le manager serait testé avec un tick de retard. Convention à fixer en 2.1 (rejoint le report de 1.4 sur la lecture de l'invulnérabilité), par exemple avec `process_physics_priority`.
+- ~~Ordre de traitement dans l'arbre : les rectangles des cibles sont lus dans le tick du `BulletManager` (ajouté en dernier dans l'arène), et `HitFeedback` dure 3 ticks seulement parce que les cibles passent avant lui. Un ennemi ajouté après le manager serait testé avec un tick de retard. Convention à fixer en 2.1 (rejoint le report de 1.4 sur la lecture de l'invulnérabilité), par exemple avec `process_physics_priority`.~~ (**résolu en story 2.1** : `process_physics_priority` à 100 pour tous les `BulletManager`)
 - Pool `Audio` : un flux en boucle, ou un `stop()`, ne libère jamais le lecteur ni le compteur de voix (`finished` n'arrive pas) ; ~~les lecteurs se figent avec l'arbre en pause (sons d'UI du menu de pause, 1.6)~~ (**sans objet depuis la story 1.6** : la pause ne fige que `ActiveScene`, les lecteurs d'`Audio` continuent ; l'aperçu sonore du volume SFX joue pendant la pause) ; `max_voices <= 0` n'est pas validé.
 - `SpriteKick` suppose un sprite au repos en `(0, 0)` et `HitFeedback.setup()` écrase le `material` existant du sprite : vrai pour le joueur et les cibles, à revoir avec Le Somnambule (2.3).
 - Réticule au stick placé sur la position physique non interpolée du joueur (saccade possible au-delà de 60 Hz d'affichage) ; réticule hors écran dans les barres noires, curseur caché. À juger sur manette avec la story 1.7.
@@ -81,4 +81,16 @@
 - `settings.cfg.tmp` laissé par un plantage entre l'écriture et le renommage, ou par un renommage raté : `load_from()` l'ignore (ni nettoyage, ni récupération si le fichier principal manque). Latent.
 - `Settings.fullscreen` n'est jamais resynchronisé avec `Window.mode` quand le système change le mode (bouton agrandir, raccourci de la plateforme, mode refusé) : la case affiche alors un état faux et un clic peut être sans effet. Le retour du plein écran force `MODE_WINDOWED` et oublie l'état maximisé. À revoir avec le plein écran sous Windows (story 1.8).
 - Montant des chiffres de dégâts non validé dans `DamageNumber` / `DamageNumbers` : `roundi(NAN)` donne un nombre aberrant, une fraction < 0,5 affiche « 0 », un négatif s'affiche tel quel, plus de 4 chiffres débordent le `Label` de 40 px. Latent (dégâts fixes à 10).
-- `Hurtbox.receive()` émet `Events.enemy_damaged` pour tout coup, même ignoré par l'ennemi (invulnérable, déjà mort) : à n'émettre qu'après application des dégâts, avec `Health` et la mort (story 2.1).
+- ~~`Hurtbox.receive()` émet `Events.enemy_damaged` pour tout coup, même ignoré par l'ennemi (invulnérable, déjà mort) : à n'émettre qu'après application des dégâts, avec `Health` et la mort (story 2.1).~~ (**résolu en story 2.1** : `receive()` ne fait rien et renvoie `false` pour un coup refusé)
+
+## Deferred from: story 2-1 (2026-11-21)
+
+- **Ressenti du clignotement : NON ÉVALUÉ** (étape humaine). Demi-période de 0,1 s (5 clignotements par seconde), sur le `Sprite2D` seul. Vérifié par code (alternance toutes les 6 ticks, sprite visible à la fin) et par deux captures WSLg décalées (visible puis caché), pas à l'œil en jeu. Cadence et lisibilité en plein combat à juger.
+- **Son de coup à l'oreille : NON ÉVALUÉ.** `sfx_player_hit.wav` provisoire (220 vers 90 Hz, 0,15 s), remplacé par la story 7.7 ; seul le compteur de voix est vérifié (headless, audio factice).
+- **Lisibilité d'un coup reçu en plein combat : NON ÉVALUÉE** (pas de HUD avant 2.7, pas d'ennemi avant 2.4). Seul le panneau F1 (texte « hearts 5/6 armor 0 cap 24 ») montre la santé.
+- **Réticule pendant le clignotement : NON VÉRIFIÉ à l'écran** (souris hors de la fenêtre en capture) ; le réticule est un enfant du joueur et seul le `Sprite2D` est masqué.
+- **Dash et projectile au tout premier tick** : l'ordre est garanti par la priorité des managers (contact au premier tick du dash vérifié, K = 2 à 4 ticks après l'entrée) ; un contact un tick *avant* que l'entrée n'atteigne le joueur est un coup légitime. Le report « pas de `TICK_EPSILON` dans `Dash` » reste ouvert.
+- **Panneau F1** : en haut à droite, il recouvre le haut du cadre de murs et la bande de HUD (de 24 px) sur 250 px de large ; à revoir quand le HUD de la 2.7 occupera la bande. Les commandes 1 à 5 lisent `physical_keycode` (non réassignables).
+- **Mesure de 10 minutes à 400 projectiles sur la machine de référence : toujours NON FAITE** (étape humaine, déjà demandée par 1.2), à rappeler à Kroustille en fin d'epic.
+- Un `DamageInfo` de montant invalide (NaN, < 0,5) est refusé avec `Log.error` + `assert` : en build de debug l'assertion fait apparaître un `SCRIPT ERROR` (le jeu continue en headless).
+
