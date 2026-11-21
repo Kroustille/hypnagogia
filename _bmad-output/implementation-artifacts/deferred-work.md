@@ -11,7 +11,7 @@
 
 ## Deferred from: code review of story 1-2 (2026-11-20)
 
-- Traversée de mur si l'échelle de temps d'un groupe dépasse 1 : un seul échantillon de cellule par tick. À traiter (sous-pas ou plafond de pas) à la story 1.4, quand `GameClock` aura une API d'écriture.
+- ~~Traversée de mur si l'échelle de temps d'un groupe dépasse 1 : un seul échantillon de cellule par tick. À traiter (sous-pas ou plafond de pas) à la story 1.4, quand `GameClock` aura une API d'écriture.~~ **Résolu par la story 1.4 (plafond d'échelle)** : `GameClock.global_multiplier` est borné à [0, 1] et aucune échelle de groupe n'est modifiable, donc `scale() ≤ 1` reste un invariant. Si une story future veut une échelle > 1 (aucune dans le GDD), elle devra rouvrir le sujet (sous-pas ou plafond de pas).
 - Projectile qui sort de la zone tuilée (ouverture dans `Walls`) ou qui apparaît dans une cellule solide : il vit jusqu'à la fin de sa durée de vie. **Partiellement résolu par la story 1.3** : le cadre de murs de l'arène est fermé, donc aucun projectile ne sort de la zone. Reste le cas d'une apparition dans une cellule solide, à reprendre avec les motifs ennemis (epic 2).
 - Couches solides libérées ou remplacées pendant la vie du manager (changement de salle), et F5 qui vide tous les enfants d'`ActiveScene` : **résolu par la story 1.3** pour F5 (l'arène est recréée à chaque retour, `ActiveScene` garde un seul enfant). Le remplacement des couches solides en cours de vie reste sans objet tant que l'arène ne porte pas de `BulletManager` (story 1.5, epic 4).
 
@@ -28,3 +28,11 @@
 - Pas de flèches directionnelles ni de croix directionnelle de manette sur `move_*` : la réassignation et les alternatives de touches sont la story 1.7.
 - `CollisionDrawer` ignore les formes autres que `RectangleShape2D` et `CircleShape2D`, ainsi que les `CollisionShape2D` désactivées : à traiter avec les `Hurtbox` et `Hitbox` de la story 1.5.
 - `main.gd` référence `CollisionDrawer` (`debug/`) à la compilation même en release (instanciation gardée par `OS.is_debug_build()`) : à vérifier à l'export, story 1.8.
+
+## Deferred from: story 1-4 (2026-11-21)
+
+- **RB sur une vraie manette : NON VÉRIFIÉ.** Pas de manette sous WSL. L'action `dash` porte bien un `InputEventJoypadButton` d'indice 10 (vérifié par `InputMap`), mais aucun appui réel n'a été fait. À valider sous Windows avec une vraie manette, au plus tard avec la story 1.7.
+- **Ressenti du dash : NON ÉVALUÉ** (étapes humaines) : sensation des 3 tuiles en 0,18 s, du tampon de 0,1 s, du dash contre un mur oblique (glissement), du demi-tour juste après un dash. Latence mesurée : story 1.8.
+- **Questions ouvertes de la story** (à juger au jeu) : invulnérabilité qui continue pendant que le joueur est coincé contre un mur ; le dash n'interrompt pas la marche (le moteur continue d'avancer vers l'entrée tenue).
+- **Netteté du sprite pendant le dash non jugée à l'œil** : WSLg tourne sous llvmpipe, FPS non représentatifs. À regarder sous Windows.
+- **Contour F2 devant le sprite pendant le dash** (jusqu'à ~4,4 px, position physique non interpolée) : attendu, voir le report de 1.3.

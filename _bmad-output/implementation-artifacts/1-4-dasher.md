@@ -1,6 +1,10 @@
+---
+baseline_commit: e0cacf27a7865d67ae953a2b128b54ecc03e2d78
+---
+
 # Story 1.4 : Dasher
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -30,27 +34,27 @@ afin d'esquiver au dernier moment.
 
 ## Tâches / sous-tâches
 
-- [ ] **T1. Réglages du dash** (CA 7)
-  - [ ] `core/dash_tuning.gd` : `class_name DashTuning extends Resource` (voir « `DashTuning` »).
-  - [ ] `data/tuning/dash_tuning.tres` (valeurs du GDD) et `Tuning.DASH` (`preload`).
-- [ ] **T2. Actions d'entrée** (CA 1, 8)
-  - [ ] `project.godot` : action `dash` (Espace, touche physique 32, et bouton RB de manette, indice 10).
-  - [ ] `project.godot` : action `debug_slow_motion` sur F4 (touche physique, `physical_keycode` 4194335), même forme que `debug_toggle_collisions`.
-- [ ] **T3. `GameClock`** (CA 8, 9)
-  - [ ] Ajouter le multiplicateur global (voir « `GameClock` : multiplicateur global »).
-- [ ] **T4. `Dash`** (CA 1 à 6, 9, 10)
-  - [ ] `player/dash.gd` : `class_name Dash extends RefCounted`, logique pure, sans nœud (voir « `Dash` »).
-- [ ] **T5. `Player`** (CA 1 à 3, 6, 9, 11)
-  - [ ] Brancher `Dash` dans `player/player.gd` : direction, vitesse, signal `dash_ended`, `is_dash_invulnerable()`, `is_invulnerable()`, `is_dashing()`, repère visuel provisoire (voir « `Player` »).
-- [ ] **T6. `Main` : F4** (CA 8, 12)
-  - [ ] Bascule du ralenti en debug seulement (voir « F4 »).
-- [ ] **T7. Lexique** : ajouter à `game-architecture.md` (section « Lexique ») la ligne `Dash ; invulnérabilité du dash ; recharge ; tampon d'entrée | dash ; dash_invulnerability ; cooldown ; input_buffer` (AR32 : un terme entre dans le lexique avant le code).
-- [ ] **T8. Vérifications headless** (CA 1 à 10)
-  - [ ] Scripts jetables dans le scratchpad (pas dans le dépôt) : voir « Stratégie de test ».
-- [ ] **T9. Vérifications fenêtrées sous WSLg** (CA 1, 8, 12)
-  - [ ] Dash visible à l'écran, F4, F2, F5, capture d'écran.
-- [ ] **T10. Régression** : import et lancement headless sans erreur, recherche des interdits, déplacement, F2, F3 et F5 de 1.1 à 1.3 toujours conformes.
-- [ ] **T11. Reports** : consigner dans `deferred-work.md` ce qui n'a pas pu être vérifié (RB réel, ressenti du dash) et fermer le report de 1.2 sur la traversée de mur (voir « Report de 1.2 : échelle de temps > 1 »).
+- [x] **T1. Réglages du dash** (CA 7)
+  - [x] `core/dash_tuning.gd` : `class_name DashTuning extends Resource` (voir « `DashTuning` »).
+  - [x] `data/tuning/dash_tuning.tres` (valeurs du GDD) et `Tuning.DASH` (`preload`).
+- [x] **T2. Actions d'entrée** (CA 1, 8)
+  - [x] `project.godot` : action `dash` (Espace, touche physique 32, et bouton RB de manette, indice 10).
+  - [x] `project.godot` : action `debug_slow_motion` sur F4 (touche physique, `physical_keycode` 4194335), même forme que `debug_toggle_collisions`.
+- [x] **T3. `GameClock`** (CA 8, 9)
+  - [x] Ajouter le multiplicateur global (voir « `GameClock` : multiplicateur global »).
+- [x] **T4. `Dash`** (CA 1 à 6, 9, 10)
+  - [x] `player/dash.gd` : `class_name Dash extends RefCounted`, logique pure, sans nœud (voir « `Dash` »).
+- [x] **T5. `Player`** (CA 1 à 3, 6, 9, 11)
+  - [x] Brancher `Dash` dans `player/player.gd` : direction, vitesse, signal `dash_ended`, `is_dash_invulnerable()`, `is_invulnerable()`, `is_dashing()`, repère visuel provisoire (voir « `Player` »).
+- [x] **T6. `Main` : F4** (CA 8, 12)
+  - [x] Bascule du ralenti en debug seulement (voir « F4 »).
+- [x] **T7. Lexique** : ajouter à `game-architecture.md` (section « Lexique ») la ligne `Dash ; invulnérabilité du dash ; recharge ; tampon d'entrée | dash ; dash_invulnerability ; cooldown ; input_buffer` (AR32 : un terme entre dans le lexique avant le code).
+- [x] **T8. Vérifications headless** (CA 1 à 10)
+  - [x] Scripts jetables dans le scratchpad (pas dans le dépôt) : voir « Stratégie de test ».
+- [x] **T9. Vérifications fenêtrées sous WSLg** (CA 1, 8, 12)
+  - [x] Dash visible à l'écran, F4, F2, F5, capture d'écran.
+- [x] **T10. Régression** : import et lancement headless sans erreur, recherche des interdits, déplacement, F2, F3 et F5 de 1.1 à 1.3 toujours conformes.
+- [x] **T11. Reports** : consigner dans `deferred-work.md` ce qui n'a pas pu être vérifié (RB réel, ressenti du dash) et fermer le report de 1.2 sur la traversée de mur (voir « Report de 1.2 : échelle de temps > 1 »).
 
 ## Dev Notes
 
@@ -364,12 +368,41 @@ Il n'y a pas de `project-context.md`. Règles tirées de `CLAUDE.md` et de la m�
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Sonnet 5.5 (`claude-sonnet-5-5`)
 
 ### Debug Log References
+
+- Les scripts de vérification jetables (scratchpad, hors dépôt) tournent comme des scènes ; les avertissements en erreur s'appliquent aussi à eux (types stricts, pas de `Variant`).
+- Piège de test : après `await physics_frame`, le coroutine reprend **avant** le `_physics_process` du joueur du même tick ; un appui suivi d'une lecture de `is_dashing()` sans attendre un tick de plus lit l'état du tick précédent.
+- Changer `distance`/`duration` dans `dash_tuning.tres` change bien le dash (74 px au lieu de 48 sur la fenêtre de test) ; valeurs d'origine remises.
 
 ### Completion Notes List
 
 - Analyse de contexte terminée : guide d'implémentation complet créé (create-story, 2026-11-20).
+- **T1** `DashTuning` + `dash_tuning.tres` (valeurs du GDD) + `Tuning.DASH`. **T2** actions `dash` (Espace physique 32, RB indice 10) et `debug_slow_motion` (F4) ; `--import` ne ré-écrit pas `project.godot`. **T3** `GameClock.global_multiplier` (borné à [0, 1], composé avec les échelles de groupe, `paused` prioritaire).
+- **T4** `Dash` (`RefCounted`, ticks de jeu, sans `Timer`) : départ au tick de l'appui, dernier pas tronqué (48 px exacts à toute échelle), recharge comptée depuis la fin du dash, tampon = 6 derniers ticks de la recharge, appui pendant le dash ignoré. Valeurs sûres calculées avant `Log.error` + `assert` (leçon de 1.3).
+- **T5** `Player` : `_facing` (départ `Vector2.DOWN`, dernière direction d'**entrée**), signal `dash_ended`, `is_dash_invulnerable()`, `is_invulnerable()` (dash seul pour l'instant), `is_dashing()`, teinte provisoire `DASH_TINT` pendant l'invulnérabilité. `move_and_slide()` conservé : le dash garde sa durée contre un mur. **T6** F4 dans `Main` (garde debug), état lu sur `GameClock`, survit à F5, `Engine.time_scale` jamais touché.
+- **T7** lexique de `game-architecture.md` complété.
+- **Vérifications (T8, T10)** : `Dash` seul, 31 contrôles OK (48 px, 11 ticks, invulnérabilité 8 ticks vus après `tick()` soit 9 pour un tiers qui lit avant le joueur, recharge 36 ticks, tampon refusé à 7 ticks et retenu à 6 ou moins avec départ au tick 46, pause, échelles 0 / 0,25 / 0,5, `physics_delta = 0`, `distance = 5` → 80 px, bornes du multiplicateur, entrées `InputMap`). Joueur dans l'arène : premier dash vers le bas, 8 directions, arrêt dans la dernière direction (48 px, diagonale 48 px), 20 dashs contre chacun des 4 murs et 4 coins sans jamais sortir de `[19, 589] × [19, 317]`, arrêt à ±0,01 px de la borne, `dash_ended` à l'heure, pause en plein dash (total 48 px), F4 (48 px en 43 ticks), marche inchangée (96 px/s). `Main` : F4 → 0,25 puis 1,0, F5 aller-retour avec F4 actif, multiplicateur conservé. Import et lancement sans `SCRIPT ERROR` ; recherche des interdits : seules occurrences attendues, aucun `Log.` par tick.
+- **Fenêtré sous WSLg (T9)** : sprite teinté et translucide pendant le dash (capture), F4 ralentit visiblement (dash de 745 ms réels pour ~720 attendues ; llvmpipe, non représentatif). F2 non revérifié à l'œil : seul le comportement de `Main` est testé (aucun changement dans `CollisionDrawer`).
+- **T11** `deferred-work.md` : report de 1.2 (échelle > 1) refermé par le plafond ; nouveaux reports (RB réel, ressenti, netteté sous Windows, questions ouvertes). Pas de framework de test (AR26) : aucun fichier de test ajouté au dépôt, conformément à la story.
+- Décision sans impact : la story demandait `Dash.tick()` avant `move_and_slide()`, `finish_tick()` après ; respecté tel quel.
 
 ### File List
+
+- `game/core/dash_tuning.gd` (nouveau) + `game/core/dash_tuning.gd.uid`
+- `game/data/tuning/dash_tuning.tres` (nouveau)
+- `game/core/tuning.gd` (modifié : `DASH`)
+- `game/player/dash.gd` (nouveau) + `game/player/dash.gd.uid`
+- `game/player/player.gd` (modifié)
+- `game/autoloads/game_clock.gd` (modifié : `global_multiplier`)
+- `game/main/main.gd` (modifié : F4)
+- `game/project.godot` (modifié : actions `dash`, `debug_slow_motion`)
+- `_bmad-output/game-architecture.md` (modifié : lexique)
+- `_bmad-output/implementation-artifacts/deferred-work.md` (modifié)
+- `_bmad-output/implementation-artifacts/1-4-dasher.md` (cette story)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (modifié)
+
+### Change Log
+
+- 2026-11-21 : implémentation de la story 1.4 (dash, tampon d'entrée, F4, `GameClock.global_multiplier`) ; statut `review`.
