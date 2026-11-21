@@ -105,6 +105,10 @@ func add_appearance(texture: Texture2D) -> int:
 	var view: MultiMeshInstance2D = MultiMeshInstance2D.new()
 	view.multimesh = multimesh
 	view.texture = texture
+	# Instances are rewritten in _process and packed (instance n is not the same bullet from one frame to the
+	# next): interpolating them would draw a bullet halfway to another one's position for a frame (flash artifacts).
+	view.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	RenderingServer.multimesh_set_physics_interpolated(multimesh.get_rid(), false)
 	add_child(view)
 	_multimeshes.append(multimesh)
 	_render_counts.append(0)
