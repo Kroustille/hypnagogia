@@ -50,6 +50,8 @@ development_status:
   1-4-dasher: done
   1-5-viser-et-tirer: done
   1-6-mettre-en-pause-et-regler-le-jeu: done
+  # 1-7 and 1-8 postponed by Kroustille on 2026-11-21 to move on to epic 2: done before the first circle
+  # plays milestone A (1-8 exports and latency need the final inputs of 1-7). Not the next stories to create.
   1-7-jouer-a-la-manette-ou-au-clavier-souris-avec-ses-propres-touches: backlog
   1-8-exporter-pour-windows-et-macos-et-mesurer-la-latence: backlog
   epic-1-retrospective: optional
