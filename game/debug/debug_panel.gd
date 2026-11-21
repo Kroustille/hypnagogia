@@ -16,7 +16,6 @@ const BURST_SPREAD_DEGREES: float = 15.0
 const AUTO_FIRE_INTERVAL: float = 0.25 # seconds
 const REFRESH_INTERVAL: float = 0.25
 
-var _invulnerable: bool = false
 var _auto_fire: bool = false
 var _auto_ticks: float = 0.0
 var _last_message: String = ""
@@ -71,7 +70,7 @@ func _physics_process(_delta: float) -> void:
 	_auto_ticks = 0.0
 	if not _fire(1, 0.0):
 		_auto_fire = false # player or manager gone (F5)
-		_last_message = "auto fire stopped: no player"
+		_last_message = "auto fire stopped: %s" % _last_message # keep the cause set by _fire()
 
 
 func _process(delta: float) -> void:
@@ -86,9 +85,9 @@ func _toggle_invulnerability() -> void:
 	var player: Player = _find_player()
 	if player == null:
 		return
-	_invulnerable = not player.health.is_forced_invulnerable()
-	player.health.set_forced_invulnerability(_invulnerable)
-	_log("invulnerability %s" % ("on" if _invulnerable else "off"))
+	var enabled: bool = not player.health.is_forced_invulnerable()
+	player.health.set_forced_invulnerability(enabled)
+	_log("invulnerability %s" % ("on" if enabled else "off"))
 
 
 func _add_armor() -> void:
@@ -133,8 +132,12 @@ func _fire(count: int, spread_degrees: float) -> bool:
 		_last_message = "no enemy bullet manager"
 		return false
 	if _appearance_manager_id != manager.get_instance_id():
+		var appearance: int = manager.add_appearance(_make_texture())
+		if appearance < 0:
+			_last_message = "appearance refused"
+			return false
 		_appearance_manager_id = manager.get_instance_id()
-		_params.appearance = manager.add_appearance(_make_texture())
+		_params.appearance = appearance
 	_params.speed = EMITTER_BULLET_SPEED
 	_params.radius = EMITTER_BULLET_RADIUS
 	_params.lifetime = EMITTER_BULLET_LIFETIME

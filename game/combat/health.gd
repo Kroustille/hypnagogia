@@ -126,6 +126,11 @@ func is_hit_invulnerable() -> bool:
 	return _hit_ticks_left > TICK_EPSILON
 
 
+## Full length of the post-hit invulnerability, in ticks (as bounded by setup()).
+func hit_ticks_total() -> float:
+	return _hit_ticks
+
+
 ## Ticks of post-hit invulnerability left (game ticks, weighted by the clock).
 func hit_ticks_left() -> float:
 	return _hit_ticks_left

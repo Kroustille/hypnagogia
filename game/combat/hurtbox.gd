@@ -1,8 +1,9 @@
 class_name Hurtbox
 extends Area2D
 ## The zone where an entity takes hits. Holds no HP (its owner entrusts them to Health): receive() only emits
-## a signal that the owner listens to, and does nothing when the hurtbox cannot be hit (is_hittable()). BulletManagers do not use physics (D1): they read world_rect() of the
-## hurtboxes registered with them. The collision layer is for future Area2D consumers (contact, epic 2).
+## a signal that the owner listens to, and does nothing when the hurtbox cannot be hit (is_hittable()).
+## BulletManagers do not use physics (D1): they read world_rect() of the hurtboxes registered with them.
+## The collision layer is for future Area2D consumers (contact, epic 2).
 ## Its CollisionShape2D child must hold a RectangleShape2D; it joins the F2 debug group.
 
 ## Local signal: the owner (parent) listens.
@@ -15,6 +16,7 @@ signal damage_received(info: DamageInfo)
 ## Set on the player's hurtbox: its first hit opens the invulnerability (story 2.1).
 @export var one_hit_per_tick: bool = false
 
+var _filter_error_reported: bool = false
 var _hit_filter: Callable # set by the owner; returns bool: "can this hurtbox be hit now?"
 var _shape_node: CollisionShape2D
 var _rectangle: RectangleShape2D
@@ -52,14 +54,17 @@ func is_hittable() -> bool:
 		var answer: Variant = _hit_filter.call()
 		if answer is bool:
 			return answer
-		Log.error("combat", "hit filter of %s must return a bool" % get_path())
-		assert(false, "Hurtbox hit filter must return a bool")
+		if not _filter_error_reported: # is_hittable() runs every tick: report once only (AR27)
+			_filter_error_reported = true
+			Log.error("combat", "hit filter of %s must return a bool" % get_path())
+			assert(false, "Hurtbox hit filter must return a bool")
 	return true
 
 
 ## Emits damage_received. The only entry point for damage (AR: DamageInfo -> Hurtbox.receive()).
 ## Returns false and emits nothing when the hurtbox cannot be hit.
-## An enemy hurtbox also notifies Events.enemy_damaged (damage numbers, telemetry) once the owner applied the hit.
+## An enemy hurtbox also notifies Events.enemy_damaged (damage numbers, telemetry)
+## after damage_received (the owner applies the hit synchronously in its handler).
 func receive(info: DamageInfo) -> bool:
 	if not is_hittable():
 		return false

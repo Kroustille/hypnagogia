@@ -227,12 +227,8 @@ func _update_blink() -> void:
 	if not health.is_hit_invulnerable():
 		_sprite.visible = true
 		return
-	var elapsed: float = _hit_total_ticks() - health.hit_ticks_left()
+	var elapsed: float = health.hit_ticks_total() - health.hit_ticks_left()
 	_sprite.visible = int(elapsed / BLINK_HALF_PERIOD_TICKS) % 2 == 1
-
-
-func _hit_total_ticks() -> float:
-	return Tuning.COMBAT.hit_invulnerability_duration * Engine.physics_ticks_per_second
 
 
 func _on_dash_ended() -> void:
