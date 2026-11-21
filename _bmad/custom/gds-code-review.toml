@@ -1,0 +1,11 @@
+# Team overrides for gds-code-review (committed).
+# Kroustille always wants the full review: the 3 layers (Blind Hunter,
+# Edge Case Hunter, Acceptance Auditor), without being asked which type.
+
+[workflow]
+
+persistent_facts = [
+  "Hypnagogia commits stories directly on main: there is no story branch. For a story in `review`, never ask which kind of review or which diff to use.",
+  "Review target for a story: spec file = the story file in the implementation artifacts (always `full` mode, so all three layers run: Blind Hunter, Edge Case Hunter, Acceptance Auditor). Diff = the commit range from the commit that created the story file (`git log --diff-filter=A --format=%H -- <story file>`) to HEAD, excluding nothing; add uncommitted changes if any.",
+  "Only fall back to asking what to review when no story is in `review` and the request names no target.",
+]
