@@ -267,6 +267,7 @@ func _physics_process(delta: float) -> void:
   - projectiles ennemis contre la hurtbox du joueur (cercle contre rectangle) ; graze dans la même boucle (distance < 1 tuile, une fois par projectile, plafond par salle) ;
   - projectiles joueur contre les hurtbox ennemies (peu nombreuses : test direct) ;
   - tous contre les murs et obstacles hauts par lecture de cellule du `TileMapLayer`, et contre les meubles.
+- Ordre de traitement (story 2.1) : tout `BulletManager` règle `process_physics_priority = Const.PHYSICS_PRIORITY_BULLETS` (100) et tique donc après les entités (priorité 0), où qu'il soit dans l'arbre : les tests de touche lisent l'état du tick courant (invulnérabilité du dash, hurtbox).
 - Les effets d'objets (traversée, tir arrière, taille) passent par des paramètres de tir, jamais par du code spécifique dans la boucle.
 - Repli si le test à 400 projectiles échoue : porter la boucle de mise à jour en GDExtension, sans changer l'interface.
 
@@ -671,6 +672,7 @@ hypnagogia/
 | Dash ; invulnérabilité du dash ; recharge ; tampon d'entrée | `dash` ; `dash_invulnerability` ; `cooldown` ; `input_buffer` |
 | Tir ; cadence ; recul du tir ; visée ; réticule ; cible d'entraînement | `shot` ; `fire_rate` ; `recoil` ; `aim` ; `reticle` ; `training_target` |
 | Pause ; menu de pause ; réglages ; volume ; plein écran ; VSync ; chiffres de dégâts | `pause` ; `pause_menu` ; `settings` ; `volume` ; `fullscreen` ; `vsync` ; `damage_numbers` |
+| Santé ; cœur ; demi-cœur ; armure ; plafond de cœurs ; coup reçu ; invulnérabilité après un coup ; clignotement ; panneau de debug ; émetteur de test | `health` ; `heart` ; `half_heart` ; `armor` ; `heart_cap` ; `hit` ; `hit_invulnerability` ; `blink` ; `debug_panel` ; `test_emitter` |
 
 Tout nouveau terme du GDD entre dans ce lexique avant d'apparaître dans le code.
 
