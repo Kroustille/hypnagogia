@@ -1,17 +1,21 @@
 class_name Arena
 extends Node2D
-## One-screen room: 36x19 playable tiles inside a closed wall frame, a fixed camera and the player.
+## One-screen room: 36x19 playable tiles inside a closed wall frame, a fixed camera, the player,
+## the player's BulletManager and training targets.
 ## Floor and Walls are built in code for now (same node names as the painted rooms of epic 4).
 ## World origin = top-left corner of the wall frame, in pixels.
 
 const WALL_COLOR: Color = Color(0.35, 0.3, 0.55)
 const FLOOR_COLOR: Color = Color(0.09, 0.09, 0.16)
 const FLOOR_ALT_COLOR: Color = Color(0.10, 0.10, 0.18)
+## Technical pool size of the player's shots (~11 in flight at 4/s over 36 tiles at 14 tiles/s).
+const PLAYER_BULLET_CAPACITY: int = 128
 
 @onready var _floor: TileMapLayer = %Floor
 @onready var _walls: TileMapLayer = %Walls
 @onready var _player: Player = %Player
 @onready var _camera: Camera2D = %Camera
+@onready var _targets: Node2D = %Targets
 
 
 func _ready() -> void:
@@ -21,6 +25,7 @@ func _ready() -> void:
 	var frame_px: Vector2 = Vector2(frame_cells * Const.TILE_SIZE)
 
 	_build_tiles(frame_cells)
+	_setup_player_bullets() # after the tiles: the BulletManager needs Walls to have a TileSet
 
 	# Fixed camera: centered on the room, shifted up by half the HUD band so the band stays free at the top.
 	_camera.position = frame_px / 2.0 - Vector2(0.0, Const.HUD_BAND_HEIGHT / 2.0)
@@ -30,6 +35,22 @@ func _ready() -> void:
 	_player.position = frame_px / 2.0
 	_player.reset_physics_interpolation()
 	Log.info("room", "arena ready playable=%s tiles" % Const.ROOM_TILES)
+
+
+## The player's BulletManager, at the room origin like Walls. Added last: drawn above the player (Combat layer).
+func _setup_player_bullets() -> void:
+	var bullets: BulletManager = BulletManager.new()
+	bullets.name = "PlayerBullets"
+	bullets.camp = BulletManager.Camp.PLAYER
+	bullets.capacity = PLAYER_BULLET_CAPACITY
+	var solid_layers: Array[TileMapLayer] = [_walls]
+	bullets.setup(solid_layers) # before add_child()
+	add_child(bullets)
+	_player.equip_bullets(bullets)
+	for child: Node in _targets.get_children():
+		var target: TrainingTarget = child as TrainingTarget
+		if target != null:
+			bullets.register_hurtbox(target.hurtbox)
 
 
 ## The room (walls included) plus the HUD band must fit the viewport exactly in height, with a margin in width.

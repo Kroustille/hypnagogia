@@ -45,3 +45,6 @@ const LAYER_NAMES: Array[String] = [
 	"pickups",
 	"triggers",
 ]
+
+## Color reserved for the player's shots (NFR8): no other entity uses it. Final value set by story 7.2.
+const COLOR_PLAYER_SHOT: Color = Color(0.55, 0.95, 1.0)
