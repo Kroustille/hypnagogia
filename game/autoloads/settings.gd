@@ -214,10 +214,11 @@ func _apply_fullscreen() -> void:
 		window.size = window.size.max(startup_size)
 
 
+## Only when the mode differs: some drivers (WSLg) warn on every call, even for the current mode.
 func _apply_vsync() -> void:
-	DisplayServer.window_set_vsync_mode(
-		DisplayServer.VSYNC_ENABLED if vsync else DisplayServer.VSYNC_DISABLED
-	)
+	var wanted: DisplayServer.VSyncMode = DisplayServer.VSYNC_ENABLED if vsync else DisplayServer.VSYNC_DISABLED
+	if DisplayServer.window_get_vsync_mode() != wanted:
+		DisplayServer.window_set_vsync_mode(wanted)
 
 
 ## Atomic write: a fresh ConfigFile saved to a temporary file, then renamed over the real one.
