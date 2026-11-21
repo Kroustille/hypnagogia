@@ -6,6 +6,8 @@ extends CharacterBody2D
 
 ## Emitted when a dash finishes, after its last movement.
 signal dash_ended
+## Emitted once, when the player dies: after the Events.player_hit of the lethal hit. The Run listens.
+signal died
 
 ## Placeholder sprite size in pixels (structural, not gameplay). Real sprites come with epic 7.
 const SPRITE_SIZE: Vector2i = Vector2i(16, 24)
@@ -45,6 +47,9 @@ var _shot_params: BulletParams
 ## Viewport mouse position on the previous tick: the mouse takes the aim back only when it moves.
 var _last_mouse_pos: Vector2 = Vector2.ZERO
 var _unequipped_reported: bool = false
+var _death_handled: bool = false
+## True while the sprite blinks after a hit: visible is written on blink transitions only.
+var _blinking: bool = false
 
 @onready var _sprite: Sprite2D = %Sprite
 @onready var _hitbox: CollisionShape2D = %Hitbox
@@ -92,7 +97,6 @@ func _setup_health() -> void:
 		GameClock.Group.PLAYER
 	)
 	add_child(health)
-	health.died.connect(_on_health_died)
 
 	hurtbox = Hurtbox.new()
 	hurtbox.name = "Hurtbox"
@@ -207,6 +211,7 @@ func _can_be_hit() -> bool:
 	return not is_invulnerable() and not health.is_dead()
 
 
+## Death is handled here, after player_hit, not on Health.died (emitted inside apply_damage()).
 func _on_hurtbox_damage_received(info: DamageInfo) -> void:
 	var lost: int = health.apply_damage(info)
 	if lost <= 0:
@@ -215,18 +220,32 @@ func _on_hurtbox_damage_received(info: DamageInfo) -> void:
 	Audio.play_sfx(HIT_SOUND)
 	Log.debug("combat", "player hit lost=%d hearts=%d armor=%d source=%d" % [
 		lost, health.half_hearts, health.armor, info.source])
+	if health.is_dead():
+		_die(info.source)
 
 
-func _on_health_died() -> void:
-	Log.info("combat", "player died") # wake-up screen and restart: story 2.2
+## The player stops (even if nobody freezes the game), its sprite disappears, then the Run is told.
+func _die(source: int) -> void:
+	if _death_handled:
+		return
+	_death_handled = true
+	set_physics_process(false)
+	velocity = Vector2.ZERO
+	_sprite.visible = false
+	Log.debug("combat", "player died source=%d" % source) # the INFO line of the death is the Run's
+	died.emit()
 
 
 ## Blinks the sprite (visible, never modulate: the dash tint; never the node: the reticle) during the
 ## invulnerability that follows a hit. Derived from the ticks left: frozen by the pause, slowed by F4.
+## Writes visible only while blinking and once when the blink ends: a sprite hidden elsewhere stays hidden.
 func _update_blink() -> void:
 	if not health.is_hit_invulnerable():
-		_sprite.visible = true
+		if _blinking:
+			_blinking = false
+			_sprite.visible = true # the blink just ended: show the sprite once, never every tick
 		return
+	_blinking = true
 	var elapsed: float = health.hit_ticks_total() - health.hit_ticks_left()
 	_sprite.visible = int(elapsed / BLINK_HALF_PERIOD_TICKS) % 2 == 1
 
