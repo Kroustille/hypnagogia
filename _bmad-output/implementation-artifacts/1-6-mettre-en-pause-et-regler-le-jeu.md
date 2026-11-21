@@ -1,6 +1,10 @@
+---
+baseline_commit: 4edd0bc92bc1e7eaa0d3f058065e5a8d334d10fe
+---
+
 # Story 1.6 : Mettre en pause et régler le jeu
 
-Status: ready-for-dev
+Status: in-progress
 
 ## Story
 

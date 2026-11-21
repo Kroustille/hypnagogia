@@ -308,6 +308,7 @@ func _physics_process(delta: float) -> void:
 - `GameClock` (autoload) expose `scale(group) -> float` pour les groupes `PLAYER`, `ENEMIES`, `ENEMY_BULLETS`, `PLAYER_BULLETS`, `WORLD`, `FX`.
 - Tout code de gameplay multiplie son `delta` par l'échelle de son groupe. Les timers de gameplay sont des compteurs manuels, pas des nœuds `Timer` ni des `SceneTreeTimer`.
 - La pause passe par `GameClock` et par `process_mode` de l'arbre de jeu ; `Engine.time_scale` reste à 1.
+- Seul `Main` met en pause et reprend : il écrit ensemble `GameClock.paused` et `ActiveScene.process_mode` (`PROCESS_MODE_DISABLED`) ; `SceneTree.paused` n'est jamais utilisé, et aucun autre script n'écrit `GameClock.paused` (story 1.6).
 
 ### Seeds et RNG (D8)
 
@@ -669,6 +670,7 @@ hypnagogia/
 | Arène ; bande de HUD | `arena` ; `hud_band` |
 | Dash ; invulnérabilité du dash ; recharge ; tampon d'entrée | `dash` ; `dash_invulnerability` ; `cooldown` ; `input_buffer` |
 | Tir ; cadence ; recul du tir ; visée ; réticule ; cible d'entraînement | `shot` ; `fire_rate` ; `recoil` ; `aim` ; `reticle` ; `training_target` |
+| Pause ; menu de pause ; réglages ; volume ; plein écran ; VSync ; chiffres de dégâts | `pause` ; `pause_menu` ; `settings` ; `volume` ; `fullscreen` ; `vsync` ; `damage_numbers` |
 
 Tout nouveau terme du GDD entre dans ce lexique avant d'apparaître dans le code.
 
