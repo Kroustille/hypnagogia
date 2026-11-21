@@ -115,3 +115,9 @@
 - **`strings.fr.translation` n'est pas versionné** (`.gitignore` : `*.translation`), contrairement à ce que la story annonçait : régénéré par `--import`, il n'y a rien à commiter.
 - **Cas limite du dash, inchangé** : un projectile à un tick du contact au moment de l'appui sur le dash touche le joueur (l'entrée atteint le joueur un tick plus tard). Déjà noté en 2.1 ; le contrôle K=1 de `t_arena` l'affirme désormais comme un coup (au lieu de le laisser échouer).
 - **Étape humaine toujours due** : mesure de 10 minutes à 400 projectiles sur la machine de référence (story 1.2), à rappeler à Kroustille en fin d'epic.
+
+## Deferred from: code review of 2-2-mourir-et-relancer-en-moins-de-3-secondes (2026-11-21)
+
+- `Main._on_events_run_ended()` ignore `outcome` : toute issue ouvre l'écran de réveil de la mort (« Tu te réveilles. »). La victoire (story 6.4) devra brancher sur `Run.Outcome` (et journaliser une issue inconnue en `Log.warn`).
+- Le joueur vit dans `Run` et survit à la salle, mais garde le `PlayerBullets` de l'arène (`equip_bullets()`) et sa hurtbox reste inscrite dans l'`EnemyBullets` de l'arène jusqu'à sa propre sortie de l'arbre. Au changement de salle (story 4.8) : déséquiper et désinscrire à la sortie de la salle, en même temps que l'entrée « `equip_bullets()` répétable » de la story 1-4.
+- Garde de 0,3 s de l'écran de réveil comptée en ticks de physique bruts : après un à-coup d'image au moment de la mort, le rattrapage (plusieurs ticks par image) peut l'écouler en une ou deux images affichées. **NON ÉVALUÉ** : à juger avec la mesure de la relance sur la machine de référence (story 1.8).
