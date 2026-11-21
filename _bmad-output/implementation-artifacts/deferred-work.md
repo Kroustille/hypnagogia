@@ -13,7 +13,7 @@
 
 - ~~Traversée de mur si l'échelle de temps d'un groupe dépasse 1 : un seul échantillon de cellule par tick. À traiter (sous-pas ou plafond de pas) à la story 1.4, quand `GameClock` aura une API d'écriture.~~ **Résolu par la story 1.4 (plafond d'échelle)** : `GameClock.global_multiplier` est borné à [0, 1] et aucune échelle de groupe n'est modifiable, donc `scale() ≤ 1` reste un invariant. Si une story future veut une échelle > 1 (aucune dans le GDD), elle devra rouvrir le sujet (sous-pas ou plafond de pas).
 - Projectile qui sort de la zone tuilée (ouverture dans `Walls`) ou qui apparaît dans une cellule solide : il vit jusqu'à la fin de sa durée de vie. **Partiellement résolu par la story 1.3** : le cadre de murs de l'arène est fermé, donc aucun projectile ne sort de la zone. Reste le cas d'une apparition dans une cellule solide, à reprendre avec les motifs ennemis (epic 2).
-- Couches solides libérées ou remplacées pendant la vie du manager (changement de salle), et F5 qui vide tous les enfants d'`ActiveScene` : **résolu par la story 1.3** pour F5 (l'arène est recréée à chaque retour, `ActiveScene` garde un seul enfant). Le remplacement des couches solides en cours de vie reste sans objet tant que l'arène ne porte pas de `BulletManager` (story 1.5, epic 4).
+- Couches solides libérées ou remplacées pendant la vie du manager (changement de salle), et F5 qui vide tous les enfants d'`ActiveScene` : **résolu par la story 1.3** pour F5 (l'arène est recréée à chaque retour, `ActiveScene` garde un seul enfant). Le remplacement des couches solides en cours de vie reste sans objet tant que l'arène ne porte pas de `BulletManager` (story 1.5, epic 4). **Mis à jour par la story 1.5** : l'arène porte désormais le `BulletManager` du joueur, mais elle le recrée avec ses `Walls` à chaque retour de F5 ; le remplacement des couches en cours de vie reste à traiter avec les changements de salle (epic 4).
 
 ## Deferred from: story 1-3 (2026-11-20)
 
@@ -26,7 +26,7 @@
 
 - Valeurs de réglage non validées (`NaN` dans une durée, `move_speed` ≤ 0, `hitbox_size` ≤ 0) : un point de validation unique viendra avec le premier outil d'édition des réglages. La spec ne validait que les deux durées de rampe.
 - Pas de flèches directionnelles ni de croix directionnelle de manette sur `move_*` : la réassignation et les alternatives de touches sont la story 1.7.
-- `CollisionDrawer` ignore les formes autres que `RectangleShape2D` et `CircleShape2D`, ainsi que les `CollisionShape2D` désactivées : à traiter avec les `Hurtbox` et `Hitbox` de la story 1.5.
+- `CollisionDrawer` ignore les formes autres que `RectangleShape2D` et `CircleShape2D`, ainsi que les `CollisionShape2D` désactivées : à traiter avec les `Hurtbox` et `Hitbox` de la story 1.5. **Partiellement résolu par la story 1.5** : les `Hurtbox` portent un `RectangleShape2D` et rejoignent le groupe F2, qui les affiche sans modification de `CollisionDrawer`. Restent les autres formes et les formes désactivées, avec la `Hitbox` (epic 2).
 - `main.gd` référence `CollisionDrawer` (`debug/`) à la compilation même en release (instanciation gardée par `OS.is_debug_build()`) : à vérifier à l'export, story 1.8.
 
 ## Deferred from: story 1-4 (2026-11-21)
@@ -51,3 +51,15 @@
 - **Bascule souris ↔ stick provisoire** : le stick prend la main au-delà de la zone morte, la souris la reprend quand sa position de viewport change. À remplacer par l'état du dernier périphérique (story 1.7).
 - **Coût du test de charge** : médiane du temps de physique en headless ≈ 212 µs contre ≈ 202 µs au commit de base (3 mesures chacun, bruit du même ordre). Le surcoût par projectile sans cible est un test booléen ; la mesure de 10 minutes sur la machine de référence (story 1.2) reste à faire.
 - **`Input.parse_input_event()` est appliqué au tick suivant** (événements mis en tampon) : les scripts de vérification doivent attendre un tick après un événement de stick simulé. Rien à changer dans le jeu ; à savoir pour les futurs tests.
+
+## Deferred from: code review of story 1-5 (2026-11-21)
+
+- `BulletManager._deliver_hits()` livre toujours `DamageInfo.Source.PLAYER_SHOT`, quel que soit le camp du manager : à étendre quand les projectiles ennemis toucheront la `Hurtbox` du joueur (epic 2).
+- Désenregistrement des hurtbox par `tree_exiting` en `CONNECT_ONE_SHOT` : une hurtbox déplacée (`remove_child` puis `add_child`) ou réutilisée par un pool n'est plus jamais touchée, sans erreur. À revoir avec un pool d'ennemis (epic 2).
+- Le test de touche ignore l'état de la `Hurtbox` (`monitorable`, forme `disabled`) : seul le désenregistrement empêche une touche. À trancher avec `Health`, la mort et l'invulnérabilité (story 2.1).
+- Test de touche discret (position de fin de tick, sans balayage) : traversée de cible, touche à travers un mur ou après expiration possibles seulement à des réglages extrêmes (`bullet_speed` élevé, `hitbox_size` à 0). Aucun saut aux valeurs du GDD (3,73 px/tick, cible de 12 px).
+- Ordre de traitement dans l'arbre : les rectangles des cibles sont lus dans le tick du `BulletManager` (ajouté en dernier dans l'arène), et `HitFeedback` dure 3 ticks seulement parce que les cibles passent avant lui. Un ennemi ajouté après le manager serait testé avec un tick de retard. Convention à fixer en 2.1 (rejoint le report de 1.4 sur la lecture de l'invulnérabilité), par exemple avec `process_physics_priority`.
+- Pool `Audio` : un flux en boucle, ou un `stop()`, ne libère jamais le lecteur ni le compteur de voix (`finished` n'arrive pas) ; les lecteurs se figent avec l'arbre en pause (sons d'UI du menu de pause, 1.6) ; `max_voices <= 0` n'est pas validé.
+- `SpriteKick` suppose un sprite au repos en `(0, 0)` et `HitFeedback.setup()` écrase le `material` existant du sprite : vrai pour le joueur et les cibles, à revoir avec Le Somnambule (2.3).
+- Réticule au stick placé sur la position physique non interpolée du joueur (saccade possible au-delà de 60 Hz d'affichage) ; réticule hors écran dans les barres noires, curseur caché. À juger sur manette avec la story 1.7.
+- `Player.equip_bullets()` est répétable (une apparence de plus à chaque appel) et `_bullets == null` ne détecte pas un manager libéré ; un `ShotTuning` invalide fait refuser et journaliser chaque tir. L'arène recrée le joueur aujourd'hui ; à revoir avec les changements de salle (epic 4).

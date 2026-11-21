@@ -4,7 +4,7 @@ baseline_commit: f8c2c0fc37d85ce9bdaa7d6d4f62452ba11d9ccf
 
 # Story 1.5 : Viser et tirer
 
-Status: review
+Status: done
 
 ## Story
 
@@ -65,6 +65,27 @@ afin que chaque tir se sente.
   - [x] Tir visible, réticule, conversion souris→monde, flash et recul de la cible, capture d'écran.
 - [x] **T13. Régression** : import et lancement headless sans erreur, recherche des interdits, marche, dash, F2, F3, F4 et F5 de 1.1 à 1.4 toujours conformes, test de charge sans régression de coût.
 - [x] **T14. Reports** : consigner dans `deferred-work.md` ce qui n'a pas pu être vérifié (manette réelle : stick droit et RT ; ressenti ; son provisoire ; curseur et pause pour 1.6).
+
+### Review Findings
+
+Revue de code du 2026-11-21 (Blind Hunter, Edge Case Hunter, Acceptance Auditor ; diff `f8c2c0f..HEAD`, `game/` seulement). Une violation de critère d'acceptation (CA 5, durée du recul) ; aucun motif interdit, frontières de dossiers respectées.
+
+- [x] [Review][Patch] Recul du joueur affiché 2 ticks au lieu de 3 — `_fire()` lance `_recoil.kick()` (3 ticks), puis `_recoil.tick()` est appelé dans le même `_update_shooting()` et en retire déjà un : seuls les états des ticks N et N+1 portent le décalage de 1 px (≈ 0,033 s). CA 5 : 0,05 s. Le défaut vient de l'extrait de la story lui-même. `HitFeedback` n'a pas le problème, mais seulement parce que les cibles passent avant `PlayerBullets` dans l'arbre. Correctif : appeler `_recoil.tick(clock_scale)` avant `_shooter.tick()`, et corriger l'extrait dans les Dev Notes. (sources : auditor+relecture) [game/player/player.gd:130-140]
+- [x] [Review][Patch] Livraison des dégâts fragile si une cible meurt pendant la livraison — `var target: Hurtbox = _hit_targets[h]` affecte une instance peut-être libérée à une variable typée avant le test `is_instance_valid()` (erreur en debug) ; une cible `queue_free`, ou désenregistrée par un `receive()` précédent du même tick, reçoit quand même les touches suivantes (double mort en 2.1). Correctif : lire en `Object`, puis ne livrer que si `is_instance_valid`, `not is_queued_for_deletion()` et `_targets.has(target)`. (sources : blind+edge) [game/combat/bullets/bullet_manager.gd:255-265]
+- [x] [Review][Patch] `register_hurtbox()` accepte une hurtbox hors de l'arbre — libérée sans être entrée dans l'arbre, elle n'émet jamais `tree_exiting` et reste dans `_targets` (appel sur instance libérée à chaque tick) ; et `get_path()` hors de l'arbre lève une seconde erreur dans le message de refus. Correctif : refuser `not hurtbox.is_inside_tree()` et nommer la hurtbox par `name` dans ce cas. (sources : blind+edge) [game/combat/bullets/bullet_manager.gd:114-130]
+- [x] [Review][Patch] Origin du tir en coordonnées globales alors que `fire()` attend l'espace local du manager — `_bullets.fire(_shot_params, global_position, ...)` alors que `_refresh_target_rects()` convertit par `to_local()`. Juste aujourd'hui car l'arène est à l'origine. Correctif : `_bullets.to_local(global_position)`. (sources : auditor+blind+edge) [game/player/player.gd:150]
+- [x] [Review][Patch] Curseur caché dans `_ready()` du réticule au lieu de `_enter_tree()` — `_exit_tree()` le rend à chaque sortie, mais `_ready()` ne repasse pas à la ré-entrée (déplacement vers la couche HUD prévu en 2.7) : double curseur ; il est aussi caché quand `setup()` a échoué. Correctif : cacher dans `_enter_tree()`. (sources : blind+edge) [game/player/reticle.gd:26-38]
+- [x] [Review][Patch] Écart de `Shooter.tick()` non consigné — ordre et remise à zéro différents du contrat des Dev Notes (pause testée d'abord, report de la fraction de tick au lieu de `_cooldown_left = _period_ticks`). Comportement identique à 4 tirs/s et CA 8 tenu, mais l'écart n'est expliqué que dans le Debug Log. Correctif : l'ajouter aux « Écarts assumés » et aux « Décisions ». (sources : auditor) [game/player/shooter.gd:28-40]
+- [x] [Review][Patch] `deferred-work.md` pas à jour — l'entrée `CollisionDrawer` (« à traiter avec les `Hurtbox` … de la story 1.5 ») n'indique pas que les rectangles de `Hurtbox` sont désormais affichés par F2 ; l'entrée des couches solides dit encore que l'arène ne porte pas de `BulletManager`. Correctif : marquer ces deux points. (sources : auditor) [_bmad-output/implementation-artifacts/deferred-work.md:16,29]
+- [x] [Review][Defer] Source `PLAYER_SHOT` codée en dur quel que soit le camp du manager — un manager ennemi qui enregistre la hurtbox du joueur livrerait `PLAYER_SHOT` [game/combat/bullets/bullet_manager.gd:255-265] — deferred, à étendre avec les projectiles ennemis (epic 2)
+- [x] [Review][Defer] Désenregistrement `CONNECT_ONE_SHOT` à `tree_exiting` — une hurtbox déplacée (`remove_child` puis `add_child`) ou réutilisée par un pool devient intouchable sans erreur [game/combat/bullets/bullet_manager.gd:114-140] — deferred, conforme à la spec ; à revoir avec un pool d'ennemis (epic 2)
+- [x] [Review][Defer] Le test de touche ignore l'état de la hurtbox (`monitorable`, forme `disabled`) — seul le désenregistrement empêche une touche [game/combat/bullets/bullet_manager.gd:236-253] — deferred, à trancher avec `Health` et la mort (2.1)
+- [x] [Review][Defer] Test de touche discret, sans balayage — traversée de cible, touche à travers un mur ou après expiration possibles seulement à des réglages extrêmes (`bullet_speed` élevé, `hitbox_size` 0) ; aux valeurs du GDD (3,73 px/tick, cible de 12 px) aucun saut [game/combat/bullets/bullet_manager.gd:196-218] — deferred, aucune valeur actuelle concernée
+- [x] [Review][Defer] Ordre de traitement dans l'arbre — les rectangles des cibles sont lus dans le tick du manager (ajouté en dernier) et `HitFeedback` dure 3 ticks seulement parce que les cibles passent avant lui ; un ennemi ajouté après le manager serait testé avec un tick de retard [game/rooms/arena/arena.gd:41-54] — deferred, convention à fixer en 2.1 (rejoint le report de 1.4), p. ex. `process_physics_priority`
+- [x] [Review][Defer] Pool `Audio` : un flux en boucle ou un `stop()` ne libère jamais le lecteur ni le compteur de voix ; lecteurs en pause avec l'arbre (sons d'UI du menu de pause) ; `max_voices <= 0` non validé [game/autoloads/audio.gd:37-67] — deferred, aucun son en boucle ni pause d'arbre avant 1.6
+- [x] [Review][Defer] `SpriteKick` suppose un sprite au repos en `(0, 0)` et `HitFeedback.setup()` écrase le `material` existant du sprite [game/vfx/sprite_kick.gd:15-44] — deferred, vrai pour le joueur et les cibles ; à revoir avec Le Somnambule (2.3)
+- [x] [Review][Defer] Réticule au stick placé sur la position physique non interpolée du joueur (saccade au-delà de 60 Hz d'affichage) ; réticule hors écran dans les barres noires avec le curseur caché [game/player/reticle.gd:41-48] — deferred, à juger sur manette avec la story 1.7
+- [x] [Review][Defer] `equip_bullets()` répétable (une apparence de plus à chaque appel), `_bullets == null` ne détecte pas un manager libéré ; un réglage invalide fait refuser et journaliser chaque tir [game/player/player.gd:71-84] — deferred, l'arène recrée le joueur ; à revoir avec les changements de salle (epic 4)
 
 ## Dev Notes
 
@@ -352,9 +373,9 @@ func _update_shooting(clock_scale: float) -> void:
 	_last_mouse_pos = mouse_pos
 	_aim.update(global_position, get_global_mouse_position(), mouse_moved, stick)
 	var wants_fire: bool = Input.is_action_pressed(&"shoot") or _aim.is_stick_active()
+	_recoil.tick(clock_scale)             # before the shot (code review): a recoil started this tick keeps its 3 ticks
 	if _shooter.tick(clock_scale, wants_fire, _dash.is_active()):
 		_fire()
-	_recoil.tick(clock_scale)
 ```
 
   - Pourquoi **avant** le mouvement : `_dash.is_active()` y vaut « le dash est actif **ce tick** » ; après `finish_tick()` il serait déjà faux sur le dernier tick du dash et laisserait partir un tir pendant le dash (CA 4). Le tir part donc de la position du début de tick (≤ 1,6 px d'écart avec la position de fin de tick, imperceptible).
@@ -489,6 +510,7 @@ Directement sur `main`, Conventional Commits en anglais, un `git push` après ch
   - `TrainingTarget` vit dans `rooms/arena/` (l'arène existe dans tous les builds, `debug/` ne peut pas être référencé par elle).
   - `Reticle` lit la position de la souris dans `_process` (présentation) : seule exception à « entrées dans `_physics_process` », avec F4/F5 de `Main`.
   - Le joueur reçoit son `BulletManager` par `equip_bullets()` après coup, et non par `setup()` avant `add_child()` (il est déjà prêt quand l'arène l'équipe).
+  - `Shooter.tick()` ne suit pas l'ordre écrit plus haut (revue de code) : la pause est testée d'abord (la recharge ne bouge pas, comme prévu), et un tir qui part au tick où la recharge se termine reporte le dépassement de ce tick (`_cooldown_left = report + _period_ticks`, report < 1 tick) au lieu de repartir de `_period_ticks`. Une cadence à période fractionnaire garde ainsi sa moyenne exacte (8 tirs/s : 7,5 ticks). Une recharge déjà écoulée ne reporte rien : attendre n'accumule pas de rafale. À 4 tirs/s (15 ticks), comportement identique ; CA 8 tenu.
 
 ### Project Context Rules
 
@@ -513,6 +535,7 @@ Il n'y a pas de `project-context.md`. Règles tirées de `CLAUDE.md` et de la m�
 10. **Curseur système caché** par le réticule, rendu à la sortie de l'arène ; la pause (1.6) devra le rendre.
 11. **Réticule au stick** à 4 tuiles du joueur dans la direction visée (visuel, pas une portée).
 12. **Zone morte de `shoot` à 0,5** pour la gâchette (0,2 pour les sticks).
+13. **Cadence à période fractionnaire** (revue de code) : le dépassement du tick où la recharge se termine est reporté sur la recharge suivante ; une recharge déjà écoulée ne reporte rien (voir « Écarts assumés »).
 
 ### Questions ouvertes (sans effet bloquant sur le code)
 
@@ -619,3 +642,4 @@ Claude Opus 5.5 (claude-opus-5-5)
 ### Change Log
 
 - 2026-11-21 : implémentation de la story 1.5 (visée souris et stick, cadence, tir du joueur par `BulletManager`, dégâts par `DamageInfo` → `Hurtbox`, retour d'impact réutilisable, bus audio et pool `Audio`, cibles d'entraînement). Statut → review.
+- 2026-11-21 : revue de code (Blind Hunter, Edge Case Hunter, Acceptance Auditor) : 7 correctifs appliqués (recul de 3 ticks, livraison des dégâts robuste aux cibles libérées ou en file de suppression, y compris par leur propriétaire, refus d'une hurtbox hors de l'arbre, origine du tir en espace local du manager, curseur caché dans `_enter_tree()`, écart de `Shooter` consigné, `deferred-work.md` à jour), 9 reports. Vérifié en headless par une scène jetable (recul, touche unique, cible en file de suppression, refus hors de l'arbre). Le curseur à la ré-entrée n'est pas vérifiable en headless (`mouse_mode` ignoré). Statut → done.
