@@ -119,6 +119,11 @@ func add_appearance(texture: Texture2D) -> int:
 	return _multimeshes.size() - 1
 
 
+## True when this hurtbox is registered (register_hurtbox()) and still in the hit tests.
+func has_hurtbox(hurtbox: Hurtbox) -> bool:
+	return _targets.has(hurtbox)
+
+
 ## Adds a hurtbox of the opposite camp to the hit tests. It unregisters itself when it leaves the tree.
 func register_hurtbox(hurtbox: Hurtbox) -> void:
 	var problem: String = ""

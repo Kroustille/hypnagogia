@@ -160,11 +160,12 @@ func _find_player() -> Player:
 	return player
 
 
-## First enemy-camp manager that shares the player's scene (the load test has one but no player).
+## The enemy-camp manager that can hit this player (its hurtbox is registered there): independent of the tree.
+## The load test has an enemy manager but no player.
 func _find_enemy_manager(player: Player) -> BulletManager:
 	for node: Node in get_tree().get_nodes_in_group(Const.GROUP_BULLET_MANAGERS):
 		var manager: BulletManager = node as BulletManager
-		if manager != null and manager.camp == BulletManager.Camp.ENEMY and manager.get_parent() == player.get_parent():
+		if manager != null and manager.camp == BulletManager.Camp.ENEMY and manager.has_hurtbox(player.hurtbox):
 			return manager
 	return null
 
