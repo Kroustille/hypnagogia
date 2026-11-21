@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="SleepwalkerDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://enemies/sleepwalker/sleepwalker_def.gd" id="1_def"]
+[ext_resource type="PackedScene" path="res://enemies/sleepwalker/sleepwalker.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_def")
+walk_speed = 2.5
+rush_trigger_range = 2.0
+telegraph_duration = 0.4
+rush_speed = 5.0
+rush_duration = 0.6
+id = &"sleepwalker"
+scene = ExtResource("2_scene")
+max_hp = 30.0
+body_size = Vector2(0.625, 0.625)
+hurtbox_size = Vector2(0.75, 1.25)
+contact_size = Vector2(0.75, 0.75)
