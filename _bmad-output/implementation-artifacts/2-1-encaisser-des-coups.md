@@ -4,7 +4,7 @@ baseline_commit: 677739a03b12fc90b3efe98c41fd1f53b9827d5f
 
 # Story 2.1 : Encaisser des coups
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -66,6 +66,24 @@ afin de savoir exactement ce que me coûte une erreur.
 - [x] **T10. Vérifications fenêtrées sous WSLg** (CA 3, 6) : clignotement, panneau lisible, captures.
 - [x] **T11. Régression** : import et lancement sans erreur, recherche des interdits, marche, dash, tir, pause, F2 à F5, test de charge.
 - [x] **T12. Reports** : mettre à jour `deferred-work.md` (entrées résolues, voir « Reports traités par cette story » ; ce qui n'a pas pu être vérifié : ressenti du clignotement et du son, son à l'oreille).
+### Review Findings
+
+Revue de code du 2026-11-21, mode complet (chasseur aveugle, chasseur de cas limites, auditeur des critères), diff `77b1866..9829009` : aucun critère d'acceptation violé dans le code ; 0 décision, 8 corrections, 5 reports, 16 constats écartés.
+Contrôle signalé en échec par le dev (contact K = 1 tick après l'entrée du dash compté comme coup) : **conforme à la spec**. L'entrée injectée au tick T n'atteint le joueur qu'au tick T+1 : au tick T le dash n'a pas commencé, le coup est légitime. Au premier tick réel du dash, `Dash.tick()` (priorité 0) pose `_invulnerable` avant que les `BulletManager` (priorité 100) lisent `is_hittable()` : pas de trou d'un tick (CA 4, CA 10), confirmé par la sonde de l'auditeur (projectile qui chevauche la hurtbox au tick T+1 : aucun coup, il continue). En revanche, les contrôles K = 2 à 4 du dev ne prouvaient pas l'invulnérabilité (voir la correction 8).
+
+- [ ] [Review][Patch] Filtre de touche qui ne renvoie pas un `bool` : `Log.error` à **chaque tick** (`is_hittable()` est appelé par `BulletManager._refresh_target_rects()`), contre AR27 « rien par tick » en release. Journaliser une seule fois par hurtbox (`var _filter_error_reported: bool`, erreur et `assert` seulement au premier passage), garder le retour `true` voulu par la spec (ne pas rendre une entité immortelle) [game/combat/hurtbox.gd:55]
+- [ ] [Review][Patch] Clignotement : la durée totale est recalculée depuis `Tuning.COMBAT.hit_invulnerability_duration` brut, alors que `Health.setup()` a pu la borner (NaN, négatif) : second calcul à côté du « compteur unique » de la décision 20, `elapsed` faux si les deux divergent. Ajouter `Health.hit_ticks_total() -> float` (renvoie `_hit_ticks`), calculer `elapsed = health.hit_ticks_total() - health.hit_ticks_left()` et supprimer `_hit_total_ticks()` [game/player/player.gd:230]
+- [ ] [Review][Patch] `DamageInfo.Source` part sur le bus en entier (`Events.player_hit(damage, source: int)`) mais seul `PLAYER_SHOT` est garanti stable : une source insérée avant `DEBUG` (contact 2.3, trou 4.3) renumérote en silence. Valeurs explicites `enum Source { PLAYER_SHOT = 0, ENEMY_BULLET = 1, DEBUG = 2 }` et commentaire « new sources are appended at the end » [game/combat/damage_info.gd:7]
+- [ ] [Review][Patch] Commentaires de `Hurtbox` : la ligne 4 de l'en-tête fait 173 colonnes (deux phrases fusionnées), à rewrapper comme le reste du fichier ; la doc de `receive()` dit que `Events.enemy_damaged` part « once the owner applied the hit », ce que le code ne vérifie pas : écrire « after damage_received (the owner applies the hit synchronously in its handler) » [game/combat/hurtbox.gd:4] [game/combat/hurtbox.gd:62]
+- [ ] [Review][Patch] Panneau F1 : champ `_invulnerable` mort (écrit, jamais lu ; l'affichage lit `is_forced_invulnerable()`, et il reste faux après F5). Le supprimer et utiliser une variable locale dans `_toggle_invulnerability()` [game/debug/debug_panel.gd:19] [game/debug/debug_panel.gd:89]
+- [ ] [Review][Patch] Panneau F1 : quand le tir automatique s'arrête faute de manager, le message « no enemy bullet manager » posé par `_fire()` est écrasé par « auto fire stopped: no player ». Garder la cause : `_last_message = "auto fire stopped: %s" % _last_message` [game/debug/debug_panel.gd:74]
+- [ ] [Review][Patch] Panneau F1 : si `manager.add_appearance()` renvoie -1 (plafond d'apparences), l'`instance_id` du manager est mémorisé quand même et tous les tirs suivants sont refusés avec `assert`. Lire l'apparence dans une variable, et si elle est `< 0` : ne pas mémoriser l'id, `_last_message = "appearance refused"`, `return false` [game/debug/debug_panel.gd:135]
+- [ ] [Review][Patch] Vérification du dash à corriger (preuve, pas code) : dans `t_arena`, les contacts K = 2 à 4 passent parce que le dash (direction par défaut `DOWN`, 4,44 px par tick) sort le joueur de la trajectoire horizontale du projectile, pas grâce à l'invulnérabilité. Refaire le contrôle avec un projectile qui chevauche la hurtbox **déplacée** au premier tick du dash (modèle : sonde de l'auditeur `game/.scratch/p_dash.gd`, projectile à 30 tuiles/s, centre (303, 168) dans le rectangle x 301..307 au tick T+1 : aucun coup, projectile qui continue), puis corriger la décision 22, la note de complétion T9 et l'entrée « Dash et projectile au tout premier tick » de `deferred-work.md` [_bmad-output/implementation-artifacts/2-1-encaisser-des-coups.md:426]
+- [x] [Review][Defer] `Hurtbox.receive()` renvoie `true` et émet `Events.enemy_damaged` même si le propriétaire refuse ensuite le coup dans son gestionnaire (montant invalide aujourd'hui, PV des ennemis demain) ; le panneau F1 affiche alors « hit applied » [game/combat/hurtbox.gd:66] — deferred, conforme à la spec 2.1 ; à trancher avec les PV des ennemis (story 2.3)
+- [x] [Review][Defer] Projectile ennemi de dégâts < 0,5 (défaut `BulletParams.damage = 0`) accepté par `fire()` : il consomme le coup du tick (`one_hit_per_tick`), est détruit, et `Health` le refuse avec `assert` [game/combat/bullets/bullet_manager.gd:191] — deferred, motifs ennemis (story 2.4)
+- [x] [Review][Defer] Le panneau F1 cherche le manager ennemi par parent partagé avec le joueur (`get_parent() ==`) : cassera si `Run`/`RoomSlot` séparent le joueur de la salle [game/debug/debug_panel.gd:164] — deferred, story 2.2
+- [x] [Review][Defer] `_update_blink()` force `_sprite.visible = true` à chaque tick hors invulnérabilité : écrasera tout autre masquage du sprite (mort, écran de réveil) [game/player/player.gd:228] — deferred, story 2.2
+- [x] [Review][Defer] Coup mortel : `Health` émet `died` avant `changed`, et `Player` émet `Events.player_hit` après la mort [game/combat/health.gd:164] — deferred, ordre à fixer avec `run_ended` (2.2) et la cause de la mort (2.8)
 
 ## Dev Notes
 
@@ -406,6 +424,8 @@ Il n'y a pas de `project-context.md`. Règles tirées de `CLAUDE.md`, de la mém
 20. **Contrôle de l'ordre du clignotement** — Choix : clignotement dérivé du compteur de `Health` (`hit_ticks_left()` exposé) plutôt que d'un second compteur ; le sprite est caché pendant les 6 premiers ticks. Raison : un seul compteur pondéré, figé en pause et ralenti sous F4 sans code de plus.
 21. **Écart de la spec : accesseurs de `Health`** — Ajouts : `hit_ticks_left()`, `is_forced_invulnerable()`, `cap_half_hearts()` (lecture seule, pour le clignotement et le panneau F1 ; le panneau n'a pas à lire de champ privé). Raison : respecter « méthodes publiques » du CA 6.
 22. **Test du dash au tout premier tick** — Le coup au même tick que l'entrée du dash (contact un tick avant que l'entrée n'atteigne le joueur) reste un coup légitime ; vérifié pour un contact 2 à 4 ticks après l'entrée (donc dont le premier tick du dash). Raison : `Input.parse_input_event()` s'applique au tick suivant.
+23. **Revue : contact K = 1 après l'entrée du dash** — Choix : coup légitime, contrôle du dev écarté (conforme aux CA 4 et 10 : le dash n'a pas commencé à ce tick). Raison : l'entrée simulée n'atteint le joueur qu'au tick suivant ; le premier tick réel du dash est couvert (sonde de l'auditeur).
+24. **Revue : dégâts ennemis < 0,5 reportés à la 2.4** plutôt qu'un refus dans `BulletManager.fire()` — Raison : le test de charge F5 tire à dégâts 0 dans un manager du camp ennemi ; la règle se pose avec les paramètres des motifs ennemis.
 
 ### Questions ouvertes
 

@@ -94,3 +94,11 @@
 - **Mesure de 10 minutes à 400 projectiles sur la machine de référence : toujours NON FAITE** (étape humaine, déjà demandée par 1.2), à rappeler à Kroustille en fin d'epic.
 - Un `DamageInfo` de montant invalide (NaN, < 0,5) est refusé avec `Log.error` + `assert` : en build de debug l'assertion fait apparaître un `SCRIPT ERROR` (le jeu continue en headless).
 
+
+## Deferred from: code review of 2-1-encaisser-des-coups (2026-11-21)
+
+- `Hurtbox.receive()` renvoie `true` et émet `Events.enemy_damaged` dès que la hurtbox est touchable, même si le propriétaire refuse ensuite le coup dans son gestionnaire de `damage_received` (montant invalide aujourd'hui, PV des ennemis demain) ; le panneau F1 affiche alors « hit applied ». Conforme à la spec 2.1 ; à trancher avec les PV des ennemis (story 2.3), par exemple un retour du propriétaire avant d'émettre.
+- Un projectile ennemi de dégâts < 0,5 (défaut `BulletParams.damage = 0`) est accepté par `BulletManager.fire()` : sur le joueur, il consomme le coup du tick (`one_hit_per_tick`), est détruit, et `Health` le refuse avec `Log.error` + `assert`. Les motifs ennemis (story 2.4) doivent porter `Tuning.COMBAT.hit_damage_half_hearts` ; pas de refus global dans `fire()` (le test de charge F5 tire à 0 dans un manager ennemi).
+- Le panneau F1 trouve le manager ennemi par parent partagé avec le joueur (`manager.get_parent() == player.get_parent()`) : à revoir si `Run`/`RoomSlot` (story 2.2) séparent le joueur de la salle (accesseur de la salle, par exemple).
+- `Player._update_blink()` force `_sprite.visible = true` à chaque tick hors invulnérabilité : écrasera tout autre masquage du sprite (mort, écran de réveil, story 2.2). N'écrire `visible` qu'au changement d'état du clignotement.
+- Coup mortel : `Health.apply_damage()` émet `died` avant `changed`, et `Player` émet `Events.player_hit` après la mort. Ordre à fixer avec `Events.run_ended` (2.2) et la cause de la mort en télémétrie (2.8).
