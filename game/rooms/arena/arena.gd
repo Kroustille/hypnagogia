@@ -1,7 +1,7 @@
 class_name Arena
 extends Node2D
 ## One-screen room: 36x19 playable tiles inside a closed wall frame, a fixed camera, the player,
-## the player's BulletManager and training targets.
+## the player's BulletManager, the enemy BulletManager (it hits the player's hurtbox) and training targets.
 ## Floor and Walls are built in code for now (same node names as the painted rooms of epic 4).
 ## World origin = top-left corner of the wall frame, in pixels.
 
@@ -10,6 +10,9 @@ const FLOOR_COLOR: Color = Color(0.09, 0.09, 0.16)
 const FLOOR_ALT_COLOR: Color = Color(0.10, 0.10, 0.18)
 ## Technical pool size of the player's shots (~11 in flight at 4/s over 36 tiles at 14 tiles/s).
 const PLAYER_BULLET_CAPACITY: int = 128
+
+## Technical pool size of the enemy bullets, same as the load test (F5).
+const ENEMY_BULLET_CAPACITY: int = 512
 
 @onready var _floor: TileMapLayer = %Floor
 @onready var _walls: TileMapLayer = %Walls
@@ -26,6 +29,7 @@ func _ready() -> void:
 
 	_build_tiles(frame_cells)
 	_setup_player_bullets() # after the tiles: the BulletManager needs Walls to have a TileSet
+	_setup_enemy_bullets() # drawn above the player's shots
 	_setup_damage_numbers() # after the bullets: drawn above them
 
 	# Fixed camera: centered on the room, shifted up by half the HUD band so the band stays free at the top.
@@ -52,6 +56,18 @@ func _setup_player_bullets() -> void:
 		var target: TrainingTarget = child as TrainingTarget
 		if target != null:
 			bullets.register_hurtbox(target.hurtbox)
+
+
+## The enemy BulletManager, at the room origin. It has no look: whoever fires adds its own appearance.
+func _setup_enemy_bullets() -> void:
+	var bullets: BulletManager = BulletManager.new()
+	bullets.name = "EnemyBullets"
+	bullets.camp = BulletManager.Camp.ENEMY
+	bullets.capacity = ENEMY_BULLET_CAPACITY
+	var solid_layers: Array[TileMapLayer] = [_walls]
+	bullets.setup(solid_layers) # before add_child()
+	add_child(bullets)
+	bullets.register_hurtbox(_player.hurtbox)
 
 
 ## Damage numbers layer, at the room origin. Added after PlayerBullets: drawn above the shots.
