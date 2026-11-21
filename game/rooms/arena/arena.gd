@@ -1,7 +1,9 @@
 class_name Arena
 extends Node2D
 ## One-screen room: 36x19 playable tiles inside a closed wall frame, a fixed camera, the player's
-## BulletManager, the enemy BulletManager (it hits the player's hurtbox) and training targets.
+## BulletManager, the enemy BulletManager (it hits the player's hurtbox), training targets and the enemies.
+## Enemies appear only through spawn_enemy() (group "room" lets debug tools find the active room); none at launch.
+## The room counts them alive until they leave the tree.
 ## Floor and Walls are built in code for now (same node names as the painted rooms of epic 4).
 ## The player is given by the Run through setup() (it is the parent of the room, not a child).
 ## World origin = top-left corner of the wall frame, in pixels.
@@ -15,12 +17,20 @@ const PLAYER_BULLET_CAPACITY: int = 128
 ## Technical pool size of the enemy bullets, same as the load test (F5).
 const ENEMY_BULLET_CAPACITY: int = 512
 
+## Technical margin between the playable area and a spawn position, in tiles: no body against a wall.
+const SPAWN_MARGIN_TILES: int = 1
+## Rounding tolerance when comparing a spawn distance to the minimal one, in pixels (exactly 3 tiles is accepted).
+const SPAWN_DISTANCE_EPSILON: float = 1e-3
+
 @onready var _floor: TileMapLayer = %Floor
 @onready var _walls: TileMapLayer = %Walls
 var _player: Player
 
 @onready var _camera: Camera2D = %Camera
 @onready var _targets: Node2D = %Targets
+@onready var _enemies: Node2D = %Enemies
+var _player_bullets: BulletManager
+var _alive: int = 0
 
 
 ## Dependency injection: call before add_child().
@@ -29,6 +39,7 @@ func setup(player: Player) -> void:
 
 
 func _ready() -> void:
+	add_to_group(Const.GROUP_ROOM)
 	if _player == null:
 		Log.error("room", "arena added without setup()")
 		assert(false, "Arena.setup() must be called before add_child()")
@@ -51,6 +62,40 @@ func _ready() -> void:
 	Log.info("room", "arena ready playable=%s tiles" % Const.ROOM_TILES)
 
 
+## Spawns an enemy: the only way (architecture, "Création d'entités"). requested: room coordinates (the room
+## sits at the world origin). Closer than Tuning.COMBAT.min_spawn_distance to the player, or outside the
+## playable area: replaced by the nearest valid position (deterministic, no RNG before epic 4).
+## Returns null when it cannot spawn (Log.error).
+func spawn_enemy(def: EnemyDef, requested: Vector2) -> Enemy:
+	if def == null or def.scene == null or _player == null:
+		Log.error("room", "spawn_enemy needs a def with a scene and a player")
+		assert(false, "spawn_enemy() without def, scene or player")
+		return null
+	var node: Node = def.scene.instantiate()
+	var enemy: Enemy = node as Enemy
+	if enemy == null:
+		node.free() # never leak a refused instance
+		Log.error("room", "scene of %s is not an Enemy" % def.id)
+		assert(false, "EnemyDef.scene must have an Enemy root")
+		return null
+	var position_px: Vector2 = _resolve_spawn_position(requested)
+	enemy.setup(def, _player, _player.hurtbox) # before add_child()
+	enemy.position = position_px
+	_enemies.add_child(enemy)
+	enemy.reset_physics_interpolation() # it does not trail from (0, 0)
+	if _player_bullets != null:
+		_player_bullets.register_hurtbox(enemy.hurtbox)
+	_alive += 1
+	enemy.tree_exited.connect(_on_enemy_tree_exited, CONNECT_ONE_SHOT)
+	Log.debug("room", "spawned %s at %s alive=%d" % [def.id, position_px, _alive])
+	return enemy
+
+
+## Enemies spawned by this room and still in the tree (dead ones leave at the end of their frame).
+func alive_enemy_count() -> int:
+	return _alive
+
+
 ## Where the player enters the arena (center of the playable area), in global coordinates.
 func player_spawn_position() -> Vector2:
 	var frame_px: Vector2 = Vector2((Const.ROOM_TILES + Vector2i(2, 2)) * Const.TILE_SIZE)
@@ -60,6 +105,7 @@ func player_spawn_position() -> Vector2:
 ## The player's BulletManager, at the room origin like Walls. Added last: drawn above the player (Combat layer).
 func _setup_player_bullets() -> void:
 	var bullets: BulletManager = BulletManager.new()
+	_player_bullets = bullets
 	bullets.name = "PlayerBullets"
 	bullets.camp = BulletManager.Camp.PLAYER
 	bullets.capacity = PLAYER_BULLET_CAPACITY
@@ -86,6 +132,55 @@ func _setup_enemy_bullets() -> void:
 	add_child(bullets)
 	if _player != null:
 		bullets.register_hurtbox(_player.hurtbox)
+
+
+## Playable area in pixels (cells 1 to 36 by 1 to 19), shrunk by SPAWN_MARGIN_TILES so a body never appears
+## against a wall.
+func _spawn_bounds() -> Rect2:
+	var margin: float = (1 + SPAWN_MARGIN_TILES) * Const.TILE_SIZE
+	var playable: Vector2 = Vector2(Const.ROOM_TILES * Const.TILE_SIZE)
+	return Rect2(Vector2.ONE * margin, playable - Vector2.ONE * SPAWN_MARGIN_TILES * 2.0 * Const.TILE_SIZE)
+
+
+## requested if valid (inside the bounds, at least min_spawn_distance from the player), else the valid candidate
+## nearest to it: the player-centered point pushed out to the minimal distance, then the corners of the bounds.
+## A valid candidate always exists: the player is closer than the minimal distance to one corner at most.
+func _resolve_spawn_position(requested: Vector2) -> Vector2:
+	var bounds: Rect2 = _spawn_bounds()
+	var player_pos: Vector2 = to_local(_player.global_position)
+	var min_px: float = Tuning.COMBAT.min_spawn_distance * Const.TILE_SIZE
+	if _is_valid_spawn(requested, bounds, player_pos, min_px):
+		return requested
+	var away: Vector2 = requested - player_pos
+	var direction: Vector2 = away.normalized() if away.length_squared() > 1e-6 else Vector2.RIGHT
+	var candidates: Array[Vector2] = [
+		player_pos + direction * min_px,
+		bounds.position,
+		Vector2(bounds.end.x, bounds.position.y),
+		Vector2(bounds.position.x, bounds.end.y),
+		bounds.end,
+	]
+	var best: Vector2 = bounds.get_center()
+	var best_distance: float = INF
+	for candidate: Vector2 in candidates:
+		if not _is_valid_spawn(candidate, bounds, player_pos, min_px):
+			continue
+		var distance: float = candidate.distance_to(requested)
+		if distance < best_distance: # a tie keeps the earlier candidate
+			best = candidate
+			best_distance = distance
+	Log.debug("room", "spawn at %s refused (too close or outside), moved to %s" % [requested, best])
+	return best
+
+
+func _is_valid_spawn(point: Vector2, bounds: Rect2, player_pos: Vector2, min_px: float) -> bool:
+	var inside: bool = point.x >= bounds.position.x and point.x <= bounds.end.x \
+		and point.y >= bounds.position.y and point.y <= bounds.end.y # inclusive: the corners are valid
+	return inside and point.distance_to(player_pos) >= min_px - SPAWN_DISTANCE_EPSILON
+
+
+func _on_enemy_tree_exited() -> void:
+	_alive = maxi(_alive - 1, 0)
 
 
 ## Damage numbers layer, at the room origin. Added after PlayerBullets: drawn above the shots.
