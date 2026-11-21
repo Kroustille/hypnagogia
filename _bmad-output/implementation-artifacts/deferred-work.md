@@ -105,7 +105,7 @@
 
 ## Deferred from: story 2-2 (2026-11-21)
 
-- **Ressenti de la relance : NON ÉVALUÉ** (étape humaine) : rythme mort, écran de réveil, nouvelle partie ; garde de 0,3 s (trop longue ou trop courte au jeu ?) ; disparition du sprite à la mort comme seul repère visuel (animation de mort : epic 7). Mesuré en headless : relance demandée dès la garde écoulée à ≈ 340 à 370 ms de la mort, `_start_run()` en quelques dizaines de ms.
+- **Ressenti de la relance : NON ÉVALUÉ** (étape humaine) : rythme mort, écran de réveil, nouvelle partie ; garde de 0,3 s (trop longue ou trop courte au jeu ?) ; disparition du sprite à la mort comme seul repère visuel (animation de mort : epic 7). Mesuré en headless : relance demandée dès la garde écoulée à ≈ 340 à 370 ms de la mort, `_start_run()` seul ≈ 1 ms ; de la mort au nouveau `Run` : 20 à 22 ticks.
 - **Texte et lisibilité de l'écran de réveil : NON ÉVALUÉS** à l'œil. Captures WSLg (llvmpipe) : titre « Tu te réveilles. » et bouton « Se rendormir (R) » lisibles, accents corrects, focus visible, bouton grisé pendant la garde puis actif, curseur système visible sur l'écran et caché (réticule) dans la partie. Netteté et rendu réels : sous Windows.
 - **Relance en moins de 3 s sur la machine de référence et en export : NON VÉRIFIÉE** (story 1.8, reportée). Le chargement ne recharge rien (arène en cache, `PackedScene` de même `instance_id` après cinq relances) ; la mesure d'export reste à faire.
 - **Bouton A sur une vraie manette, invite « (R) » pour les joueurs à la manette : NON VÉRIFIÉS** (pas de manette sous WSL ; story 1.7). `restart` n'a pas d'événement de manette : A presse le bouton focalisé (vérifié par une touche Entrée simulée, qui ne presse le bouton qu'au relâchement, `action_mode` par défaut).

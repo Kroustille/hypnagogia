@@ -59,7 +59,7 @@ development_status:
   # Epic 2: Survivre aux cauchemars de l'Endormissement
   epic-2: in-progress
   2-1-encaisser-des-coups: done
-  2-2-mourir-et-relancer-en-moins-de-3-secondes: in-progress
+  2-2-mourir-et-relancer-en-moins-de-3-secondes: done
   2-3-affronter-le-somnambule: backlog
   2-4-affronter-la-veilleuse-et-la-berceuse: backlog
   2-5-affronter-le-mouton: backlog
