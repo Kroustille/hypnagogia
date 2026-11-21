@@ -23,11 +23,16 @@ func setup(player: Player) -> void:
 	_player = player
 
 
+## On every entry, not only the first (_ready() runs once): a reticle moved to another parent hides it again.
+func _enter_tree() -> void:
+	if _player != null:
+		Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
+
+
 func _ready() -> void:
 	top_level = true
 	z_index = Z_INDEX
 	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
-	Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
 	if _player == null:
 		Log.error("ui", "Reticle added without setup()")
 		assert(false, "Reticle.setup() must be called before add_child()")

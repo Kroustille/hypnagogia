@@ -49,8 +49,9 @@ var _render_counts: PackedInt32Array = PackedInt32Array()
 var _targets: Array[Hurtbox] = []
 ## Rect of each target in this node's space, refreshed once per tick (reused, never reallocated per tick).
 var _target_rects: Array[Rect2] = []
-## Hits of the current tick, delivered after the bullet loop (reused lists).
-var _hit_targets: Array[Hurtbox] = []
+## Hits of the current tick, delivered after the bullet loop (reused lists). Targets are kept by instance id:
+## a receive() may free a target that a later hit of the same tick still names.
+var _hit_target_ids: PackedInt64Array = PackedInt64Array()
 var _hit_amounts: PackedFloat32Array = PackedFloat32Array()
 var _hit_directions: PackedVector2Array = PackedVector2Array()
 
@@ -115,6 +116,9 @@ func register_hurtbox(hurtbox: Hurtbox) -> void:
 	var problem: String = ""
 	if hurtbox == null:
 		problem = "no hurtbox"
+	elif not hurtbox.is_inside_tree():
+		# Freed without ever entering the tree, it would never emit tree_exiting and never unregister.
+		problem = "hurtbox %s is not in the scene tree" % hurtbox.name
 	elif hurtbox.camp == camp:
 		problem = "hurtbox %s is in the same camp as the bullets" % hurtbox.get_path()
 	elif _targets.has(hurtbox):
@@ -204,7 +208,7 @@ func _physics_process(delta: float) -> void:
 			_free(i)
 		elif _lifetimes[i] <= 0.0 or _hits_solid(_positions[i]):
 			_free(i)
-	if not _hit_targets.is_empty():
+	if not _hit_target_ids.is_empty():
 		_deliver_hits()
 
 
@@ -244,7 +248,7 @@ func _test_targets(i: int) -> bool:
 			clampf(pos.x, rect.position.x, rect.end.x), clampf(pos.y, rect.position.y, rect.end.y)
 		)
 		if pos.distance_squared_to(closest) <= radius_sq:
-			_hit_targets.append(_targets[t])
+			_hit_target_ids.append(_targets[t].get_instance_id())
 			_hit_amounts.append(_damages[i])
 			_hit_directions.append(_velocities[i].normalized())
 			return true
@@ -252,15 +256,29 @@ func _test_targets(i: int) -> bool:
 
 
 ## After the loop: a receive() that frees its target must not touch the arrays being iterated.
+## A target freed, queued for deletion (itself or its owner) or unregistered by an earlier receive() of this
+## tick gets nothing more.
 func _deliver_hits() -> void:
-	for h: int in _hit_targets.size():
-		var target: Hurtbox = _hit_targets[h]
+	for h: int in _hit_target_ids.size():
+		var target: Hurtbox = instance_from_id(_hit_target_ids[h]) as Hurtbox # null once freed
+		if target == null or not _targets.has(target) or _is_being_deleted(target):
+			continue
 		# PLAYER_SHOT is the only source so far: the enemy camp adds its own with epic 2.
-		if is_instance_valid(target):
-			target.receive(DamageInfo.from_bullet(_hit_amounts[h], _hit_directions[h], DamageInfo.Source.PLAYER_SHOT))
-	_hit_targets.clear()
+		target.receive(DamageInfo.from_bullet(_hit_amounts[h], _hit_directions[h], DamageInfo.Source.PLAYER_SHOT))
+	_hit_target_ids.clear()
 	_hit_amounts.clear()
 	_hit_directions.clear()
+
+
+## queue_free() marks only the node it is called on: an entity that dies frees its root, not its Hurtbox.
+## Walked per hit only, never per bullet.
+func _is_being_deleted(node: Node) -> bool:
+	var current: Node = node
+	while current != null:
+		if current.is_queued_for_deletion():
+			return true
+		current = current.get_parent()
+	return false
 
 
 func _hits_solid(pos: Vector2) -> bool:

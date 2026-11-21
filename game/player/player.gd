@@ -135,9 +135,10 @@ func _update_shooting(clock_scale: float) -> void:
 	_aim.update(global_position, get_global_mouse_position(), mouse_moved, stick)
 	# Click or RT (shoot), or the right stick beyond its dead zone (auto fire).
 	var wants_fire: bool = Input.is_action_pressed(&"shoot") or _aim.is_stick_active()
+	# Before the shot: a recoil started on this tick keeps all its ticks (0.05 s = 3 rendered ticks).
+	_recoil.tick(clock_scale)
 	if _shooter.tick(clock_scale, wants_fire, _dash.is_active()):
 		_fire()
-	_recoil.tick(clock_scale)
 
 
 ## One shot from the center of the torso, exactly along the aim. No recoil or sound if the pool refuses it.
@@ -147,7 +148,7 @@ func _fire() -> void:
 			_unequipped_reported = true
 			Log.error("combat", "player cannot shoot: no BulletManager (equip_bullets() not called)")
 		return
-	if not _bullets.fire(_shot_params, global_position, _aim.direction):
+	if not _bullets.fire(_shot_params, _bullets.to_local(global_position), _aim.direction):
 		return
 	var tuning: ShotTuning = Tuning.SHOT
 	_recoil.kick(-_aim.direction, tuning.recoil_distance * Const.TILE_SIZE, tuning.recoil_duration)
