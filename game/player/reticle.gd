@@ -3,6 +3,7 @@ extends Node2D
 ## Aim reticle. Follows the cursor with the mouse, or sits at a fixed distance along the aim with the stick.
 ## Moved in _process (presentation only: every gameplay decision stays in _physics_process), so physics
 ## interpolation is off. Hides the system cursor while it is in the tree and shows it again when it leaves.
+## While the game is paused (an ancestor disabled), it hides itself and shows the cursor.
 ## Placeholder drawing until epic 7; moves to the HUD layer with story 2.7.
 
 ## Length of each of the 4 branches, in pixels (visual).
@@ -37,6 +38,17 @@ func _ready() -> void:
 		Log.error("ui", "Reticle added without setup()")
 		assert(false, "Reticle.setup() must be called before add_child()")
 		set_process(false)
+
+
+func _notification(what: int) -> void:
+	match what:
+		NOTIFICATION_DISABLED:
+			visible = false
+			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		NOTIFICATION_ENABLED:
+			visible = true
+			if _player != null:
+				Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
 
 
 func _exit_tree() -> void:
