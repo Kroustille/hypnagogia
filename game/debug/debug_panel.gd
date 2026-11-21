@@ -1,6 +1,6 @@
 class_name DebugPanel
 extends Control
-## F1 debug panel (AR24): commands on keys 1 to 5 while it is visible and the game is not paused.
+## F1 debug panel (AR24): commands on keys 1 to 6 while it is visible and the game is not paused.
 ## It only calls public methods of the game (Health, Hurtbox, BulletManager), never private fields.
 ## Instantiated by Main in debug builds only. Texts are technical readouts: they intentionally bypass tr()
 ## (exemption of debug/).
@@ -15,6 +15,10 @@ const BURST_COUNT: int = 3
 const BURST_SPREAD_DEGREES: float = 15.0
 const AUTO_FIRE_INTERVAL: float = 0.25 # seconds
 const REFRESH_INTERVAL: float = 0.25
+
+## Debug request of the sleepwalker command: top center of the playable area, replaced by the room when too close.
+const SPAWN_REQUEST: Vector2 = Vector2(304, 40)
+const SLEEPWALKER_DEF: EnemyDef = preload("res://data/enemies/sleepwalker.tres")
 
 var _auto_fire: bool = false
 var _auto_ticks: float = 0.0
@@ -53,6 +57,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_fire_burst()
 		KEY_5:
 			_toggle_auto_fire()
+		KEY_6:
+			_spawn_sleepwalker()
 		_:
 			handled = false
 	if handled:
@@ -109,6 +115,19 @@ func _hit_player() -> void:
 	)
 	var accepted: bool = player.hurtbox.receive(info)
 	_log("hit applied" if accepted else "hit ignored (invulnerable or dead)")
+
+
+## Asks the active room for a sleepwalker (story 2.6 replaces this with the chosen enemy).
+func _spawn_sleepwalker() -> void:
+	var room: Arena = get_tree().get_first_node_in_group(Const.GROUP_ROOM) as Arena # never cached: F5 and restarts recreate it
+	if room == null:
+		_last_message = "no room"
+		return
+	var enemy: Enemy = room.spawn_enemy(SLEEPWALKER_DEF, SPAWN_REQUEST)
+	if enemy == null:
+		_log("spawn refused")
+	else:
+		_log("sleepwalker spawned at %s" % enemy.global_position)
 
 
 func _fire_burst() -> void:
@@ -181,17 +200,21 @@ func _refresh_text() -> void:
 		return
 	var player: Player = get_tree().get_first_node_in_group(Const.GROUP_PLAYER) as Player
 	var lines: PackedStringArray = PackedStringArray([
-		"F1 panel (keys 1-5)",
+		"F1 panel (keys 1-6)",
 		"1 invulnerable: %s" % ("on" if _invulnerable_now(player) else "off"),
 		"2 +1/2 armor",
 		"3 -1/2 heart",
 		"4 burst x%d" % BURST_COUNT,
 		"5 auto fire: %s" % ("on" if _auto_fire else "off"),
+		"6 spawn sleepwalker",
 	])
 	if player != null:
 		var health: Health = player.health
 		lines.append("hearts %d/%d  armor %d  cap %d" % [
 			health.half_hearts, health.max_half_hearts, health.armor, health.cap_half_hearts()])
+	var room: Arena = get_tree().get_first_node_in_group(Const.GROUP_ROOM) as Arena
+	if room != null:
+		lines.append("enemies alive %d" % room.alive_enemy_count())
 	if not _last_message.is_empty():
 		lines.append(_last_message)
 	_label.text = "\n".join(lines)
