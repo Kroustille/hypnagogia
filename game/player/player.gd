@@ -3,15 +3,14 @@ extends CharacterBody2D
 ## The player. Node origin = center of the torso: shots (story 1.5) will start from there.
 ## Movement reads the InputMap in _physics_process and obeys GameClock.
 
+## Emitted when a dash finishes, after its last movement.
+signal dash_ended
+
 ## Placeholder sprite size in pixels (structural, not gameplay). Real sprites come with epic 7.
 const SPRITE_SIZE: Vector2i = Vector2i(16, 24)
 # Placeholder colors until epic 7.
 const SPRITE_FILL_COLOR: Color = Color(0.45, 0.65, 0.95)
 const SPRITE_RIM_COLOR: Color = Color(0.75, 0.88, 1.0)
-
-## Emitted when a dash finishes, after its last movement.
-signal dash_ended
-
 # Placeholder tint while the dash makes the player invulnerable, until epic 7.
 const DASH_TINT: Color = Color(1.0, 1.0, 1.0, 0.5)
 

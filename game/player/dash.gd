@@ -20,6 +20,7 @@ var _buffer_ticks: float = 0.0
 var _speed_px_per_tick: float = 0.0
 
 var _active: bool = false
+var _invulnerable: bool = false
 var _elapsed: float = 0.0
 var _step: float = 0.0
 var _direction: Vector2 = Vector2.ZERO
@@ -40,11 +41,13 @@ func _init(tuning: DashTuning) -> void:
 
 
 ## Advances the dash by one physics tick. Call before move_and_slide().
-## facing is a non-zero unit vector, frozen at the start of the dash.
+## facing is a non-zero unit vector, frozen at the start of the dash. A buffered press keeps no direction:
+## the dash leaves along the facing given on the tick it starts, not the one held when the press was made.
 func tick(clock_scale: float, pressed: bool, facing: Vector2) -> void:
 	if not _active and _cooldown_left > 0.0:
 		_cooldown_left = maxf(_cooldown_left - clock_scale, 0.0)
-	if pressed and not _active:
+	# While the clock is stopped (pause) nothing advances, so a press neither starts nor buffers a dash.
+	if pressed and not _active and clock_scale > 0.0:
 		if _cooldown_left <= 0.0:
 			_start(facing)
 		elif _cooldown_left <= _buffer_ticks:
@@ -52,9 +55,13 @@ func tick(clock_scale: float, pressed: bool, facing: Vector2) -> void:
 	if not _active and _buffered and _cooldown_left <= 0.0:
 		_start(facing)
 	if _active:
+		# Invulnerability follows the elapsed time before this tick's step: the tick that moves the player
+		# first is covered, and the last tick of a short dash stays covered after finish_tick().
+		_invulnerable = _elapsed < _invulnerability_ticks
 		_step = minf(clock_scale, _duration_ticks - _elapsed)
 		_elapsed += _step
 	else:
+		_invulnerable = false
 		_step = 0.0
 
 
@@ -80,7 +87,7 @@ func is_active() -> bool:
 
 
 func is_invulnerable() -> bool:
-	return _active and _elapsed < _invulnerability_ticks
+	return _invulnerable
 
 
 func _start(facing: Vector2) -> void:
