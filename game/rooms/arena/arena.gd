@@ -26,6 +26,7 @@ func _ready() -> void:
 
 	_build_tiles(frame_cells)
 	_setup_player_bullets() # after the tiles: the BulletManager needs Walls to have a TileSet
+	_setup_damage_numbers() # after the bullets: drawn above them
 
 	# Fixed camera: centered on the room, shifted up by half the HUD band so the band stays free at the top.
 	_camera.position = frame_px / 2.0 - Vector2(0.0, Const.HUD_BAND_HEIGHT / 2.0)
@@ -51,6 +52,13 @@ func _setup_player_bullets() -> void:
 		var target: TrainingTarget = child as TrainingTarget
 		if target != null:
 			bullets.register_hurtbox(target.hurtbox)
+
+
+## Damage numbers layer, at the room origin. Added after PlayerBullets: drawn above the shots.
+func _setup_damage_numbers() -> void:
+	var numbers: DamageNumbers = DamageNumbers.new()
+	numbers.name = "DamageNumbers"
+	add_child(numbers)
 
 
 ## The room (walls included) plus the HUD band must fit the viewport exactly in height, with a margin in width.

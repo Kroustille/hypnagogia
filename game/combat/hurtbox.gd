@@ -35,8 +35,12 @@ func _ready() -> void:
 
 
 ## Emits damage_received. The only entry point for damage (AR: DamageInfo -> Hurtbox.receive()).
+## An enemy hurtbox also notifies Events.enemy_damaged (damage numbers, telemetry).
 func receive(info: DamageInfo) -> void:
 	damage_received.emit(info)
+	if camp == BulletManager.Camp.ENEMY and _rectangle != null:
+		var rect: Rect2 = world_rect()
+		Events.enemy_damaged.emit(Vector2(rect.get_center().x, rect.position.y), info.amount)
 
 
 ## Axis-aligned rectangle of the shape, in global coordinates. Rotation and scale are ignored.
