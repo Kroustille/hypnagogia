@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://run/run.gd" id="1_run"]
+[ext_resource type="PackedScene" path="res://player/player.tscn" id="2_player"]
+
+[node name="Run" type="Node"]
+script = ExtResource("1_run")
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+unique_name_in_owner = true
+
+[node name="RoomSlot" type="Node" parent="."]
+unique_name_in_owner = true

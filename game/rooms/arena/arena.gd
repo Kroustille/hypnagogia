@@ -1,8 +1,9 @@
 class_name Arena
 extends Node2D
-## One-screen room: 36x19 playable tiles inside a closed wall frame, a fixed camera, the player,
-## the player's BulletManager, the enemy BulletManager (it hits the player's hurtbox) and training targets.
+## One-screen room: 36x19 playable tiles inside a closed wall frame, a fixed camera, the player's
+## BulletManager, the enemy BulletManager (it hits the player's hurtbox) and training targets.
 ## Floor and Walls are built in code for now (same node names as the painted rooms of epic 4).
+## The player is given by the Run through setup() (it is the parent of the room, not a child).
 ## World origin = top-left corner of the wall frame, in pixels.
 
 const WALL_COLOR: Color = Color(0.35, 0.3, 0.55)
@@ -16,17 +17,28 @@ const ENEMY_BULLET_CAPACITY: int = 512
 
 @onready var _floor: TileMapLayer = %Floor
 @onready var _walls: TileMapLayer = %Walls
-@onready var _player: Player = %Player
+var _player: Player
+
 @onready var _camera: Camera2D = %Camera
 @onready var _targets: Node2D = %Targets
 
 
+## Dependency injection: call before add_child().
+func setup(player: Player) -> void:
+	_player = player
+
+
 func _ready() -> void:
+	if _player == null:
+		Log.error("room", "arena added without setup()")
+		assert(false, "Arena.setup() must be called before add_child()")
 	if OS.is_debug_build():
 		_check_screen_layout()
 	var frame_cells: Vector2i = Const.ROOM_TILES + Vector2i(2, 2)
 	var frame_px: Vector2 = Vector2(frame_cells * Const.TILE_SIZE)
 
+	_floor.z_index = Const.Z_INDEX_DECOR
+	_walls.z_index = Const.Z_INDEX_DECOR
 	_build_tiles(frame_cells)
 	_setup_player_bullets() # after the tiles: the BulletManager needs Walls to have a TileSet
 	_setup_enemy_bullets() # drawn above the player's shots
@@ -36,10 +48,13 @@ func _ready() -> void:
 	_camera.position = frame_px / 2.0 - Vector2(0.0, Const.HUD_BAND_HEIGHT / 2.0)
 	_camera.reset_physics_interpolation()
 
-	# Spawn at the center of the playable area. Reset after the placement so interpolation does not trail.
-	_player.position = frame_px / 2.0
-	_player.reset_physics_interpolation()
 	Log.info("room", "arena ready playable=%s tiles" % Const.ROOM_TILES)
+
+
+## Where the player enters the arena (center of the playable area), in global coordinates.
+func player_spawn_position() -> Vector2:
+	var frame_px: Vector2 = Vector2((Const.ROOM_TILES + Vector2i(2, 2)) * Const.TILE_SIZE)
+	return to_global(frame_px / 2.0)
 
 
 ## The player's BulletManager, at the room origin like Walls. Added last: drawn above the player (Combat layer).
@@ -51,6 +66,8 @@ func _setup_player_bullets() -> void:
 	var solid_layers: Array[TileMapLayer] = [_walls]
 	bullets.setup(solid_layers) # before add_child()
 	add_child(bullets)
+	if _player == null:
+		return
 	_player.equip_bullets(bullets)
 	for child: Node in _targets.get_children():
 		var target: TrainingTarget = child as TrainingTarget
@@ -67,7 +84,8 @@ func _setup_enemy_bullets() -> void:
 	var solid_layers: Array[TileMapLayer] = [_walls]
 	bullets.setup(solid_layers) # before add_child()
 	add_child(bullets)
-	bullets.register_hurtbox(_player.hurtbox)
+	if _player != null:
+		bullets.register_hurtbox(_player.hurtbox)
 
 
 ## Damage numbers layer, at the room origin. Added after PlayerBullets: drawn above the shots.

@@ -52,6 +52,10 @@ const COLOR_PLAYER_SHOT: Color = Color(0.55, 0.95, 1.0)
 ## Node group of the player, found by debug tools without a node path.
 const GROUP_PLAYER: StringName = &"player"
 
+## z_index of the decor layers (floor, walls): drawn below the entities whatever their place in the tree.
+## The player lives in Run, outside the room (story 2.2); entities, bullets and the HUD stay at 0 or above (AR19).
+const Z_INDEX_DECOR: int = -1
+
 ## Physics tick priority of every BulletManager: they tick after the entities (priority 0), whatever their place
 ## in the tree, so hit tests read this tick's state of the hurtboxes (story 2.1).
 const PHYSICS_PRIORITY_BULLETS: int = 100
