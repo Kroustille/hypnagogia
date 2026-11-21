@@ -4,7 +4,7 @@ baseline_commit: e0cacf27a7865d67ae953a2b128b54ecc03e2d78
 
 # Story 1.4 : Dasher
 
-Status: review
+Status: done
 
 ## Story
 
@@ -51,10 +51,24 @@ afin d'esquiver au dernier moment.
 - [x] **T7. Lexique** : ajouter à `game-architecture.md` (section « Lexique ») la ligne `Dash ; invulnérabilité du dash ; recharge ; tampon d'entrée | dash ; dash_invulnerability ; cooldown ; input_buffer` (AR32 : un terme entre dans le lexique avant le code).
 - [x] **T8. Vérifications headless** (CA 1 à 10)
   - [x] Scripts jetables dans le scratchpad (pas dans le dépôt) : voir « Stratégie de test ».
-- [x] **T9. Vérifications fenêtrées sous WSLg** (CA 1, 8, 12)
+- [x] **T9. Vérifications fenêtrées sous WSLg** (CA 1, 8, 12) — fenêtré : dash et F4 ; F2, F3 et F5 en headless seulement (voir Completion Notes)
   - [x] Dash visible à l'écran, F4, F2, F5, capture d'écran.
 - [x] **T10. Régression** : import et lancement headless sans erreur, recherche des interdits, déplacement, F2, F3 et F5 de 1.1 à 1.3 toujours conformes.
 - [x] **T11. Reports** : consigner dans `deferred-work.md` ce qui n'a pas pu être vérifié (RB réel, ressenti du dash) et fermer le report de 1.2 sur la traversée de mur (voir « Report de 1.2 : échelle de temps > 1 »).
+
+### Review Findings
+
+Revue de code du 2026-11-21 (Blind Hunter, Edge Case Hunter, Acceptance Auditor ; diff `e0cacf2..HEAD`). Aucune violation bloquante des critères d'acceptation.
+
+- [x] [Review][Decision] **Résolu le 2026-11-21 par Kroustille : garder la direction du départ** (devient le correctif « documenter » ci-dessous). Direction d'un dash retenu dans le tampon — `_buffered` ne mémorise qu'un booléen : le dash prend la direction `facing` du tick où la recharge finit (jusqu'à 6 ticks de jeu après l'appui, 24 ticks réels sous F4), pas celle de l'appui. Exemple : appui en tenant droite, puis le stick part à gauche : le dash part à gauche. Choix : (a) garder la direction au départ (actuel, à documenter), (b) figer `facing` à l'appui. Non documenté ni testé. (sources : blind+edge) [game/player/dash.gd:47-53]
+- [x] [Review][Patch] Documenter la direction d'un dash retenu — décision de Kroustille : un dash retenu dans le tampon part dans la direction tenue au tick du départ, pas à l'appui. Ajouter un commentaire dans `Dash.tick()` et une ligne dans « Décisions prises à la création de la story » [game/player/dash.gd:44-53]
+- [x] [Review][Patch] Un appui en pause démarre un dash — `tick()` ne regarde pas `clock_scale` : avec `GameClock.paused = true` et recharge à 0, un appui appelle `_start()`, `is_invulnerable()` devient vrai et la teinte s'affiche en pause ; un appui dans la fenêtre du tampon arme aussi `_buffered`. Contredit CA 9 (« en pause, rien n'avance »). Espace est aussi `ui_accept` : le menu de la 1.6 déclenchera un dash chargé. Correctif : ignorer `pressed` quand `clock_scale <= 0`. (sources : auditor+blind+edge) [game/player/dash.gd:44-53]
+- [x] [Review][Patch] Invulnérabilité de 8 ticks lus au lieu de 9 — `_elapsed` est incrémenté dans `tick()` avant toute lecture, donc `_elapsed < _invulnerability_ticks` couvre 8 ticks (≈ 0,133 s) pour un lecteur qui passe après le joueur, et le dernier tick du dash est déjà vulnérable (`finish_tick()` éteint `_active`) quand `invulnerability_duration >= duration`. CA 2 : 0,15 s. Correctif : tester l'elapsed d'avant le pas (`_elapsed - _step < _invulnerability_ticks`) et le consigner. (sources : auditor+blind+edge) [game/player/dash.gd:82-83]
+- [x] [Review][Patch] Notes de complétion qui surestiment les vérifications (T8, T9) — T9 est coché alors que F2 n'a pas été revu à l'œil et que F5 n'a été vérifié qu'en headless (CA 12 headless seulement) ; T8 ne mentionne pas `is_dash_invulnerable()`, `is_invulnerable()` et `is_dashing()` testés sur `Player` (CA 2 et 11), ni F3 (T10). Correctif : préciser dans les notes ce qui n'a été couvert qu'en headless, ou décocher les sous-points. (sources : auditor+blind) [_bmad-output/implementation-artifacts/1-4-dasher.md:52-54]
+- [x] [Review][Patch] `signal dash_ended` déclaré après les constantes — l'ordre de style GDScript est signaux, puis constantes ; le signal est coincé entre `SPRITE_*` et `DASH_TINT`. (sources : auditor+blind) [game/player/player.gd:12-17]
+- [x] [Review][Patch] `project.godot` : pas de ligne vide entre `dash` et `debug_slow_motion` — les autres actions sont séparées par une ligne vide ; bruit de formatage (Godot réécrira le fichier à la prochaine sauvegarde de l'éditeur). (sources : auditor+blind+edge) [game/project.godot:93]
+- [x] [Review][Defer] Lecture de l'invulnérabilité par un tiers dépendante de l'ordre dans l'arbre — l'état avance dans le `_physics_process` du joueur : un ennemi ou un `BulletManager` qui passe avant lit l'état du tick précédent (trou d'un tick au départ du dash). La story 2.1 doit fixer une convention (par exemple lire l'état dans `Hurtbox` après le joueur) [game/player/dash.gd:44-56] — deferred, à trancher en 2.1
+- [x] [Review][Defer] Pas de marge d'arrondi sur les comparaisons d'invulnérabilité et de tampon — seule la fin du dash utilise `TICK_EPSILON` ; les valeurs actuelles (0,15 s et 0,1 s) tombent juste en virgule flottante, mais un réglage futur peut gagner ou perdre un tick [game/player/dash.gd:50,83] — deferred, aucune valeur actuelle concernée
 
 ## Dev Notes
 
@@ -339,6 +353,8 @@ Il n'y a pas de `project-context.md`. Règles tirées de `CLAUDE.md` et de la m�
 4. **Moteur pendant le dash** : continue d'avancer au `delta` réel vers l'entrée tenue ; la marche reprend à la vitesse courante.
 5. **F4** : multiplicateur global dans `GameClock`, borné à [0, 1], composé avec les échelles de groupe.
 6. **Report de 1.2 (échelle > 1)** : refermé par ce plafond.
+7. **Direction d'un dash retenu** (revue, décision de Kroustille du 2026-11-21) : un dash retenu dans le tampon part dans la direction tenue au tick où il démarre, pas dans celle tenue à l'appui.
+8. **Appui en pause** (revue) : un appui est ignoré quand l'échelle de temps du joueur est nulle (ni départ ni tampon).
 
 ### Questions ouvertes (sans effet bloquant sur le code)
 
@@ -383,8 +399,8 @@ Claude Sonnet 5.5 (`claude-sonnet-5-5`)
 - **T4** `Dash` (`RefCounted`, ticks de jeu, sans `Timer`) : départ au tick de l'appui, dernier pas tronqué (48 px exacts à toute échelle), recharge comptée depuis la fin du dash, tampon = 6 derniers ticks de la recharge, appui pendant le dash ignoré. Valeurs sûres calculées avant `Log.error` + `assert` (leçon de 1.3).
 - **T5** `Player` : `_facing` (départ `Vector2.DOWN`, dernière direction d'**entrée**), signal `dash_ended`, `is_dash_invulnerable()`, `is_invulnerable()` (dash seul pour l'instant), `is_dashing()`, teinte provisoire `DASH_TINT` pendant l'invulnérabilité. `move_and_slide()` conservé : le dash garde sa durée contre un mur. **T6** F4 dans `Main` (garde debug), état lu sur `GameClock`, survit à F5, `Engine.time_scale` jamais touché.
 - **T7** lexique de `game-architecture.md` complété.
-- **Vérifications (T8, T10)** : `Dash` seul, 31 contrôles OK (48 px, 11 ticks, invulnérabilité 8 ticks vus après `tick()` soit 9 pour un tiers qui lit avant le joueur, recharge 36 ticks, tampon refusé à 7 ticks et retenu à 6 ou moins avec départ au tick 46, pause, échelles 0 / 0,25 / 0,5, `physics_delta = 0`, `distance = 5` → 80 px, bornes du multiplicateur, entrées `InputMap`). Joueur dans l'arène : premier dash vers le bas, 8 directions, arrêt dans la dernière direction (48 px, diagonale 48 px), 20 dashs contre chacun des 4 murs et 4 coins sans jamais sortir de `[19, 589] × [19, 317]`, arrêt à ±0,01 px de la borne, `dash_ended` à l'heure, pause en plein dash (total 48 px), F4 (48 px en 43 ticks), marche inchangée (96 px/s). `Main` : F4 → 0,25 puis 1,0, F5 aller-retour avec F4 actif, multiplicateur conservé. Import et lancement sans `SCRIPT ERROR` ; recherche des interdits : seules occurrences attendues, aucun `Log.` par tick.
-- **Fenêtré sous WSLg (T9)** : sprite teinté et translucide pendant le dash (capture), F4 ralentit visiblement (dash de 745 ms réels pour ~720 attendues ; llvmpipe, non représentatif). F2 non revérifié à l'œil : seul le comportement de `Main` est testé (aucun changement dans `CollisionDrawer`).
+- **Vérifications (T8, T10)** : `Dash` seul, 31 contrôles OK (48 px, 11 ticks, invulnérabilité 8 ticks vus après `tick()` soit 9 pour un tiers qui lit avant le joueur (corrigé par la revue : 9 ticks vus après `tick()`, voir Review Findings), recharge 36 ticks, tampon refusé à 7 ticks et retenu à 6 ou moins avec départ au tick 46, pause, échelles 0 / 0,25 / 0,5, `physics_delta = 0`, `distance = 5` → 80 px, bornes du multiplicateur, entrées `InputMap`). Joueur dans l'arène : premier dash vers le bas, 8 directions, arrêt dans la dernière direction (48 px, diagonale 48 px), 20 dashs contre chacun des 4 murs et 4 coins sans jamais sortir de `[19, 589] × [19, 317]`, arrêt à ±0,01 px de la borne, `dash_ended` à l'heure, pause en plein dash (total 48 px), F4 (48 px en 43 ticks), marche inchangée (96 px/s). `Main` : F4 → 0,25 puis 1,0, F5 aller-retour avec F4 actif, multiplicateur conservé. Import et lancement sans `SCRIPT ERROR` ; recherche des interdits : seules occurrences attendues, aucun `Log.` par tick.
+- **Fenêtré sous WSLg (T9)** : sprite teinté et translucide pendant le dash (capture), F4 ralentit visiblement (dash de 745 ms réels pour ~720 attendues ; llvmpipe, non représentatif). F2 non revérifié à l'œil : seul le comportement de `Main` est testé (aucun changement dans `CollisionDrawer`). **Précision de la revue** : F5 (CA 12) n'a été vérifié qu'en headless, jamais en fenêtré ; F3 n'a pas été revu en fenêtré non plus ; les scripts de T8 sur `Player` couvrent le dash, les 8 directions, les murs, la pause et F4, mais `is_dash_invulnerable()`, `is_invulnerable()` et `is_dashing()` (CA 2 et 11) n'y sont pas listés explicitement : ces points sont couverts par `Dash` seul et par la revue de code, pas par un test sur `Player`.
 - **T11** `deferred-work.md` : report de 1.2 (échelle > 1) refermé par le plafond ; nouveaux reports (RB réel, ressenti, netteté sous Windows, questions ouvertes). Pas de framework de test (AR26) : aucun fichier de test ajouté au dépôt, conformément à la story.
 - Décision sans impact : la story demandait `Dash.tick()` avant `move_and_slide()`, `finish_tick()` après ; respecté tel quel.
 
@@ -406,3 +422,4 @@ Claude Sonnet 5.5 (`claude-sonnet-5-5`)
 ### Change Log
 
 - 2026-11-21 : implémentation de la story 1.4 (dash, tampon d'entrée, F4, `GameClock.global_multiplier`) ; statut `review`.
+- 2026-11-21 : revue de code et correctifs (appui en pause ignoré, invulnérabilité sur 9 ticks, direction du dash retenu documentée, notes de vérification précisées, style) ; statut `done`.
