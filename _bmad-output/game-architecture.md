@@ -269,6 +269,7 @@ func _physics_process(delta: float) -> void:
   - tous contre les murs et obstacles hauts par lecture de cellule du `TileMapLayer`, et contre les meubles.
 - Ordre de traitement (story 2.1) : tout `BulletManager` règle `process_physics_priority = Const.PHYSICS_PRIORITY_BULLETS` (100) et tique donc après les entités (priorité 0), où qu'il soit dans l'arbre : les tests de touche lisent l'état du tick courant (invulnérabilité du dash, hurtbox).
 - Ordre de traitement (story 2.3) : les `Hitbox` de contact (zones de contact des ennemis) règlent `process_physics_priority = Const.PHYSICS_PRIORITY_HITBOXES` (50) : entités à 0, `Hitbox` à 50, `BulletManager` à 100. Le contact est testé à la main dans le tick courant, sans recouvrement physique.
+- Contrat de `fire()` (story 2.4) : un tir dont la cible refuserait les dégâts est refusé avec `Log.error` + `assert` (camp ennemi : `roundi(damage) < 1`, comme `Health` ; camp joueur : `damage <= 0`, comme `HitPoints`) ; un tir dont l'origine est dans une cellule solide n'est pas tiré (`false`, sans log ni compte) ; `add_appearance()` rend l'index existant pour la même texture, sans créer de `MultiMeshInstance2D` ; tous les projectiles ennemis partagent une seule apparence réservée (`EnemyBulletLook`).
 - Les effets d'objets (traversée, tir arrière, taille) passent par des paramètres de tir, jamais par du code spécifique dans la boucle.
 - Repli si le test à 400 projectiles échoue : porter la boucle de mise à jour en GDExtension, sans changer l'interface.
 
@@ -354,6 +355,7 @@ Ordre des couches, de bas en haut :
 | HUD | Interface | Non |
 
 - Couches de décor en `z_index` = `Const.Z_INDEX_DECOR` : le joueur vit dans `Run`, hors de la salle (story 2.2).
+- Story 2.4 : le `BulletManager` ennemi (`EnemyBullets`) est en `z_index` = `Const.Z_INDEX_ENEMY_BULLETS` : au-dessus de tout le monde (entités, tirs du joueur, chiffres de dégâts), quelle que soit sa place dans l'arbre ; sous le réticule (100) jusqu'à la story 2.7.
 - Les couches du monde suivent la caméra (`follow_viewport_enabled`).
 - L'intensité de distorsion = f(palier) × réglage d'accessibilité.
 - Plus tard, la vision réduite des salles sombres s'insère entre Entités et Combat, en épargnant les ennemis de contact.
@@ -550,8 +552,8 @@ hypnagogia/
     ├── player/          — player.tscn/.gd, player_input.gd, player_motor.gd, dash.gd, lucidity.gd, sprites/
     │   └── powers/      — power.gd, awaken.gd, glide.gd
     ├── combat/          — health.gd, hurtbox.gd, hitbox.gd, telegraph.gd, armor.gd, damage_info.gd, danger_profile.gd
-    │   └── bullets/     — bullet_manager.gd, bullet_params.gd, bullet_pattern.gd, bullet_sprites/
-    ├── enemies/         — enemy.gd, enemy_def.gd, reinforcement.gd
+    │   └── bullets/     — bullet_manager.gd, bullet_params.gd, bullet_pattern.gd, bullet_sprites/, enemy_bullet_look.gd
+    ├── enemies/         — enemy.gd, enemy_def.gd, shooter_enemy.gd, shooter_def.gd, reinforcement.gd
     │   ├── sleepwalker/ — sleepwalker.tscn/.gd, sprites/
     │   ├── night_light/
     │   ├── sheep/
@@ -678,6 +680,7 @@ hypnagogia/
 | Santé ; cœur ; demi-cœur ; armure ; plafond de cœurs ; coup reçu ; invulnérabilité après un coup ; clignotement ; panneau de debug ; émetteur de test | `health` ; `heart` ; `half_heart` ; `armor` ; `heart_cap` ; `hit` ; `hit_invulnerability` ; `blink` ; `debug_panel` ; `test_emitter` |
 | Run, nuit, partie ; mort ; issue de la run ; écran de réveil ; se rendormir, relancer ; emplacement de salle ; transition ; couche de décor | `run` ; `death` ; `outcome` ; `wake_screen` ; `restart` ; `room_slot` ; `transition` ; `decor` |
 | Ennemi ; PV ; dégâts au contact ; zone de contact ; apparition ; distance minimale d'apparition ; ennemis vivants ; poursuite ; accélération du Somnambule ; lever les bras | `enemy` ; `hp` (`HitPoints`) ; `contact_damage` ; `Hitbox` ; `spawn` ; `min_spawn_distance` ; `alive_enemies` ; `chase` ; `rush` ; `raise_arms` |
+| Tireuse ; cycle de tir ; lueur ; inspirer ; éventail ; écart de l'éventail ; salve ; projectile visé ; distance de maintien (min, max) ; se tenir à distance ; projectile ennemi ; apparence réservée des projectiles ennemis | `shooter` (`ShooterEnemy`, `ShooterDef`) ; `fire_interval` ; `glow` ; `inhale` ; `fan` ; `spread_angle` ; `volley` ; `aimed shot` ; `min_distance`, `max_distance` ; `keep_distance` ; `enemy_bullet` ; `EnemyBulletLook` (`COLOR_ENEMY_BULLET`, `COLOR_ENEMY_BULLET_OUTLINE`) |
 
 Tout nouveau terme du GDD entre dans ce lexique avant d'apparaître dans le code.
 
@@ -832,6 +835,7 @@ func _ready() -> void:
 - Toute apparition de ramassable passe par `Drops.spawn(kind, position, rng)`.
 - Injection de dépendances : `setup()` est appelée **avant** `add_child()`. Les dépendances internes à la scène passent par `@export` ou `%NomUnique`.
 - Pools uniquement pour les projectiles et les effets d'impact.
+- Story 2.4 : `Enemy.setup(def, target, target_hurtbox, bullets)` : l'arène passe son `BulletManager` ennemi à tout ennemi (les tireuses tirent par lui, les autres l'ignorent).
 - Apparition d'un ennemi (story 2.3) : à au moins `min_spawn_distance` (3 tuiles) du joueur ; une position trop proche ou hors de la zone jouable est remplacée de façon déterministe (sans RNG avant l'epic 4). Un ennemi n'est jamais mis en pool ni déplacé d'un parent à l'autre.
 
 ```gdscript
