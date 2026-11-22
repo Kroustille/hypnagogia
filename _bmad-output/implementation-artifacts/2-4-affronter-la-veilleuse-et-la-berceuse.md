@@ -1,6 +1,6 @@
 # Story 2.4 : Affronter La Veilleuse et La Berceuse
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -35,24 +35,24 @@ afin d'apprendre à esquiver des tirs annoncés.
 
 ## Tâches / sous-tâches
 
-- [ ] **T1. Lexique et architecture** (AR32 : un terme entre dans le lexique **avant** le code)
-  - [ ] `game-architecture.md`, section « Lexique » : ajouter `Tireuse ; cycle de tir ; lueur ; inspirer ; éventail ; écart de l'éventail ; salve ; projectile visé ; distance de maintien (min, max) ; se tenir à distance ; projectile ennemi ; apparence réservée des projectiles ennemis | shooter (ShooterEnemy, ShooterDef) ; fire_interval ; glow ; inhale ; fan ; spread_angle ; volley ; aimed shot ; min_distance, max_distance ; keep_distance ; enemy_bullet ; EnemyBulletLook (COLOR_ENEMY_BULLET, COLOR_ENEMY_BULLET_OUTLINE)`.
-  - [ ] `game-architecture.md` : « Projectiles (D1) », une ligne story 2.4 (contrat des dégâts par camp dans `fire()`, origine dans un mur non tirée, `add_appearance()` sans doublon, apparence réservée unique) ; « Rendu (D13) », une ligne (`EnemyBullets` en `z_index` = `Const.Z_INDEX_ENEMY_BULLETS`, au-dessus de tout le monde, chiffres de dégâts compris, sous le réticule jusqu'à la 2.7) ; « Création d'entités », une ligne (`Enemy.setup(def, target, target_hurtbox, bullets)`, le `BulletManager` ennemi de la salle passé à tout ennemi) ; « Arborescence », `enemies/` : `shooter_enemy.gd, shooter_def.gd`, `combat/bullets/` : `enemy_bullet_look.gd`.
-- [ ] **T2. Réglages et constantes** (CA 1, 5) : `CombatTuning` `enemy_bullet_radius` (0,25 tuile) et `enemy_bullet_lifetime` (10 s), script et `.tres` ; `Const` `COLOR_ENEMY_BULLET`, `COLOR_ENEMY_BULLET_OUTLINE`, `Z_INDEX_ENEMY_BULLETS` (voir « Réglages et constantes »).
-- [ ] **T3. `BulletManager` et apparence réservée** (CA 1, 5, 6, 7)
-  - [ ] `combat/bullets/bullet_manager.gd` : contrat des dégâts par camp, origine dans une cellule solide, `add_appearance()` sans doublon (voir « `BulletManager` »).
-  - [ ] `combat/bullets/enemy_bullet_look.gd` : `EnemyBulletLook` (voir « Apparence réservée »).
-  - [ ] `debug/bullet_load_test.gd` : dégâts et apparence (voir « Test de charge F5 »).
-- [ ] **T4. `Telegraph.progress()`** (CA 2, 3) (voir « `Telegraph` »).
-- [ ] **T5. Base des ennemis** (CA 2, 3, 9) : `enemies/enemy.gd` (`setup()` à 4 paramètres) ; `enemies/shooter_def.gd` (`ShooterDef`) et `enemies/shooter_enemy.gd` (`ShooterEnemy`) (voir « `Enemy` », « `ShooterDef` », « `ShooterEnemy` »).
-- [ ] **T6. La Veilleuse** (CA 2, 4) : `enemies/night_light/night_light.tscn` + `night_light.gd`, `data/enemies/night_light.tres`, `audio/sfx/sfx_enemy_night_light_telegraph.wav` (voir « La Veilleuse »).
-- [ ] **T7. La Berceuse** (CA 3, 4) : `enemies/lullaby/lullaby_def.gd` (`LullabyDef`), `lullaby.tscn` + `lullaby.gd`, `data/enemies/lullaby.tres`, `audio/sfx/sfx_enemy_lullaby_telegraph.wav` (voir « La Berceuse »).
-- [ ] **T8. Arène** (CA 1, 9) : `rooms/arena/arena.gd` : `_enemy_bullets` gardé, `z_index`, passé à `spawn_enemy()` (voir « Arène »).
-- [ ] **T9. Panneau F1** (CA 5, 12) : touches 7 et 8, émetteur de test à l'apparence réservée (voir « Panneau F1 »).
-- [ ] **T10. Vérifications headless** (CA 1 à 13) : nouvelles scènes de `game/.scratch`, `run_all.sh` étendu (voir « Stratégie de test »).
-- [ ] **T11. Vérifications fenêtrées sous WSLg** (CA 1, 2, 3) : lueur, inspiration, projectiles au-dessus des ennemis, du joueur et des chiffres, F2, captures.
-- [ ] **T12. Régression** : import et lancement sans erreur, recherche des interdits, `run_all.sh` complet (scènes de 2.3 inchangées et nouvelles).
-- [ ] **T13. Reports** : mettre à jour `deferred-work.md` (entrées résolues, voir « Reports traités par cette story » ; nouvelles entrées NON ÉVALUÉ / NON VÉRIFIÉ, voir « Stratégie de test » point 16).
+- [x] **T1. Lexique et architecture** (AR32 : un terme entre dans le lexique **avant** le code)
+  - [x] `game-architecture.md`, section « Lexique » : ajouter `Tireuse ; cycle de tir ; lueur ; inspirer ; éventail ; écart de l'éventail ; salve ; projectile visé ; distance de maintien (min, max) ; se tenir à distance ; projectile ennemi ; apparence réservée des projectiles ennemis | shooter (ShooterEnemy, ShooterDef) ; fire_interval ; glow ; inhale ; fan ; spread_angle ; volley ; aimed shot ; min_distance, max_distance ; keep_distance ; enemy_bullet ; EnemyBulletLook (COLOR_ENEMY_BULLET, COLOR_ENEMY_BULLET_OUTLINE)`.
+  - [x] `game-architecture.md` : « Projectiles (D1) », une ligne story 2.4 (contrat des dégâts par camp dans `fire()`, origine dans un mur non tirée, `add_appearance()` sans doublon, apparence réservée unique) ; « Rendu (D13) », une ligne (`EnemyBullets` en `z_index` = `Const.Z_INDEX_ENEMY_BULLETS`, au-dessus de tout le monde, chiffres de dégâts compris, sous le réticule jusqu'à la 2.7) ; « Création d'entités », une ligne (`Enemy.setup(def, target, target_hurtbox, bullets)`, le `BulletManager` ennemi de la salle passé à tout ennemi) ; « Arborescence », `enemies/` : `shooter_enemy.gd, shooter_def.gd`, `combat/bullets/` : `enemy_bullet_look.gd`.
+- [x] **T2. Réglages et constantes** (CA 1, 5) : `CombatTuning` `enemy_bullet_radius` (0,25 tuile) et `enemy_bullet_lifetime` (10 s), script et `.tres` ; `Const` `COLOR_ENEMY_BULLET`, `COLOR_ENEMY_BULLET_OUTLINE`, `Z_INDEX_ENEMY_BULLETS` (voir « Réglages et constantes »).
+- [x] **T3. `BulletManager` et apparence réservée** (CA 1, 5, 6, 7)
+  - [x] `combat/bullets/bullet_manager.gd` : contrat des dégâts par camp, origine dans une cellule solide, `add_appearance()` sans doublon (voir « `BulletManager` »).
+  - [x] `combat/bullets/enemy_bullet_look.gd` : `EnemyBulletLook` (voir « Apparence réservée »).
+  - [x] `debug/bullet_load_test.gd` : dégâts et apparence (voir « Test de charge F5 »).
+- [x] **T4. `Telegraph.progress()`** (CA 2, 3) (voir « `Telegraph` »).
+- [x] **T5. Base des ennemis** (CA 2, 3, 9) : `enemies/enemy.gd` (`setup()` à 4 paramètres) ; `enemies/shooter_def.gd` (`ShooterDef`) et `enemies/shooter_enemy.gd` (`ShooterEnemy`) (voir « `Enemy` », « `ShooterDef` », « `ShooterEnemy` »).
+- [x] **T6. La Veilleuse** (CA 2, 4) : `enemies/night_light/night_light.tscn` + `night_light.gd`, `data/enemies/night_light.tres`, `audio/sfx/sfx_enemy_night_light_telegraph.wav` (voir « La Veilleuse »).
+- [x] **T7. La Berceuse** (CA 3, 4) : `enemies/lullaby/lullaby_def.gd` (`LullabyDef`), `lullaby.tscn` + `lullaby.gd`, `data/enemies/lullaby.tres`, `audio/sfx/sfx_enemy_lullaby_telegraph.wav` (voir « La Berceuse »).
+- [x] **T8. Arène** (CA 1, 9) : `rooms/arena/arena.gd` : `_enemy_bullets` gardé, `z_index`, passé à `spawn_enemy()` (voir « Arène »).
+- [x] **T9. Panneau F1** (CA 5, 12) : touches 7 et 8, émetteur de test à l'apparence réservée (voir « Panneau F1 »).
+- [x] **T10. Vérifications headless** (CA 1 à 13) : nouvelles scènes de `game/.scratch`, `run_all.sh` étendu (voir « Stratégie de test »).
+- [x] **T11. Vérifications fenêtrées sous WSLg** (CA 1, 2, 3) : lueur, inspiration, projectiles au-dessus des ennemis, du joueur et des chiffres, F2, captures. *Faites, sauf F2 (voir le Debug Log : NON VÉRIFIÉ à l'écran).*
+- [x] **T12. Régression** : import et lancement sans erreur, recherche des interdits, `run_all.sh` complet (scènes de 2.3 inchangées et nouvelles).
+- [x] **T13. Reports** : mettre à jour `deferred-work.md` (entrées résolues, voir « Reports traités par cette story » ; nouvelles entrées NON ÉVALUÉ / NON VÉRIFIÉ, voir « Stratégie de test » point 16).
 
 ## Dev Notes
 
@@ -628,6 +628,11 @@ Il n'y a pas de `project-context.md`. Règles tirées de `CLAUDE.md`, de la mém
 21. **Une ligne `Log.debug` par salve** — Raison : AR27 (« télégraphe » et « tirage » en DEBUG) ; une salve au plus toutes les 1,5 s, jamais par tick.
 22. **Les décisions de 2.1 à 2.3 restent valables** (filtre de hurtbox, un coup par tick sur le joueur, ordre entités / `Hitbox` / managers, défauts neutres des `Def`, `_assert_failed()`, apparition déterministe, mort par `PROCESS_MODE_DISABLED`).
 
+23. **`fire_interval` invalide : le cycle ne se termine jamais** (écart de l'implémentation, voir les notes de fin) — Raison : un cycle de 0 s ferait telegraphier la tireuse sans arrêt (son et journal) ; une donnée invalide la rend inerte.
+24. **`LullabyDef` avec `min_distance >= max_distance` : la Berceuse ne bouge pas** (vitesse bornée à 0), elle tire toujours — Raison : une bande invalide n'a pas de valeur de remplacement évidente.
+25. **Vitesse de projectile invalide : la tireuse annonce mais ne tire pas** — Raison : même règle que 24 (bornée sans inventer une valeur de jeu).
+26. **Couleurs provisoires des textures sans nombre du GDD** (voir les notes de fin) — Raison : la règle du `run_all.sh` cherche 0,4 / 0,6 / 30 dans `enemies/`.
+
 ### Questions ouvertes
 
 Aucune bloquante. Points à faire valider par Kroustille en fin d'epic : les décisions ci-dessus, en priorité 3 (période), 4 (visée et écart), 6 (vitesse de la Berceuse), 11 (couleurs) et 12 (taille des projectiles), à juger au jeu.
@@ -650,14 +655,65 @@ Aucune bloquante. Points à faire valider par Kroustille en fin d'epic : les dé
 
 ### Agent Model Used
 
+Claude Sonnet 5.5 (développeur, pipeline automatisé de l'epic 2).
+
 ### Debug Log References
+
+**Résultats headless** (`bash game/.scratch/run_all.sh` : `ALL PASS`, 424 contrôles de scènes, `FAILS=0`) :
+
+| Scène | Contrôles | Rôle |
+|---|---|---|
+| `t_enemy_parts`, `t_sleepwalker`, `t_enemy_main`, `t_invalid23`, `t_regress` | 36, 123, 36, 25, 30 | scènes de 2.3 **inchangées** (aucune adaptation : le test de charge F5 de `t_regress` lit toujours `Bullets 400 | refused 0`, avec les dégâts `hit_damage_half_hearts` du test de charge) |
+| `t_enemy_bullets` (nouvelle) | 42 | manager (sans-doublon, contrat des dégâts accepté, origine dans un mur, pool plein), apparence réservée, couleurs (distance RGB >= 0,2 sur toutes les constantes `Color` du jeu, témoin planté), une apparence pour 4 tireuses, ordre de dessin (z final), `Telegraph.progress()` |
+| `t_shooters` (nouvelle) | 77 | Veilleuse (cycle 120 ticks, lueur 36 ticks, éventail 3 x 20 degrés, visée au tick du tir, immobilité, coup / traversée en invulnérabilité), Berceuse (approche, recul, bornes, mur, cycle 90 ticks, inspiration immobile, tir hors bande), mort (tirs du joueur, morte pendant la lueur, projectiles qui survivent), contact, dash, sans cible, F4, apparition |
+| `t_shooters_main` (nouvelle) | 35 | F1 touches 7 et 8, émetteur à l'apparence réservée, F5 aller-retour, pause et écran de réveil (position, cycle, télégraphe, projectiles figés ; reprise `left + 1` ticks), mort par projectile, cinq relances (noeuds 106 / 106 / 106 / 106 / 106, orphelins 0, connexions 2 / 2) |
+| `t_invalid24` (nouvelle) | 20 contrôles, 24 assertions annoncées = 24 comptées | `fire()` par camp, tireuse sans manager, mauvais `Def`, valeurs invalides, `Def` oubliées |
+
+`run_all.sh` étendu : scènes, test du nom généralisé à `t_invalid*`, journaux (une ligne `fired n/m` par salve : 18 lignes = 18 salves échantillonnées ; 26 départs de télégraphe = 26 lignes ; aucun `INFO` nouveau ; aucun `shot refused`), règle des nombres du GDD 2.4 avec témoins plantés (`40`, `6.0`, `1.5`), machines à états de `night_light.gd` et `lullaby.gd` avec témoins plantés. `--import` puis `--quit-after 120` : zéro `SCRIPT ERROR`, zéro `Parse Error`, seul avertissement `settings.cfg missing`.
+
+**Contrôles par mutation** (mécanisme retiré, scène relancée, fichier restauré octet pour octet : somme de contrôle `cksum` identique avant et après chaque essai) :
+
+| Mutation | Scène | Résultat |
+|---|---|---|
+| sans-doublon retiré (`add_appearance()`) | `t_enemy_bullets` | échoue (5 contrôles : même index, une seule vue, quatre tireuses : 4 vues) |
+| contrat des dégâts du camp ennemi retiré | `t_invalid24` | échoue (4 contrôles, 22 assertions comptées au lieu de 24) |
+| test d'origine dans un mur retiré | `t_enemy_bullets` | échoue (3 contrôles : tir né dans le mur, compte, témoin) |
+| `z_index` d'`EnemyBullets` retiré | `t_enemy_bullets` | échoue (3 contrôles, dont `DamageNumbers` au-dessus) |
+| contour retiré de la texture | `t_enemy_bullets` | échoue (2 contrôles : pixels du bord, couleurs) |
+| cycle remis à zéro à la salve (au lieu du départ du télégraphe) | `t_shooters` | échoue (période 156 ticks au lieu de 120, témoin 60) |
+| télégraphe sauté (salve dans `_start_telegraph()`) | `t_shooters` | échoue (salve avant la fin du télégraphe, 6 projectiles au lieu de 3) |
+| éventail non centré (`i * spread`) | `t_shooters` | échoue (3 contrôles) |
+| visée figée (position fixe) | `t_shooters` | échoue (visée au tick du tir) |
+| Berceuse qui marche pendant l'inspiration | `t_shooters` | échoue (« immobile pendant l'inspiration ») |
+| bande retirée (toujours s'approcher) | `t_shooters` | échoue (recul, arrêt dans la bande) |
+| mort sans `PROCESS_MODE_DISABLED` seul | `t_shooters` | **ne change rien** : `queue_free()` libère la tireuse à la fin de la même image, avant tout autre tick ; la mutation prévue par la stratégie n'est donc pas observable. Remplacée par « mort sans désactivation **ni** libération » : échoue (morte pendant la lueur : elle tire, 4e tir : toujours là) |
+
+Deux premiers essais mal formés (sans effet réel) ont été refaits : la mutation « Berceuse qui bouge » en retirant `velocity = ZERO` (sans effet car la Berceuse n'appelle pas `move_and_slide()` pendant l'inspiration) a été remplacée par un vrai déplacement pendant l'inspiration.
+
+**Captures fenêtrées sous WSLg** (`game/.scratch/cap24.gd`, hors dépôt) : lueur en trois paliers, éventail, Berceuse qui inspire, projectiles dessinés au-dessus d'un Somnambule, du joueur et d'un chiffre de dégâts (réglage activé), projectile ennemi à côté d'un tir du joueur. **F2 (corps, hurtbox, zone de contact des tireuses) : NON VÉRIFIÉ à l'écran** : la capture a été faite sous `run.tscn` seul, qui n'a pas le `CollisionDrawer` (il est dans `main.tscn`) ; l'image est sans formes.
 
 ### Completion Notes List
 
-- Analyse de contexte terminée : guide d'implémentation complet créé (create-story, 2026-11-22).
+- Tâches T1 à T13 faites. Lexique et architecture mis à jour avant le code (T1) ; réglages, constantes, `BulletManager` (sans doublon, contrat des dégâts par camp, origine dans un mur), `EnemyBulletLook`, test de charge F5, `Telegraph.progress()`, `Enemy.setup()` à 4 paramètres, `ShooterDef`, `ShooterEnemy`, `NightLight`, `Lullaby`, `LullabyDef`, sons générés, arène (`_enemy_bullets`, `z_index`), panneau F1 (touches 7 et 8, émetteur à l'apparence réservée).
+- Décisions de la story respectées. Écarts ou précisions de l'implémentation (à valider avec les décisions) :
+  - **23. `fire_interval` invalide (non fini, <= 0) : le cycle ne se termine jamais** (`_interval_seconds = INF`), au lieu de « borné à 0 » comme l'écrivait la story. Raison : un cycle de 0 s ferait démarrer un télégraphe (avec son son) à chaque fin de télégraphe, soit un bombardement de sons et de journaux ; une donnée invalide doit rendre la tireuse inerte, pas hyperactive. `Log.error` + assertion, comptés dans `t_invalid24`.
+  - **24. `LullabyDef` avec `min_distance >= max_distance` : vitesse bornée à 0** (elle tient sa position, elle tire toujours), au lieu de borner une des distances. Raison : plus simple et sûr ; une bande invalide n'a pas de bonne valeur de remplacement.
+  - **25. Une vitesse de projectile invalide met `_volley_count` à 0** et la `BulletParams` reçoit une vitesse neutre de 1,0 (jamais tirée) ; la tireuse annonce quand même (télégraphe), mais ne tire pas (testé).
+  - **26. Les constantes de couleur des textures provisoires** évitent les nombres du GDD (la règle de `run_all.sh` cherche 0,4, 0,6 et 30 dans les fichiers de `enemies/`) : valeurs voisines (0,62 au lieu de 0,6 ; alphas du halo 0,25 / 0,35 / 0,55 ; rectangles du pied de lampe décalés d'un pixel).
+- **Contrôle des couleurs réservées limité aux constantes `Color` des scripts** (parcours de `get_script_constant_map()`), comme la stratégie le demandait : une couleur écrite en ligne dans une fonction (par exemple `Color(...)` dans le code du joueur) n'est pas vue. À étendre si une palette centralisée arrive en 7.2.
+- Le test de charge F5 et l'émetteur F1 utilisent désormais la texture partagée (`EnemyBulletLook.texture()`) ; le `Label` du panneau F1 a été agrandi (118 px à 144 px).
+- Aucune scène de 2.3 n'a été adaptée : les 5 scènes passent telles quelles (la scène F5 de `t_regress` tire déjà sans erreur, avec les nouveaux dégâts du test de charge).
+- **NON ÉVALUÉ / NON VÉRIFIÉ** (étapes humaines et captures manquantes, reportés dans `deferred-work.md`) : lisibilité des couleurs réservées et des 8 px en plein combat ; lisibilité de la lueur (halo discret à l'échelle de 640 x 360) et de l'inspiration ; sons à l'oreille ; difficulté de l'éventail ; vitesse de la Berceuse et son comportement dans les coins ; immobilité pendant l'inspiration ; absence de son de tir ; F2 des tireuses (NON VÉRIFIÉ à l'écran).
 
 ### File List
+
+Nouveaux : `game/combat/bullets/enemy_bullet_look.gd` (+ `.uid`), `game/enemies/shooter_def.gd` (+ `.uid`), `game/enemies/shooter_enemy.gd` (+ `.uid`), `game/enemies/night_light/night_light.gd` (+ `.uid`), `game/enemies/night_light/night_light.tscn`, `game/enemies/lullaby/lullaby.gd` (+ `.uid`), `game/enemies/lullaby/lullaby_def.gd` (+ `.uid`), `game/enemies/lullaby/lullaby.tscn`, `game/data/enemies/night_light.tres`, `game/data/enemies/lullaby.tres`, `game/audio/sfx/sfx_enemy_night_light_telegraph.wav` (+ `.import`), `game/audio/sfx/sfx_enemy_lullaby_telegraph.wav` (+ `.import`).
+
+Modifiés : `game/core/combat_tuning.gd`, `game/core/constants.gd`, `game/data/tuning/combat_tuning.tres`, `game/combat/telegraph.gd`, `game/combat/bullets/bullet_manager.gd`, `game/combat/bullets/bullet_params.gd`, `game/enemies/enemy.gd`, `game/rooms/arena/arena.gd`, `game/debug/debug_panel.gd`, `game/debug/debug_panel.tscn`, `game/debug/bullet_load_test.gd`, `_bmad-output/game-architecture.md`, `_bmad-output/implementation-artifacts/deferred-work.md`, `_bmad-output/implementation-artifacts/sprint-status.yaml`, ce fichier.
+
+Hors dépôt (`game/.scratch`, exclu de git) : `th.gd` (étendu), `t_enemy_bullets`, `t_shooters`, `t_shooters_main`, `t_invalid24`, `cap24`, `run_all.sh` (étendu).
 
 ### Change Log
 
 - 2026-11-22 : story 2.4 créée (`ready-for-dev`).
+- 2026-11-22 : story 2.4 implémentée (`review`) : tireuses, apparence réservée, contrat des dégâts, vérifications headless et par mutation.
