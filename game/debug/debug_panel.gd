@@ -1,32 +1,29 @@
 class_name DebugPanel
 extends Control
-## F1 debug panel (AR24): commands on keys 1 to 6 while it is visible and the game is not paused.
+## F1 debug panel (AR24): commands on keys 1 to 8 while it is visible and the game is not paused.
 ## It only calls public methods of the game (Health, Hurtbox, BulletManager), never private fields.
 ## Instantiated by Main in debug builds only. Texts are technical readouts: they intentionally bypass tr()
 ## (exemption of debug/).
 
 ## Debug values of the test emitter, not GDD values.
 const EMITTER_BULLET_SPEED: float = 5.0 # tiles per second
-const EMITTER_BULLET_RADIUS: float = 0.25 # tiles
 const EMITTER_BULLET_LIFETIME: float = 10.0 # seconds
-const EMITTER_BULLET_SIZE: int = 8 # pixels
-const EMITTER_BULLET_COLOR: Color = Color(1.0, 0.35, 0.6)
 const BURST_COUNT: int = 3
 const BURST_SPREAD_DEGREES: float = 15.0
 const AUTO_FIRE_INTERVAL: float = 0.25 # seconds
 const REFRESH_INTERVAL: float = 0.25
 
-## Debug request of the sleepwalker command: top center of the playable area, replaced by the room when too close.
+## Debug request of the spawn commands: top center of the playable area, replaced by the room when too close.
 const SPAWN_REQUEST: Vector2 = Vector2(304, 40)
 const SLEEPWALKER_DEF: EnemyDef = preload("res://data/enemies/sleepwalker.tres")
+const NIGHT_LIGHT_DEF: EnemyDef = preload("res://data/enemies/night_light.tres")
+const LULLABY_DEF: EnemyDef = preload("res://data/enemies/lullaby.tres")
 
 var _auto_fire: bool = false
 var _auto_ticks: float = 0.0
 var _last_message: String = ""
 var _since_refresh: float = 0.0
 var _params: BulletParams = BulletParams.new()
-## instance_id of the manager the appearance was added to: a new arena (F5) needs a new appearance.
-var _appearance_manager_id: int = 0
 
 @onready var _label: Label = %Label
 
@@ -58,7 +55,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_5:
 			_toggle_auto_fire()
 		KEY_6:
-			_spawn_sleepwalker()
+			_spawn(SLEEPWALKER_DEF, "sleepwalker")
+		KEY_7:
+			_spawn(NIGHT_LIGHT_DEF, "night light")
+		KEY_8:
+			_spawn(LULLABY_DEF, "lullaby")
 		_:
 			handled = false
 	if handled:
@@ -117,17 +118,17 @@ func _hit_player() -> void:
 	_log("hit applied" if accepted else "hit ignored (invulnerable or dead)")
 
 
-## Asks the active room for a sleepwalker (story 2.6 replaces this with the chosen enemy).
-func _spawn_sleepwalker() -> void:
+## Asks the active room for an enemy (story 2.6 replaces keys 6 to 8 with the chosen enemy).
+func _spawn(def: EnemyDef, label: String) -> void:
 	var room: Arena = get_tree().get_first_node_in_group(Const.GROUP_ROOM) as Arena # never cached: F5 and restarts recreate it
 	if room == null:
 		_last_message = "no room"
 		return
-	var enemy: Enemy = room.spawn_enemy(SLEEPWALKER_DEF, SPAWN_REQUEST)
+	var enemy: Enemy = room.spawn_enemy(def, SPAWN_REQUEST)
 	if enemy == null:
 		_log("spawn refused")
 	else:
-		_log("sleepwalker spawned at %s" % enemy.global_position)
+		_log("%s spawned at %s" % [label, enemy.global_position])
 
 
 func _fire_burst() -> void:
@@ -150,15 +151,13 @@ func _fire(count: int, spread_degrees: float) -> bool:
 	if manager == null:
 		_last_message = "no enemy bullet manager"
 		return false
-	if _appearance_manager_id != manager.get_instance_id():
-		var appearance: int = manager.add_appearance(_make_texture())
-		if appearance < 0:
-			_last_message = "appearance refused"
-			return false
-		_appearance_manager_id = manager.get_instance_id()
-		_params.appearance = appearance
+	var appearance: int = manager.add_appearance(EnemyBulletLook.texture()) # same index every time: no duplicate
+	if appearance < 0:
+		_last_message = "appearance refused"
+		return false
+	_params.appearance = appearance
 	_params.speed = EMITTER_BULLET_SPEED
-	_params.radius = EMITTER_BULLET_RADIUS
+	_params.radius = Tuning.COMBAT.enemy_bullet_radius
 	_params.lifetime = EMITTER_BULLET_LIFETIME
 	_params.damage = Tuning.COMBAT.hit_damage_half_hearts
 	var origin: Vector2 = Vector2((Const.ROOM_TILES.x + 2) * Const.TILE_SIZE / 2.0, 2.5 * Const.TILE_SIZE)
@@ -200,13 +199,15 @@ func _refresh_text() -> void:
 		return
 	var player: Player = get_tree().get_first_node_in_group(Const.GROUP_PLAYER) as Player
 	var lines: PackedStringArray = PackedStringArray([
-		"F1 panel (keys 1-6)",
+		"F1 panel (keys 1-8)",
 		"1 invulnerable: %s" % ("on" if _invulnerable_now(player) else "off"),
 		"2 +1/2 armor",
 		"3 -1/2 heart",
 		"4 burst x%d" % BURST_COUNT,
 		"5 auto fire: %s" % ("on" if _auto_fire else "off"),
 		"6 spawn sleepwalker",
+		"7 spawn night light",
+		"8 spawn lullaby",
 	])
 	if player != null:
 		var health: Health = player.health
@@ -223,12 +224,3 @@ func _refresh_text() -> void:
 func _invulnerable_now(player: Player) -> bool:
 	return player != null and player.health.is_forced_invulnerable()
 
-
-func _make_texture() -> Texture2D:
-	var image: Image = Image.create(EMITTER_BULLET_SIZE, EMITTER_BULLET_SIZE, false, Image.FORMAT_RGBA8)
-	var center: Vector2 = Vector2.ONE * EMITTER_BULLET_SIZE / 2.0
-	for y: int in EMITTER_BULLET_SIZE:
-		for x: int in EMITTER_BULLET_SIZE:
-			if (Vector2(x + 0.5, y + 0.5) - center).length() <= center.x:
-				image.set_pixel(x, y, EMITTER_BULLET_COLOR)
-	return ImageTexture.create_from_image(image)

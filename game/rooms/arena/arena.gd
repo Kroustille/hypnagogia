@@ -1,7 +1,7 @@
 class_name Arena
 extends Node2D
 ## One-screen room: 36x19 playable tiles inside a closed wall frame, a fixed camera, the player's
-## BulletManager, the enemy BulletManager (it hits the player's hurtbox), training targets and the enemies.
+## BulletManager, the enemy BulletManager (it hits the player's hurtbox; given to every enemy, drawn above the whole world), training targets and the enemies.
 ## Enemies appear only through spawn_enemy() (group "room" lets debug tools find the active room); none at launch.
 ## The room counts them alive until they leave the tree.
 ## Floor and Walls are built in code for now (same node names as the painted rooms of epic 4).
@@ -38,6 +38,7 @@ var _player: Player
 @onready var _targets: Node2D = %Targets
 @onready var _enemies: Node2D = %Enemies
 var _player_bullets: BulletManager
+var _enemy_bullets: BulletManager
 var _alive: int = 0
 
 
@@ -95,7 +96,7 @@ func spawn_enemy(def: EnemyDef, requested: Vector2) -> Enemy:
 		Log.error("room", "scene of %s is not an Enemy" % def.id)
 		_assert_failed("EnemyDef.scene must have an Enemy root")
 		return null
-	enemy.setup(def, _player, _player.hurtbox) # before add_child()
+	enemy.setup(def, _player, _player.hurtbox, _enemy_bullets) # before add_child()
 	enemy.position = position_px
 	_enemies.add_child(enemy)
 	if enemy.hurtbox == null or enemy.process_mode == Node.PROCESS_MODE_DISABLED:
@@ -143,10 +144,14 @@ func _setup_player_bullets() -> void:
 		_player.equip_bullets(bullets)
 
 
-## The enemy BulletManager, at the room origin. It has no look: whoever fires adds its own appearance.
+## The enemy BulletManager, at the room origin, kept to give to every enemy. It has no look: the first shooter adds
+## EnemyBulletLook.texture(), the next ones get the same index. Drawn above everything else in the world, damage
+## numbers included (NFR8).
 func _setup_enemy_bullets() -> void:
 	var bullets: BulletManager = BulletManager.new()
+	_enemy_bullets = bullets
 	bullets.name = "EnemyBullets"
+	bullets.z_index = Const.Z_INDEX_ENEMY_BULLETS
 	bullets.camp = BulletManager.Camp.ENEMY
 	bullets.capacity = ENEMY_BULLET_CAPACITY
 	var solid_layers: Array[TileMapLayer] = [_walls]
