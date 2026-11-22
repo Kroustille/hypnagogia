@@ -22,6 +22,7 @@ var _state: State = State.CHASE
 var _walk_speed_px: float = 0.0
 var _rush_speed_px: float = 0.0
 var _trigger_range_px: float = 0.0
+var _rush_seconds: float = 0.0
 var _rush_ticks_left: float = 0.0
 var _sleepwalker_def: SleepwalkerDef
 var _walk_texture: Texture2D
@@ -42,6 +43,7 @@ func _ready() -> void:
 	_walk_speed_px = _bounded_px(_sleepwalker_def.walk_speed, "walk_speed")
 	_rush_speed_px = _bounded_px(_sleepwalker_def.rush_speed, "rush_speed")
 	_trigger_range_px = _bounded_px(_sleepwalker_def.rush_trigger_range, "rush_trigger_range")
+	_rush_seconds = _bounded_seconds(_sleepwalker_def.rush_duration, "rush_duration")
 	_walk_texture = _make_texture(false)
 	_raise_texture = _make_texture(true)
 	_enter(State.CHASE)
@@ -92,7 +94,7 @@ func _enter(next: State) -> void:
 			telegraph.start(_sleepwalker_def.telegraph_duration, TELEGRAPH_SOUND)
 		State.RUSH:
 			_sprite.texture = _walk_texture
-			_rush_ticks_left = _sleepwalker_def.rush_duration * Engine.physics_ticks_per_second
+			_rush_ticks_left = _rush_seconds * Engine.physics_ticks_per_second
 
 
 ## Tiles (per second) to pixels (per second), bounded to 0 with Log.error + assert when invalid.
@@ -103,6 +105,15 @@ func _bounded_px(tiles: float, field: String) -> float:
 		Log.error("combat", "sleepwalker %s=%s is invalid, bounded to 0" % [field, tiles])
 		_assert_failed("SleepwalkerDef values must be finite and > 0")
 	return safe
+
+
+## Seconds, bounded to 0 (no rush at all) with Log.error + assert when not finite or <= 0.
+func _bounded_seconds(seconds: float, field: String) -> float:
+	var valid: bool = is_finite(seconds) and seconds > 0.0
+	if not valid:
+		Log.error("combat", "sleepwalker %s=%s is invalid, bounded to 0" % [field, seconds])
+		_assert_failed("SleepwalkerDef durations must be finite and > 0")
+	return seconds if valid else 0.0
 
 
 ## Placeholder: body with arms out (horizontal bars at chest height) or raised (vertical bars above the shoulders).
