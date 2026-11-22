@@ -42,6 +42,8 @@ func start(base_seconds: float, sound: AudioStream, multiplier: float = 1.0) -> 
 		_assert_failed("Telegraph.start() needs a finite base >= 0 and multiplier >= 0")
 	var duration: float = maxf(base * factor, Tuning.COMBAT.min_telegraph)
 	_ticks_left = duration * Engine.physics_ticks_per_second
+	var owner_name: String = String(get_parent().name) if get_parent() != null else String(name)
+	Log.debug("combat", "telegraph %s started duration=%.2f" % [owner_name, duration])
 	if sound == null:
 		Log.error("combat", "telegraph started without a sound")
 		_assert_failed("Telegraph.start() needs a sound")
