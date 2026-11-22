@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ShooterDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://enemies/shooter_def.gd" id="1_def"]
+[ext_resource type="PackedScene" path="res://enemies/night_light/night_light.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_def")
+fire_interval = 2.0
+telegraph_duration = 0.6
+bullet_speed = 5.0
+bullet_count = 3
+spread_angle = 20.0
+id = &"night_light"
+scene = ExtResource("2_scene")
+max_hp = 40.0
+body_size = Vector2(0.625, 0.625)
+hurtbox_size = Vector2(0.75, 1.25)
+contact_size = Vector2(0.75, 0.75)

@@ -4,6 +4,7 @@ extends CharacterBody2D
 ## Telegraph, created in code from the EnemyDef. Spawned only by a room (room.spawn_enemy()): setup() before
 ## add_child(). Never pooled nor moved to another parent: its Hurtbox unregisters from the BulletManager when it
 ## leaves the tree. Node origin = center of the body.
+## Shooters (ShooterEnemy) fire through the room's enemy BulletManager, given by setup().
 ## Subclasses hold the state machine: an enum, one _process_<state>() per state, transitions in _enter() only.
 ## Scene contract: a %Sprite (Sprite2D) at (0, 0) without material of its own (HitFeedback sets one, SpriteKick
 ## puts it back at (0, 0)): anchor it with offset, animate it with texture; a %Body (CollisionShape2D).
@@ -16,6 +17,8 @@ var telegraph: Telegraph
 var _def: EnemyDef
 var _target: Node2D
 var _target_hurtbox: Hurtbox
+## The room's enemy BulletManager: shooters fire through it; null for an enemy that never fires.
+var _bullets: BulletManager
 var _contact: Hitbox
 var _feedback: HitFeedback
 var _dead: bool = false
@@ -24,9 +27,11 @@ var _dead: bool = false
 @onready var _body: CollisionShape2D = %Body
 
 
-## Dependency injection: call before add_child(). target: what the enemy chases; target_hurtbox: what its contact hits.
-func setup(def: EnemyDef, target: Node2D, target_hurtbox: Hurtbox) -> void:
+## Dependency injection: call before add_child(). target: what the enemy chases; target_hurtbox: what its contact hits;
+## bullets: the room's enemy BulletManager (optional: only shooters need it).
+func setup(def: EnemyDef, target: Node2D, target_hurtbox: Hurtbox, bullets: BulletManager = null) -> void:
 	_def = def
+	_bullets = bullets
 	_target = target
 	_target_hurtbox = target_hurtbox
 
