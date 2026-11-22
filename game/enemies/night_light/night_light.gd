@@ -20,8 +20,8 @@ const BULB_OFF_COLOR: Color = Color(0.35, 0.3, 0.22)
 const BULB_GLOW_COLORS: Array[Color] = [Color(0.85, 0.75, 0.35), Color(0.95, 0.88, 0.45), Color(1.0, 0.97, 0.7)]
 const HALO_ALPHAS: Array[float] = [0.25, 0.35, 0.55]
 ## Placeholder lamp, in pixels of the canvas.
-const FOOT_RECT: Rect2i = Rect2i(4, 20, 8, 3)
-const STEM_RECT: Rect2i = Rect2i(7, 10, 2, 10)
+const FOOT_RECT: Rect2i = Rect2i(4, 21, 8, 2)
+const STEM_RECT: Rect2i = Rect2i(7, 10, 2, 11)
 const SHADE_RECT: Rect2i = Rect2i(3, 4, 10, 6)
 const BULB_RECT: Rect2i = Rect2i(6, 10, 4, 3)
 
