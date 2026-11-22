@@ -21,6 +21,14 @@ const ENEMY_BULLET_CAPACITY: int = 512
 const SPAWN_MARGIN_TILES: int = 1
 ## Rounding tolerance when comparing a spawn distance to the minimal one, in pixels (exactly 3 tiles is accepted).
 const SPAWN_DISTANCE_EPSILON: float = 1e-3
+## Clearance kept between two bodies at spawn, in pixels: two enemies never appear touching or stacked.
+const SPAWN_BODY_MARGIN: float = 1.0
+## Replacement candidates around a refused request: rings of 1 to this many tiles, in the 8 directions below.
+const SPAWN_RING_COUNT: int = 4
+const SPAWN_RING_DIRECTIONS: Array[Vector2] = [
+	Vector2(1, 0), Vector2(0.70710678, 0.70710678), Vector2(0, 1), Vector2(-0.70710678, 0.70710678),
+	Vector2(-1, 0), Vector2(-0.70710678, -0.70710678), Vector2(0, -1), Vector2(0.70710678, -0.70710678),
+]
 
 @onready var _floor: TileMapLayer = %Floor
 @onready var _walls: TileMapLayer = %Walls
@@ -63,25 +71,39 @@ func _ready() -> void:
 
 
 ## Spawns an enemy: the only way (architecture, "Création d'entités"). requested: room coordinates (the room
-## sits at the world origin). Closer than Tuning.COMBAT.min_spawn_distance to the player, or outside the
-## playable area: replaced by the nearest valid position (deterministic, no RNG before epic 4).
+## sits at the world origin). Closer than Tuning.COMBAT.min_spawn_distance to the player, outside the playable
+## area, or on top of a living enemy: replaced by the nearest valid position (deterministic, no RNG before epic 4).
 ## Returns null when it cannot spawn (Log.error).
 func spawn_enemy(def: EnemyDef, requested: Vector2) -> Enemy:
+	if not is_node_ready():
+		Log.error("room", "spawn_enemy called before the room is ready")
+		_assert_failed("spawn_enemy() before the room is ready")
+		return null
 	if def == null or def.scene == null or _player == null:
 		Log.error("room", "spawn_enemy needs a def with a scene and a player")
-		assert(false, "spawn_enemy() without def, scene or player")
+		_assert_failed("spawn_enemy() without def, scene or player")
+		return null
+	var position_px: Vector2 = _resolve_spawn_position(def, requested)
+	if not is_finite(position_px.x) or not is_finite(position_px.y):
+		Log.error("room", "no valid spawn position for %s" % def.id)
+		_assert_failed("spawn_enemy() found no valid position")
 		return null
 	var node: Node = def.scene.instantiate()
 	var enemy: Enemy = node as Enemy
 	if enemy == null:
 		node.free() # never leak a refused instance
 		Log.error("room", "scene of %s is not an Enemy" % def.id)
-		assert(false, "EnemyDef.scene must have an Enemy root")
+		_assert_failed("EnemyDef.scene must have an Enemy root")
 		return null
-	var position_px: Vector2 = _resolve_spawn_position(requested)
 	enemy.setup(def, _player, _player.hurtbox) # before add_child()
 	enemy.position = position_px
 	_enemies.add_child(enemy)
+	if enemy.hurtbox == null or enemy.process_mode == Node.PROCESS_MODE_DISABLED:
+		# Its _ready() failed: never counted, registered nor left visible and hittable.
+		Log.error("room", "spawn of %s refused: enemy setup failed" % def.id)
+		enemy.queue_free()
+		_assert_failed("enemy setup failed")
+		return null
 	enemy.reset_physics_interpolation() # it does not trail from (0, 0)
 	if _player_bullets != null:
 		_player_bullets.register_hurtbox(enemy.hurtbox)
@@ -142,45 +164,90 @@ func _spawn_bounds() -> Rect2:
 	return Rect2(Vector2.ONE * margin, playable - Vector2.ONE * SPAWN_MARGIN_TILES * 2.0 * Const.TILE_SIZE)
 
 
-## requested if valid (inside the bounds, at least min_spawn_distance from the player), else the valid candidate
-## nearest to it: the player-centered point pushed out to the minimal distance, then the corners of the bounds.
-## A valid candidate always exists: the player is closer than the minimal distance to one corner at most.
-func _resolve_spawn_position(requested: Vector2) -> Vector2:
+## requested if valid (inside the bounds, at least min_spawn_distance from the player, clear of living bodies), else
+## the valid candidate nearest to it. Candidates, in this order (a tie keeps the earlier one): the request clamped to
+## the bounds, that point pushed out to the minimal distance, rings of 1 to 4 tiles around it (8 directions), the
+## player-centered point pushed out toward the request, the corners of the bounds.
+## A request that is not finite is refused (Log.error + assert) and treated as "to the right of the player": the
+## candidates keep their order, no distance is computed.
+## Returns Vector2(INF, INF) when no candidate is valid.
+func _resolve_spawn_position(def: EnemyDef, requested: Vector2) -> Vector2:
 	var bounds: Rect2 = _spawn_bounds()
 	var player_pos: Vector2 = to_local(_player.global_position)
 	var min_px: float = Tuning.COMBAT.min_spawn_distance * Const.TILE_SIZE
-	if _is_valid_spawn(requested, bounds, player_pos, min_px):
+	var body_px: Vector2 = def.body_size * Const.TILE_SIZE
+	var request_finite: bool = is_finite(requested.x) and is_finite(requested.y)
+	var anchor: Vector2 = requested
+	if not request_finite:
+		Log.error("room", "spawn request %s is not finite, treated as refused" % requested)
+		_assert_failed("spawn_enemy() needs a finite position")
+		anchor = player_pos + Vector2.RIGHT * min_px
+	if request_finite and _is_valid_spawn(requested, bounds, player_pos, min_px, body_px):
 		return requested
-	var away: Vector2 = requested - player_pos
-	var direction: Vector2 = away.normalized() if away.length_squared() > 1e-6 else Vector2.RIGHT
-	var candidates: Array[Vector2] = [
-		player_pos + direction * min_px,
-		bounds.position,
-		Vector2(bounds.end.x, bounds.position.y),
-		Vector2(bounds.position.x, bounds.end.y),
-		bounds.end,
-	]
-	var best: Vector2 = bounds.get_center()
+	var clamped: Vector2 = anchor.clamp(bounds.position, bounds.end)
+	var candidates: Array[Vector2] = [clamped, _pushed_from_player(clamped, player_pos, min_px)]
+	for ring: int in range(1, SPAWN_RING_COUNT + 1):
+		for direction: Vector2 in SPAWN_RING_DIRECTIONS:
+			candidates.append(clamped + direction * ring * Const.TILE_SIZE)
+	candidates.append(_pushed_from_player(anchor, player_pos, min_px))
+	candidates.append(bounds.position)
+	candidates.append(Vector2(bounds.end.x, bounds.position.y))
+	candidates.append(Vector2(bounds.position.x, bounds.end.y))
+	candidates.append(bounds.end)
+	var best: Vector2 = Vector2(INF, INF)
 	var best_distance: float = INF
 	for candidate: Vector2 in candidates:
-		if not _is_valid_spawn(candidate, bounds, player_pos, min_px):
+		if not _is_valid_spawn(candidate, bounds, player_pos, min_px, body_px):
 			continue
+		if not request_finite:
+			best = candidate # list order
+			break
 		var distance: float = candidate.distance_to(requested)
-		if distance < best_distance: # a tie keeps the earlier candidate
+		if distance < best_distance:
 			best = candidate
 			best_distance = distance
-	Log.debug("room", "spawn at %s refused (too close or outside), moved to %s" % [requested, best])
+	if is_finite(best.x):
+		Log.debug("room", "spawn at %s refused (too close, outside or occupied), moved to %s" % [requested, best])
 	return best
 
 
-func _is_valid_spawn(point: Vector2, bounds: Rect2, player_pos: Vector2, min_px: float) -> bool:
+## The point moved radially away from the player until it is min_px from it (unchanged when already far enough).
+func _pushed_from_player(point: Vector2, player_pos: Vector2, min_px: float) -> Vector2:
+	var away: Vector2 = point - player_pos
+	if away.length() >= min_px:
+		return point
+	var direction: Vector2 = away.normalized() if away.length_squared() > 1e-6 else Vector2.RIGHT
+	return player_pos + direction * min_px
+
+
+func _is_valid_spawn(point: Vector2, bounds: Rect2, player_pos: Vector2, min_px: float, body_px: Vector2) -> bool:
 	var inside: bool = point.x >= bounds.position.x and point.x <= bounds.end.x \
 		and point.y >= bounds.position.y and point.y <= bounds.end.y # inclusive: the corners are valid
-	return inside and point.distance_to(player_pos) >= min_px - SPAWN_DISTANCE_EPSILON
+	if not inside or point.distance_to(player_pos) < min_px - SPAWN_DISTANCE_EPSILON:
+		return false
+	return not _overlaps_living_enemy(Rect2(point - body_px / 2.0, body_px).grow(SPAWN_BODY_MARGIN))
+
+
+## True when the rectangle (room coordinates) touches the body of an enemy that is alive and not being freed.
+func _overlaps_living_enemy(rect: Rect2) -> bool:
+	for child: Node in _enemies.get_children():
+		var other: Enemy = child as Enemy
+		if other == null or other.is_dead() or other.is_queued_for_deletion():
+			continue
+		var other_rect: Rect2 = other.body_world_rect()
+		other_rect.position = to_local(other_rect.position)
+		if rect.intersects(other_rect):
+			return true
+	return false
 
 
 func _on_enemy_tree_exited() -> void:
 	_alive = maxi(_alive - 1, 0)
+
+
+## A failed assert aborts the function it is in (debug builds): kept apart so the caller carries on (AR28).
+func _assert_failed(message: String) -> void:
+	assert(false, message)
 
 
 ## Damage numbers layer, at the room origin. Added after PlayerBullets: drawn above the shots.

@@ -83,6 +83,14 @@ func is_dead() -> bool:
 	return _dead
 
 
+## Rectangle of the physical body in global coordinates (what other bodies collide with).
+func body_world_rect() -> Rect2:
+	var rectangle: RectangleShape2D = _body.shape as RectangleShape2D
+	if rectangle == null:
+		return Rect2(global_position, Vector2.ZERO)
+	return Rect2(_body.global_position - rectangle.size / 2.0, rectangle.size)
+
+
 func _can_be_hit() -> bool:
 	return not hp.is_dead()
 
