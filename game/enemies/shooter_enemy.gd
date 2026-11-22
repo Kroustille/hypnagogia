@@ -29,15 +29,15 @@ func _ready() -> void:
 		assert(false, "ShooterEnemy needs a ShooterDef and a BulletManager")
 		return
 	# Validated once (AR28): bounded values, never inherited from another enemy.
-	_interval_seconds = _bounded_seconds(_shooter_def.fire_interval, "fire_interval")
+	_interval_seconds = _bounded_seconds(_shooter_def.fire_interval, "fire_interval", "it never fires")
 	if _interval_seconds <= 0.0:
 		_interval_seconds = INF # an invalid cycle never ends: no telegraph, no volley
-	var telegraph_seconds: float = _bounded_seconds(_shooter_def.telegraph_duration, "telegraph_duration")
+	var telegraph_seconds: float = _bounded_seconds(_shooter_def.telegraph_duration, "telegraph_duration", "bounded to 0")
 	_volley_count = _shooter_def.bullet_count
-	if _volley_count < 0:
+	if _volley_count < 1:
 		_volley_count = 0
-		Log.error("combat", "shooter %s bullet_count=%d is invalid, bounded to 0" % [_shooter_def.id, _shooter_def.bullet_count])
-		_assert_failed("ShooterDef bullet_count must be >= 0")
+		Log.error("combat", "shooter %s bullet_count=%d is invalid, it never fires" % [_shooter_def.id, _shooter_def.bullet_count])
+		_assert_failed("ShooterDef bullet_count must be >= 1")
 	_spread_radians = 0.0
 	if is_finite(_shooter_def.spread_angle):
 		_spread_radians = deg_to_rad(_shooter_def.spread_angle)
@@ -45,10 +45,11 @@ func _ready() -> void:
 		Log.error("combat", "shooter %s spread_angle=%s is invalid, bounded to 0" % [_shooter_def.id, _shooter_def.spread_angle])
 		_assert_failed("ShooterDef spread_angle must be finite")
 	var speed: float = _shooter_def.bullet_speed
-	if not (is_finite(speed) and speed > 0.0):
+	# Same bound as BulletManager._is_shot_valid(): under one tile per tick, else every shot would be refused.
+	if not (is_finite(speed) and speed > 0.0 and speed < Engine.physics_ticks_per_second):
 		_volley_count = 0 # an invalid speed never fires
 		Log.error("combat", "shooter %s bullet_speed=%s is invalid, it never fires" % [_shooter_def.id, speed])
-		_assert_failed("ShooterDef bullet_speed must be finite and > 0")
+		_assert_failed("ShooterDef bullet_speed must be finite, > 0 and under one tile per tick")
 	_telegraph_seconds = telegraph_seconds
 	_bullet_params = BulletParams.new() # own instance, never a shared Resource
 	_bullet_params.speed = speed if _volley_count > 0 else 1.0
@@ -56,6 +57,12 @@ func _ready() -> void:
 	_bullet_params.lifetime = Tuning.COMBAT.enemy_bullet_lifetime
 	_bullet_params.damage = Tuning.COMBAT.hit_damage_half_hearts
 	_bullet_params.appearance = _bullets.add_appearance(EnemyBulletLook.texture()) # the same index for every shooter
+	if _bullet_params.appearance < 0:
+		_volley_count = 0 # fire() would refuse every bullet
+		Log.error("combat", "shooter %s got no bullet appearance, it never fires" % _shooter_def.id)
+		_assert_failed("ShooterEnemy needs a bullet appearance")
+	if _volley_count == 0:
+		_interval_seconds = INF # a shooter that never fires stays inert: no glow, no sound
 	_restart_cycle()
 
 
@@ -97,10 +104,10 @@ func _restart_cycle() -> void:
 	_cycle_ticks_left = _interval_seconds * Engine.physics_ticks_per_second
 
 
-## Seconds, bounded to 0 with Log.error + assert when not finite or <= 0.
-func _bounded_seconds(seconds: float, field: String) -> float:
+## Seconds, bounded to 0 with Log.error + assert when not finite or <= 0 (consequence: text of the log line).
+func _bounded_seconds(seconds: float, field: String, consequence: String) -> float:
 	var valid: bool = is_finite(seconds) and seconds > 0.0
 	if not valid:
-		Log.error("combat", "shooter %s %s=%s is invalid, bounded to 0" % [_shooter_def.id, field, seconds])
+		Log.error("combat", "shooter %s %s=%s is invalid, %s" % [_shooter_def.id, field, seconds, consequence])
 		_assert_failed("ShooterDef durations must be finite and > 0")
 	return seconds if valid else 0.0
