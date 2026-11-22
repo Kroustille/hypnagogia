@@ -12,5 +12,6 @@ extends Resource
 @export var lifetime: float = 8.0
 ## Index returned by BulletManager.add_appearance().
 @export var appearance: int = 0
-## Damage of one hit. PLAYER camp: enemy HP. Not negative.
+## Damage of one hit. ENEMY camp: half-hearts, at least 1 after rounding. PLAYER camp: enemy HP, > 0.
+## BulletManager.fire() refuses a damage its target would refuse.
 @export var damage: float = 0.0

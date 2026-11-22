@@ -49,6 +49,15 @@ const LAYER_NAMES: Array[String] = [
 ## Color reserved for the player's shots (NFR8): no other entity uses it. Final value set by story 7.2.
 const COLOR_PLAYER_SHOT: Color = Color(0.55, 0.95, 1.0)
 
+## Colors reserved for enemy bullets (FR26, NFR8): a fill and a 1 px outline that no other drawing uses, identical in
+## every phase and lucidity tier. Placeholder values, final ones set by story 7.2.
+const COLOR_ENEMY_BULLET: Color = Color(1.0, 0.2, 0.55)
+const COLOR_ENEMY_BULLET_OUTLINE: Color = Color(0.4, 0.0, 0.2)
+
+## z_index of the enemy BulletManager: above everything else in the world (entities, player shots, damage numbers),
+## whatever its place in the tree (AR19, NFR8). Below the reticle (100), an aim aid that moves to the HUD in story 2.7.
+const Z_INDEX_ENEMY_BULLETS: int = 10
+
 ## Node group of the player, found by debug tools without a node path.
 const GROUP_PLAYER: StringName = &"player"
 

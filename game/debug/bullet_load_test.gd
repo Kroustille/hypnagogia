@@ -14,8 +14,6 @@ const EMITTERS: Array[Vector2] = [
 ]
 const BACKGROUND_COLOR: Color = Color(0.05, 0.05, 0.1)
 const WALL_COLOR: Color = Color(0.35, 0.3, 0.55)
-const BULLET_COLOR: Color = Color(1.0, 0.35, 0.6)
-const BULLET_SIZE: int = 8
 
 var _manager: BulletManager
 var _params: BulletParams = BulletParams.new()
@@ -34,7 +32,9 @@ func _ready() -> void:
 	_manager.capacity = POOL_CAPACITY
 	_manager.setup(solid_layers)
 	add_child(_manager)
-	_params.appearance = _manager.add_appearance(_make_bullet_texture())
+	_params.appearance = _manager.add_appearance(EnemyBulletLook.texture())
+	_params.radius = Tuning.COMBAT.enemy_bullet_radius
+	_params.damage = Tuning.COMBAT.hit_damage_half_hearts # no target here, but fire() refuses a damage the player would refuse
 	Log.info("combat", "bullet load test started target=%d" % TARGET_COUNT)
 
 
@@ -76,13 +76,3 @@ func _build_walls() -> TileMapLayer:
 		layer.set_cell(Vector2i(29, y), source_id, Vector2i.ZERO)
 	return layer
 
-
-func _make_bullet_texture() -> Texture2D:
-	var image: Image = Image.create(BULLET_SIZE, BULLET_SIZE, false, Image.FORMAT_RGBA8)
-	var center: Vector2 = Vector2(BULLET_SIZE, BULLET_SIZE) / 2.0
-	var radius: float = BULLET_SIZE / 2.0
-	for y: int in BULLET_SIZE:
-		for x: int in BULLET_SIZE:
-			if (Vector2(x + 0.5, y + 0.5) - center).length() <= radius:
-				image.set_pixel(x, y, BULLET_COLOR)
-	return ImageTexture.create_from_image(image)

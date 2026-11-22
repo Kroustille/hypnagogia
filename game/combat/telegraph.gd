@@ -11,6 +11,7 @@ const TICK_EPSILON: float = 1e-6
 
 var _clock_group: GameClock.Group = GameClock.Group.ENEMIES
 var _ticks_left: float = 0.0
+var _ticks_total: float = 0.0
 var _is_setup: bool = false
 
 
@@ -42,6 +43,7 @@ func start(base_seconds: float, sound: AudioStream, multiplier: float = 1.0) -> 
 		_assert_failed("Telegraph.start() needs a finite base >= 0 and multiplier >= 0")
 	var duration: float = maxf(base * factor, Tuning.COMBAT.min_telegraph)
 	_ticks_left = duration * Engine.physics_ticks_per_second
+	_ticks_total = _ticks_left
 	var owner_name: String = String(get_parent().name) if get_parent() != null else String(name)
 	Log.debug("combat", "telegraph %s started duration=%.2f" % [owner_name, duration])
 	if sound == null:
@@ -54,6 +56,14 @@ func start(base_seconds: float, sound: AudioStream, multiplier: float = 1.0) -> 
 
 func is_active() -> bool:
 	return _ticks_left > TICK_EPSILON
+
+
+## Share of the telegraph already elapsed, from 0 (just started) to 1 (about to end); 0 when inactive.
+## Drives the owner's animation steps (rising glow, inhale). Ticks after its owner: the owner reads last tick's value.
+func progress() -> float:
+	if not is_active() or _ticks_total <= 0.0:
+		return 0.0
+	return clampf(1.0 - _ticks_left / _ticks_total, 0.0, 1.0)
 
 
 func _physics_process(_delta: float) -> void:

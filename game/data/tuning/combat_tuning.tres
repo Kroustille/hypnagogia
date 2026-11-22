@@ -10,3 +10,5 @@ hit_damage_half_hearts = 1
 hit_invulnerability_duration = 1.0
 min_telegraph = 0.4
 min_spawn_distance = 3.0
+enemy_bullet_radius = 0.25
+enemy_bullet_lifetime = 10.0

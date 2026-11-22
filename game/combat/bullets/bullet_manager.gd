@@ -44,6 +44,8 @@ var _high_water: int = 0
 var _damages: PackedFloat32Array = PackedFloat32Array()
 
 var _multimeshes: Array[MultiMesh] = []
+## Texture of each look, same index as _multimeshes: the same texture is never registered twice.
+var _appearance_textures: Array[Texture2D] = []
 var _render_counts: PackedInt32Array = PackedInt32Array()
 
 ## Registered targets, in registration order: a bullet hits the first one it overlaps.
@@ -94,7 +96,13 @@ func _ready() -> void:
 
 
 ## Registers a look (one MultiMeshInstance2D) and returns its index for BulletParams.appearance.
+## The same Texture2D registered again returns its first index: one MultiMeshInstance2D per look, whatever the
+## number of shooters.
 func add_appearance(texture: Texture2D) -> int:
+	if texture != null:
+		var known: int = _appearance_textures.find(texture)
+		if known != -1:
+			return known
 	if texture == null or _multimeshes.size() >= MAX_APPEARANCES:
 		Log.error("combat", "add_appearance() needs a texture and at most %d appearances" % MAX_APPEARANCES)
 		assert(false, "Invalid appearance")
@@ -115,6 +123,7 @@ func add_appearance(texture: Texture2D) -> int:
 	RenderingServer.multimesh_set_physics_interpolated(multimesh.get_rid(), false)
 	add_child(view)
 	_multimeshes.append(multimesh)
+	_appearance_textures.append(texture)
 	_render_counts.append(0)
 	return _multimeshes.size() - 1
 
@@ -155,9 +164,13 @@ func unregister_hurtbox(hurtbox: Hurtbox) -> void:
 
 
 ## Fires one bullet. origin is in this node's local space, direction must be normalized.
-## Returns false, without error or log, when the pool is full (the refusal is counted).
+## Returns false, without error or log, when the pool is full (the refusal is counted) or when the origin is inside
+## a solid cell (the wall would stop it at once). Returns false with an error for an invalid shot, including a
+## damage its target would refuse (ENEMY camp: at least 1 half-heart after rounding; PLAYER camp: > 0).
 func fire(params: BulletParams, origin: Vector2, direction: Vector2) -> bool:
 	if not _is_shot_valid(params, direction):
+		return false
+	if _hits_solid(origin):
 		return false
 	if _free_top == 0:
 		refused_count += 1
@@ -193,8 +206,13 @@ func _is_shot_valid(params: BulletParams, direction: Vector2) -> bool:
 		problem = "lifetime %s must be finite and positive" % params.lifetime
 	elif not (params.radius >= 0.0):
 		problem = "radius %s must not be negative" % params.radius
-	elif not is_finite(params.damage) or params.damage < 0.0:
-		problem = "damage %s must be finite and not negative" % params.damage
+	elif not is_finite(params.damage):
+		problem = "damage %s must be finite" % params.damage
+	elif camp == Camp.ENEMY and roundi(params.damage) < 1:
+		# Same rule as Health.apply_damage(): the player counts whole half-hearts (story 2.4, reports of 2.1 and 2.3).
+		problem = "damage %s would be refused by the player's Health (at least 1 half-heart after rounding)" % params.damage
+	elif camp == Camp.PLAYER and params.damage <= 0.0:
+		problem = "damage %s would be refused by the enemies' HitPoints (must be > 0)" % params.damage
 	elif not is_equal_approx(direction.length_squared(), 1.0):
 		problem = "direction %s is not normalized" % direction
 	if problem.is_empty():
