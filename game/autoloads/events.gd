@@ -38,6 +38,16 @@ signal run_started
 @warning_ignore("unused_signal")
 signal death_judged(just: bool)
 
+## An enemy bullet grazed the player and was counted. position: the bullet (global). gained: lucidity actually gained
+## (0 once the room cap is reached). Listeners: telemetry and effects (later stories).
+@warning_ignore("unused_signal")
+signal player_grazed(position: Vector2, gained: int)
+
+## The dash invulnerability avoided an enemy bullet that would have hit (per bullet). position: the bullet (global).
+## gained: lucidity actually gained. Listeners: telemetry and effects (later stories).
+@warning_ignore("unused_signal")
+signal perfect_dash(position: Vector2, gained: int)
+
 ## The lucidity value changed, or a fresh player came in (initial state of a run). value: 0..100; tier: Lucidity.Tier
 ## as an int (autoloads/ depends on no feature folder). Listeners: HUD gauge (story 3.1).
 @warning_ignore("unused_signal")

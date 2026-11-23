@@ -105,6 +105,7 @@ func _start_next_wave() -> void:
 	var defs: Array = _waves[_next_index % _waves.size()]
 	_next_index = (_next_index + 1) % _waves.size()
 	_wave_number += 1
+	_room.begin_room() # before the apparitions
 	var spawned: int = 0
 	for def: EnemyDef in defs:
 		var slot: Vector2 = _list.spawn_slots[_slot_cursor % _list.spawn_slots.size()] * Const.TILE_SIZE

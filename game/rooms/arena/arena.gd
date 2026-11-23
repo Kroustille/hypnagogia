@@ -150,6 +150,12 @@ func kill_all_enemies() -> int:
 	return killed
 
 
+## Start of a wave (called by WaveRunner before the apparitions): per-wave counters of the player start again.
+func begin_room() -> void:
+	if _player != null and _player.lucidity != null:
+		_player.lucidity.begin_room()
+
+
 ## The wave runner, or null when waves are disabled (verification tools).
 func wave_runner() -> WaveRunner:
 	return _wave_runner
@@ -203,6 +209,9 @@ func _setup_enemy_bullets() -> void:
 	add_child(bullets)
 	if _player != null:
 		bullets.register_hurtbox(_player.hurtbox)
+		bullets.enable_graze(_player.hurtbox, Tuning.LUCIDITY.graze_radius)
+		bullets.grazed.connect(_player.on_bullet_grazed)
+		bullets.dodged.connect(_player.on_bullet_dodged)
 
 
 ## Playable area in pixels (cells 1 to 36 by 1 to 19), shrunk by SPAWN_MARGIN_TILES so a body never appears
