@@ -8,6 +8,12 @@ const BAND_COLOR: Color = Color(0.04, 0.035, 0.08)
 const BAND_EDGE_COLOR: Color = Color(0.21, 0.18, 0.33)
 const MARGIN: int = 6
 const LUCIDITY_SLOT_SIZE: Vector2 = Vector2(160, 8)
+## Room right of the gauge for the tier name, up to the shards.
+const TIER_LABEL_WIDTH: int = 110
+const TIER_NAME_KEYS: Array[StringName] = [
+	&"UI_LUCIDITY_LUCID", &"UI_LUCIDITY_FLOATING", &"UI_LUCIDITY_DRIFT", &"UI_LUCIDITY_ABANDON",
+	&"UI_LUCIDITY_TOTAL_ABANDON",
+]
 const ITEM_SLOT_SIZE: Vector2 = Vector2(16, 16)
 const ITEM_SLOT_GAP: int = 8
 const SHARD_COLOR: Color = Color(0.85, 0.8, 0.4)
@@ -16,6 +22,9 @@ var _shards: int = 0 # static 0 until epic 5 (decision 4), then set from an Even
 
 var _hearts: HeartRow
 var _lucidity_slot: HudSlot
+var _lucidity_gauge: LucidityGauge
+var _tier_label: Label
+var _tier: int = -1
 var _active_item_slot: HudSlot
 var _consumable_slot: HudSlot
 var _shards_label: Label
@@ -35,6 +44,19 @@ func _ready() -> void:
 
 	_lucidity_slot = _make_slot("LucidityGaugeSlot", LUCIDITY_SLOT_SIZE, Vector2(
 		(Const.VIEWPORT.x - LUCIDITY_SLOT_SIZE.x) / 2.0, (Const.HUD_BAND_HEIGHT - LUCIDITY_SLOT_SIZE.y) / 2.0))
+	_lucidity_gauge = LucidityGauge.new()
+	_lucidity_gauge.name = "LucidityGauge"
+	_lucidity_gauge.position = _lucidity_slot.position
+	_lucidity_gauge.size = LUCIDITY_SLOT_SIZE
+	add_child(_lucidity_gauge) # a sibling over the frame: the slot itself stays empty
+	_tier_label = Label.new()
+	_tier_label.name = "TierLabel"
+	_tier_label.position = Vector2(_lucidity_slot.position.x + LUCIDITY_SLOT_SIZE.x + MARGIN, 0)
+	_tier_label.size = Vector2(TIER_LABEL_WIDTH, Const.HUD_BAND_HEIGHT)
+	_tier_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_tier_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_tier_label)
+	Events.lucidity_value_changed.connect(_on_events_lucidity_value_changed)
 
 	var slot_y: float = (Const.HUD_BAND_HEIGHT - ITEM_SLOT_SIZE.y) / 2.0
 	var consumable_x: float = Const.VIEWPORT.x - MARGIN - ITEM_SLOT_SIZE.x
@@ -64,6 +86,14 @@ func lucidity_slot() -> HudSlot:
 
 func item_slots() -> Array[HudSlot]:
 	return [_active_item_slot, _consumable_slot]
+
+
+func lucidity_gauge() -> LucidityGauge:
+	return _lucidity_gauge
+
+
+func tier_text() -> String:
+	return _tier_label.text
 
 
 func shards_text() -> String:
@@ -98,3 +128,10 @@ func _on_events_player_health_changed(half_hearts: int, max_half_hearts: int, ar
 
 func _on_events_player_hit(_damage: int, _source: int) -> void:
 	_hearts.flash()
+
+
+func _on_events_lucidity_value_changed(value: int, tier: int) -> void:
+	_lucidity_gauge.set_state(value, tier, _tier != -1 and tier != _tier)
+	if tier != _tier:
+		_tier = tier
+		_tier_label.text = tr(TIER_NAME_KEYS[clampi(tier, 0, TIER_NAME_KEYS.size() - 1)])
