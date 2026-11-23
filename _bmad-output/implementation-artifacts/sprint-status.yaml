@@ -69,8 +69,8 @@ development_status:
   epic-2-retrospective: optional
 
   # Epic 3: Jouer avec sa lucidité
-  epic-3: backlog
-  3-1-voir-sa-lucidite-et-ses-paliers: backlog
+  epic-3: in-progress
+  3-1-voir-sa-lucidite-et-ses-paliers: ready-for-dev
   3-2-regagner-sa-lucidite-par-le-skill: backlog
   3-3-depenser-sa-lucidite-eveil: backlog
   3-4-depenser-sa-lucidite-glissement: backlog
