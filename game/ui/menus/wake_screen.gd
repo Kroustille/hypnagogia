@@ -6,20 +6,30 @@ extends Control
 ## Texts come from tr() (localization/strings.csv), never from the scene.
 
 signal restart_requested
+## The player answered "was this death fair?". Never emitted when they restart without answering.
+signal verdict_given(just: bool)
 
 ## Input guard after the screen opens, in seconds (UI placeholder, not a gameplay value).
 const INPUT_GUARD_SECONDS: float = 0.3
 
 var _guard_ticks_left: float = 0.0
 var _armed: bool = false
+var _answered: bool = false
 
 @onready var _title: Label = %Title
 @onready var _restart_button: Button = %RestartButton
+@onready var _question: Label = %Question
+@onready var _yes_button: Button = %YesButton
+@onready var _no_button: Button = %NoButton
 
 
 func _ready() -> void:
 	_title.text = tr(&"UI_WAKE_TITLE")
 	_restart_button.text = tr(&"UI_WAKE_RESTART") % _restart_key_label()
+	_yes_button.text = tr(&"UI_WAKE_YES")
+	_no_button.text = tr(&"UI_WAKE_NO")
+	_yes_button.pressed.connect(_give_verdict.bind(true))
+	_no_button.pressed.connect(_give_verdict.bind(false))
 	_restart_button.pressed.connect(_on_restart_button_pressed)
 	hide()
 
@@ -30,6 +40,9 @@ func open() -> void:
 	_guard_ticks_left = INPUT_GUARD_SECONDS * Engine.physics_ticks_per_second
 	_armed = false
 	_restart_button.disabled = true
+	_answered = false
+	_question.text = tr(&"UI_WAKE_QUESTION")
+	_set_answers_enabled(false)
 	_restart_button.grab_focus()
 
 
@@ -40,6 +53,7 @@ func _physics_process(_delta: float) -> void:
 	if _guard_ticks_left <= 1e-6:
 		_armed = true
 		_restart_button.disabled = false
+		_set_answers_enabled(true)
 
 
 ## Pause and ui_cancel are not consumed: Main ignores them while this screen is open.
@@ -71,3 +85,19 @@ func _restart_key_label() -> String:
 	Log.error("ui", "action restart has no key")
 	assert(false, "Action restart needs a key")
 	return "?"
+
+
+## One answer per death; it does not restart, and the restart button keeps the focus.
+func _give_verdict(just: bool) -> void:
+	if not visible or not _armed or _answered:
+		return
+	_answered = true
+	_question.text = tr(&"UI_WAKE_ANSWERED")
+	_set_answers_enabled(false)
+	_restart_button.grab_focus()
+	verdict_given.emit(just)
+
+
+func _set_answers_enabled(enabled: bool) -> void:
+	_yes_button.disabled = not enabled or _answered
+	_no_button.disabled = not enabled or _answered

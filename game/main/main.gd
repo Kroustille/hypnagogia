@@ -75,6 +75,7 @@ func _setup_menus() -> void:
 	_ui.add_child(_pause_menu)
 	_ui.add_child(_settings_menu)
 	_wake_screen.restart_requested.connect(_on_wake_screen_restart_requested)
+	_wake_screen.verdict_given.connect(_on_wake_screen_verdict_given)
 	_pause_menu.resume_requested.connect(_on_pause_menu_resume_requested)
 	_pause_menu.settings_requested.connect(_on_pause_menu_settings_requested)
 	_pause_menu.quit_requested.connect(_on_pause_menu_quit_requested)
@@ -215,3 +216,8 @@ func _check_window_scale() -> void:
 		return
 	_last_scale_factor = factor
 	Log.info("ui", "window scale changed size=%dx%d scale=x%d" % [size.x, size.y, factor])
+
+
+## Relays the answer on the bus: the telemetry listens to Events only.
+func _on_wake_screen_verdict_given(just: bool) -> void:
+	Events.death_judged.emit(just)
