@@ -565,6 +565,7 @@ hypnagogia/
     │   └── sprites/
     ├── economy/         — drops.gd, shop.tscn/.gd, treasure.tscn/.gd
     ├── rooms/           — room.gd, room_base.tscn, door.tscn/.gd, furniture.tscn/.gd
+    │   ├── waves/       — wave_entry.gd, wave_def.gd, wave_list.gd, wave_runner.gd (story 2.6)
     │   ├── markers/     — enemy_spawn.gd, reinforcement_spawn.gd, trigger.gd
     │   ├── tilesets/    — onset.tres…
     │   ├── arena/       — arena.tscn (jalon A)
@@ -682,6 +683,7 @@ hypnagogia/
 | Ennemi ; PV ; dégâts au contact ; zone de contact ; apparition ; distance minimale d'apparition ; ennemis vivants ; poursuite ; accélération du Somnambule ; lever les bras | `enemy` ; `hp` (`HitPoints`) ; `contact_damage` ; `Hitbox` ; `spawn` ; `min_spawn_distance` ; `alive_enemies` ; `chase` ; `rush` ; `raise_arms` |
 | Tireuse ; cycle de tir ; lueur ; inspirer ; éventail ; écart de l'éventail ; salve ; projectile visé ; distance de maintien (min, max) ; se tenir à distance ; projectile ennemi ; apparence réservée des projectiles ennemis | `shooter` (`ShooterEnemy`, `ShooterDef`) ; `fire_interval` ; `glow` ; `inhale` ; `fan` ; `spread_angle` ; `volley` ; `aimed shot` ; `min_distance`, `max_distance` ; `keep_distance` ; `enemy_bullet` ; `EnemyBulletLook` (`COLOR_ENEMY_BULLET`, `COLOR_ENEMY_BULLET_OUTLINE`) |
 | Charge ; gratter le sol ; reculer ; étourdi, étourdissement ; repos (entre deux attaques) ; direction de charge ; ce qui assomme ; nom d'un ennemi apparu | `charge` ; `scrape` ; `backup` ; `stun` ; `rest` ; `charge_direction` ; `STUNNING_LAYERS` ; `spawn_serial` (`<id>_<n>`) |
+| Vague ; liste de vagues ; pause entre vagues ; salle vidée | `wave` (`WaveDef`, `WaveEntry`) ; `WaveList` ; `pause_duration` ; `room_cleared` |
 
 Tout nouveau terme du GDD entre dans ce lexique avant d'apparaître dans le code.
 
@@ -838,6 +840,7 @@ func _ready() -> void:
 - Pools uniquement pour les projectiles et les effets d'impact.
 - Story 2.4 : `Enemy.setup(def, target, target_hurtbox, bullets)` : l'arène passe son `BulletManager` ennemi à tout ennemi (les tireuses tirent par lui, les autres l'ignorent).
 - Story 2.5 : `spawn_enemy()` nomme l'ennemi `<id>_<n>` (`id` de la `Def`, `n` compteur de la salle à partir de 1, jamais réutilisé) avant `add_child()` : aucun nom généré en `@` dans les journaux.
+- Story 2.6 : en arène, un `WaveRunner` (enfant de la salle, `rooms/waves/`) lit une `WaveList` (`data/waves/`), appelle `room.spawn_enemy()` pour chaque ennemi d'une vague et émet `Events.room_cleared(room)` quand la salle n'a plus d'ennemi ; compte à rebours en ticks par `GameClock.scale(ENEMIES)`. `room_cleared` n'a pas encore son `lowest_tier` (epic 3).
 - Apparition d'un ennemi (story 2.3) : à au moins `min_spawn_distance` (3 tuiles) du joueur ; une position trop proche ou hors de la zone jouable est remplacée de façon déterministe (sans RNG avant l'epic 4). Un ennemi n'est jamais mis en pool ni déplacé d'un parent à l'autre.
 
 ```gdscript
