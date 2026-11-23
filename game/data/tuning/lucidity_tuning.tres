@@ -6,3 +6,8 @@
 script = ExtResource("1_tuning")
 max_value = 100
 tier_floors = PackedInt32Array(76, 51, 26, 1, 0)
+graze_radius = 1.0
+graze_gain = 2
+perfect_dash_gain = 5
+room_cleared_gain = 5
+graze_cap_per_room = 20

@@ -16,6 +16,8 @@ var value: int
 var live_tier: Tier
 
 var _tuning: LucidityTuning
+## Lucidity granted by grazes since begin_room().
+var _room_graze_gained: int = 0
 
 
 func _init(tuning: LucidityTuning) -> void:
@@ -30,9 +32,25 @@ func _init(tuning: LucidityTuning) -> void:
 	live_tier = tier_for(value)
 
 
-## Adds amount (clamped to the maximum: the surplus is lost, FR16).
-func gain(amount: int) -> void:
-	set_value(value + amount)
+## Where a gain comes from: only GRAZE is capped per room.
+enum Source { OTHER, GRAZE, PERFECT_DASH, ROOM_CLEARED, CONSUMABLE }
+
+
+## Adds amount (clamped to the maximum: the surplus is lost, FR16). A GRAZE is also limited by what is left of the
+## room cap. Returns the value actually gained (0 when capped or already full).
+func gain(amount: int, source: Source = Source.OTHER) -> int:
+	var wanted: int = maxi(amount, 0)
+	if source == Source.GRAZE:
+		wanted = mini(wanted, maxi(_tuning.graze_cap_per_room - _room_graze_gained, 0))
+		_room_graze_gained += wanted # the cap counts what was granted, even when the gauge was already full
+	var before: int = value
+	set_value(value + wanted)
+	return value - before
+
+
+## Starts a wave: the graze cap opens again.
+func begin_room() -> void:
+	_room_graze_gained = 0
 
 
 ## Sets the value, clamped to 0..max. Debug tools and rules go through this one entry point.
