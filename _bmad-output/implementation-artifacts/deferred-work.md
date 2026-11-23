@@ -175,7 +175,7 @@
 - **NON VÉRIFIÉ à l'écran** : aucune vérification fenêtrée sous WSLg n'a été faite pour la 2.5 (pipeline allégé) : grattage, recul, charge tête baissée, étourdi, traversée du joueur et F2 (corps, hurtbox, contact du Mouton) sous `main.tscn` restent à regarder au premier playtest. Le comportement est vérifié en headless uniquement.
 - **Mutations non faites** : les contrôles par mutation de la stratégie de test (point 13) ont été sautés par décision de Kroustille (pipeline allégé, 2026-11-23).
 - **Un Mouton dont la cible n'est pas le joueur réel** est arrêté par le joueur réel (l'exception ne vise que `_target`) : sans objet tant que la cible est toujours le joueur.
-- **Apparition refusée après `add_child()`** (setup raté) : le nœud nommé reste dans `Enemies` jusqu'à la fin de la frame (`queue_free()`), puis disparaît ; son numéro est perdu (non réutilisé).
+- ~~**Apparition refusée après `add_child()`** (setup raté) : le nœud nommé reste dans `Enemies` jusqu'à la fin de la frame (`queue_free()`), puis disparaît ; son numéro est perdu (non réutilisé).~~ **Résolu en revue** (`remove_child()` avant `queue_free()`).
 
 ## Deferred from: code review of 2-5-affronter-le-mouton (2026-11-23)
 
