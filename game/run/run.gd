@@ -29,6 +29,7 @@ func _ready() -> void:
 	_player.global_position = arena.player_spawn_position()
 	_player.reset_physics_interpolation() # the player does not trail from (0, 0)
 	Log.info("run", "run started")
+	Events.run_started.emit()
 
 
 func _on_player_died() -> void:

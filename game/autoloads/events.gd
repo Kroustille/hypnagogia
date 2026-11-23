@@ -14,7 +14,7 @@ signal enemy_damaged(world_position: Vector2, amount: float)
 ## A run ended. outcome: Run.Outcome as an int (autoloads/ depends on no feature folder).
 ## Emitted once per run, after the Events.player_hit of the lethal hit, from the Run's handler of Player.died,
 ## in the tick of the lethal hit. Listeners: Main (wake screen),
-## telemetry (story 2.8).
+## telemetry (story 2.8; the cause of death is the source of the last player_hit).
 @warning_ignore("unused_signal")
 signal run_ended(outcome: int)
 
@@ -28,3 +28,12 @@ signal room_cleared(room: Node)
 ## Listeners: HUD (story 2.7).
 @warning_ignore("unused_signal")
 signal player_health_changed(half_hearts: int, max_half_hearts: int, armor: int)
+
+## A run began (a fresh Run is ready). Listeners: telemetry (story 2.8).
+@warning_ignore("unused_signal")
+signal run_started
+
+## The player answered "was this death fair?" on the wake screen. Never emitted when they restart without
+## answering: the telemetry derives the absence of answer from the next run_started. Listeners: telemetry (story 2.8).
+@warning_ignore("unused_signal")
+signal death_judged(just: bool)

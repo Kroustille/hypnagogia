@@ -23,6 +23,7 @@ GameClock="*res://autoloads/game_clock.gd"
 Settings="*res://autoloads/settings.gd"
 SaveService="*res://autoloads/save_service.gd"
 Audio="*res://autoloads/audio.gd"
+Telemetry="*res://telemetry/telemetry.gd"
 
 [debug]
 
