@@ -204,3 +204,7 @@
 - **Taille des icônes (8x7 px) et contraste du HUD à l'échelle réelle : NON ÉVALUÉS** (étape humaine). Couleurs et formes provisoires, palette finale en 7.2.
 - Panneau F1 : désormais sous la bande de HUD (report de 2.1 traité) ; il recouvre le haut du cadre de murs sur 250 px de large, sans enjeu.
 - Restent aux stories suivantes : jauge de lucidité dans sa place réservée (3.1), Éclats, objet actif et consommable (epic 5). Le HUD reste visible derrière le test de charge F5 (outil de debug).
+
+## Deferred from: code review of 2-7-lire-son-etat-dans-le-hud (2026-11-23)
+
+- **`HeartRow` limité à 12 icônes sans garde-fou** (story 5.1, Dent qui tombe : −1 cœur max) : `icons()` tronque à `MAX_ICONS` en silence. Avec des PV max impairs et une armure impaire au plafond (ex. 5 + 19), il faudrait 13 icônes : une icône d'armure disparaît. Un plafond réglé au-dessus de 24 (`CombatTuning`, `@export_range(1, 48, …, "or_greater")`, non borné par `Health.setup`) tronque les cœurs eux-mêmes (dégâts invisibles). Un dernier réceptacle impair est dessiné comme un cœur entier à moitié vide, identique à un cœur entamé. Au choix : réserver 13 icônes (117 px, la jauge commence à 240), borner le plafond (`Log.error` + `assert` au-delà de 2 × `MAX_ICONS`), journaliser la troncature, dessiner un demi-réceptacle.
