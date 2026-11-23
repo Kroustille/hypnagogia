@@ -6,6 +6,7 @@ extends Node2D
 ## This exemption only applies to debug/.
 
 const OUTLINE_COLOR: Color = Color(1.0, 0.2, 0.2)
+const GRAZE_COLOR: Color = Color(1.0, 0.8, 0.2, 0.7)
 const CIRCLE_SEGMENTS: int = 16
 
 
@@ -42,10 +43,26 @@ func _draw() -> void:
 		var circle: CircleShape2D = shape_node.shape as CircleShape2D
 		if circle != null:
 			_draw_circle_outline(circle, to_screen)
+	_draw_graze_zones(canvas)
 
 
-func _draw_rectangle(rectangle: RectangleShape2D, to_screen: Transform2D) -> void:
-	var half: Vector2 = rectangle.size / 2.0
+func _draw_graze_zones(canvas: Transform2D) -> void:
+	for node: Node in get_tree().get_nodes_in_group(Const.GROUP_DEBUG_GRAZE):
+		var shape_node: CollisionShape2D = node as CollisionShape2D
+		if shape_node == null or not shape_node.is_inside_tree():
+			continue
+		var rectangle: RectangleShape2D = shape_node.shape as RectangleShape2D
+		if rectangle == null:
+			continue
+		var margin_value: Variant = shape_node.get_meta(&"graze_margin", 0.0)
+		var margin: float = margin_value if margin_value is float else 0.0
+		_draw_rectangle(rectangle, canvas * shape_node.global_transform, margin, GRAZE_COLOR)
+
+
+func _draw_rectangle(
+	rectangle: RectangleShape2D, to_screen: Transform2D, margin: float = 0.0, color: Color = OUTLINE_COLOR
+) -> void:
+	var half: Vector2 = rectangle.size / 2.0 + Vector2.ONE * margin
 	var corners: PackedVector2Array = PackedVector2Array([
 		to_screen * Vector2(-half.x, -half.y),
 		to_screen * Vector2(half.x, -half.y),
@@ -53,7 +70,7 @@ func _draw_rectangle(rectangle: RectangleShape2D, to_screen: Transform2D) -> voi
 		to_screen * Vector2(-half.x, half.y),
 	])
 	corners.append(corners[0])
-	draw_polyline(corners, OUTLINE_COLOR, 1.0)
+	draw_polyline(corners, color, 1.0)
 
 
 func _draw_circle_outline(circle: CircleShape2D, to_screen: Transform2D) -> void:

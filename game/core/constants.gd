@@ -13,6 +13,8 @@ const ROOM_TILES: Vector2i = Vector2i(36, 19)
 const GROUP_BULLET_MANAGERS: StringName = &"bullet_managers"
 ## Node group of every CollisionShape2D shown by the F2 debug overlay.
 const GROUP_DEBUG_SHAPES: StringName = &"debug_shapes"
+## Shapes whose F2 outline is also drawn grown by their "graze_margin" meta (pixels): the graze zone (story 3.2).
+const GROUP_DEBUG_GRAZE: StringName = &"debug_graze"
 
 ## Integer scale factor the engine applies to a window of this size (0 when the window is smaller than the viewport, e.g. minimized).
 @warning_ignore("integer_division")

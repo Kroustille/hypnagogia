@@ -19,6 +19,7 @@ signal damage_received(info: DamageInfo)
 var _refused: bool = false
 var _filter_error_reported: bool = false
 var _hit_filter: Callable # set by the owner; returns bool: "can this hurtbox be hit now?"
+var _evade_filter: Callable # set by the owner; returns bool
 var _shape_node: CollisionShape2D
 var _rectangle: RectangleShape2D
 
@@ -45,6 +46,19 @@ func _ready() -> void:
 ## The owner's filter (invulnerability, death...). Must return a bool.
 func set_hit_filter(filter: Callable) -> void:
 	_hit_filter = filter
+
+
+## The owner's evade filter: "is this hurtbox dodging bullets right now?" (dash invulnerability). Must return a bool.
+func set_evade_filter(filter: Callable) -> void:
+	_evade_filter = filter
+
+
+## True while the owner's evade filter says yes (false without a filter).
+func is_evading() -> bool:
+	if not _evade_filter.is_valid():
+		return false
+	var answer: Variant = _evade_filter.call()
+	return answer is bool and answer
 
 
 ## monitorable, shape enabled, in the tree, and the owner's filter (if any) says yes.
@@ -95,3 +109,11 @@ func world_rect() -> Rect2:
 		return Rect2()
 	var size: Vector2 = _rectangle.size
 	return Rect2(_shape_node.global_position - size / 2.0, size)
+
+
+## F2 debug: also draws this hurtbox's rectangle grown by margin_px (the graze zone). Called by BulletManager.enable_graze().
+func show_graze_zone(margin_px: float) -> void:
+	if _shape_node == null:
+		return
+	_shape_node.set_meta(&"graze_margin", margin_px)
+	_shape_node.add_to_group(Const.GROUP_DEBUG_GRAZE)

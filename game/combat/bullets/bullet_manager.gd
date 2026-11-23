@@ -9,14 +9,21 @@ extends Node2D
 ## Ticks after the entities (Const.PHYSICS_PRIORITY_BULLETS): hit tests read this tick's state of the hurtboxes.
 ## Never log from the update loops: counters are shown by the F3 overlay.
 
+## A bullet passed close to the graze hurtbox without touching it (position: global). Emitted after the bullet loop.
+signal grazed(position: Vector2)
+## The graze hurtbox was evading (dash invulnerability) while a bullet overlapped it. The bullet is not freed.
+signal dodged(position: Vector2)
+
 enum Camp { ENEMY, PLAYER }
 
 ## Appearance indices are stored in a PackedByteArray.
 const MAX_APPEARANCES: int = 256
 
 const FLAG_ACTIVE: int = 1
-## Reserved for the graze and perfect dash rules of epic 2 (pattern P2).
+## The bullet already paid its graze (pattern P2).
 const FLAG_COUNTED: int = 2
+## The bullet already paid its perfect dash: counted per bullet, never per dash. It also sets FLAG_COUNTED.
+const FLAG_DODGED: int = 4
 
 @export var camp: Camp = Camp.ENEMY
 ## Fixed pool size. Set before add_child().
@@ -60,6 +67,16 @@ var _hit_target_ids: PackedInt64Array = PackedInt64Array()
 var _hit_amounts: PackedFloat32Array = PackedFloat32Array()
 var _hit_directions: PackedVector2Array = PackedVector2Array()
 
+## Graze (story 3.2): the watched target, its index in _targets (-1 = none) and the margin around its rectangle.
+var _graze_hurtbox: Hurtbox
+var _graze_index: int = -1
+var _graze_radius_px: float = 0.0
+var _graze_evading: bool = false
+var _graze_zone: Rect2 = Rect2() # the target rect grown by the graze radius, this tick
+## Graze and dodge positions of the current tick, delivered after the loop (reused lists).
+var _grazed_positions: PackedVector2Array = PackedVector2Array()
+var _dodged_positions: PackedVector2Array = PackedVector2Array()
+
 
 ## Dependency injection: call before add_child(). The layers (Walls, HighObstacles) stop bullets.
 func setup(solid_layers: Array[TileMapLayer]) -> void:
@@ -94,6 +111,17 @@ func _ready() -> void:
 	_free_top = capacity
 	add_to_group(Const.GROUP_BULLET_MANAGERS)
 
+
+## Watches a registered hurtbox for grazes and dodges: a bullet whose center passes within radius_tiles of its
+## rectangle emits grazed once; one that overlaps it while it is evading emits dodged once (see Hurtbox.is_evading()).
+func enable_graze(hurtbox: Hurtbox, radius_tiles: float) -> void:
+	if hurtbox == null or not _targets.has(hurtbox) or not (radius_tiles > 0.0):
+		Log.error("combat", "enable_graze() needs a registered hurtbox and a positive radius")
+		assert(false, "Invalid graze setup")
+		return
+	_graze_hurtbox = hurtbox
+	_graze_radius_px = radius_tiles * Const.TILE_SIZE
+	hurtbox.show_graze_zone(_graze_radius_px)
 
 ## Registers a look (one MultiMeshInstance2D) and returns its index for BulletParams.appearance.
 ## The same Texture2D registered again returns its first index: one MultiMeshInstance2D per look, whatever the
@@ -241,6 +269,8 @@ func _physics_process(delta: float) -> void:
 			_free(i)
 	if not _hit_target_ids.is_empty():
 		_deliver_hits()
+	if not _grazed_positions.is_empty() or not _dodged_positions.is_empty():
+		_deliver_graze()
 
 
 func _process(_delta: float) -> void:
@@ -266,6 +296,10 @@ func _refresh_target_rects() -> void:
 		rect.position = to_local(rect.position) # the manager sits at the origin, unscaled
 		_target_rects[t] = rect
 		_target_hittable[t] = _targets[t].is_hittable()
+	_graze_index = _targets.find(_graze_hurtbox) if _graze_hurtbox != null else -1
+	if _graze_index != -1:
+		_graze_evading = _graze_hurtbox.is_evading()
+		_graze_zone = _target_rects[_graze_index].grow(_graze_radius_px)
 
 
 ## Circle against rectangle, in registration order: one bullet hits at most one target (no pierce before epic 5).
@@ -287,7 +321,34 @@ func _test_targets(i: int) -> bool:
 			if _targets[t].one_hit_per_tick:
 				_target_hittable[t] = false # the next bullets of this tick pass through
 			return true
+	if _graze_index != -1:
+		_test_graze(i)
 	return false
+
+
+## Graze and dodge of one bullet that touched no target (the player's hurtbox is the only one watched).
+## Evading and overlapping: dodged once per bullet. Hittable, not yet counted, within the radius and moving away from
+## the rectangle: grazed once.
+## A target that is neither hittable nor evading (post-hit invulnerability, already hit this tick): nothing.
+func _test_graze(i: int) -> void:
+	var pos: Vector2 = _positions[i]
+	if not _graze_zone.has_point(pos): # cheap rejection of most bullets
+		return
+	var rect: Rect2 = _target_rects[_graze_index]
+	var closest: Vector2 = Vector2(
+		clampf(pos.x, rect.position.x, rect.end.x), clampf(pos.y, rect.position.y, rect.end.y)
+	)
+	var distance_sq: float = pos.distance_squared_to(closest)
+	if _graze_evading:
+		if _flags[i] & FLAG_DODGED == 0 and distance_sq <= _radii[i] * _radii[i]:
+			_flags[i] |= FLAG_DODGED | FLAG_COUNTED
+			_dodged_positions.append(to_global(pos))
+	elif _target_hittable[_graze_index] and _flags[i] & FLAG_COUNTED == 0:
+		# Counted once the bullet is moving away: one that was heading for the hurtbox either hits it or is dodged,
+		# and a hit must not also pay a graze.
+		if distance_sq < _graze_radius_px * _graze_radius_px and _velocities[i].dot(pos - closest) > 0.0:
+			_flags[i] |= FLAG_COUNTED
+			_grazed_positions.append(to_global(pos))
 
 
 ## After the loop: a receive() that frees its target must not touch the arrays being iterated.
@@ -307,6 +368,18 @@ func _deliver_hits() -> void:
 	_hit_target_ids.clear()
 	_hit_amounts.clear()
 	_hit_directions.clear()
+
+
+## After the loop: a listener may change the lucidity tier, play sounds or free the target.
+func _deliver_graze() -> void:
+	var grazes: PackedVector2Array = _grazed_positions.duplicate()
+	var dodges: PackedVector2Array = _dodged_positions.duplicate()
+	_grazed_positions.clear()
+	_dodged_positions.clear()
+	for position_global: Vector2 in dodges:
+		dodged.emit(position_global)
+	for position_global: Vector2 in grazes:
+		grazed.emit(position_global)
 
 
 ## queue_free() marks only the node it is called on: an entity that dies frees its root, not its Hurtbox.
