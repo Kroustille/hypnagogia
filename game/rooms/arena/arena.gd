@@ -14,6 +14,17 @@ const FLOOR_ALT_COLOR: Color = Color(0.10, 0.10, 0.18)
 ## Technical pool size of the player's shots (~11 in flight at 4/s over 36 tiles at 14 tiles/s).
 const PLAYER_BULLET_CAPACITY: int = 128
 
+## Waves of the arena (story 2.6): data, never in code.
+const WAVE_LIST: WaveList = preload("res://data/waves/arena_waves.tres")
+
+## Verification tools set this to false before creating a Run: the room then stays empty, as before story 2.6.
+## Nothing in the game writes it.
+static var waves_enabled: bool = true
+
+## The last enemy left the tree (end of the frame it died in). Also emitted while the room is torn down: listeners must
+## ignore it then (the WaveRunner does).
+signal emptied
+
 ## Technical pool size of the enemy bullets, same as the load test (F5).
 const ENEMY_BULLET_CAPACITY: int = 512
 
@@ -42,6 +53,7 @@ var _enemy_bullets: BulletManager
 var _alive: int = 0
 ## Spawns of this room so far: names the next enemy <id>_<n>, never reused (a refused spawn may lose a number).
 var _spawn_serial: int = 0
+var _waves: WaveRunner
 
 
 ## Dependency injection: call before add_child().
@@ -69,6 +81,9 @@ func _ready() -> void:
 	# Fixed camera: centered on the room, shifted up by half the HUD band so the band stays free at the top.
 	_camera.position = frame_px / 2.0 - Vector2(0.0, Const.HUD_BAND_HEIGHT / 2.0)
 	_camera.reset_physics_interpolation()
+
+	if waves_enabled:
+		_setup_waves() # last: spawns need the bullets and the player
 
 	Log.info("room", "arena ready playable=%s tiles" % Const.ROOM_TILES)
 
@@ -124,10 +139,33 @@ func alive_enemy_count() -> int:
 	return _alive
 
 
+## Kills every living enemy as a lethal hit would (debug tools). Returns how many it killed.
+func kill_all_enemies() -> int:
+	var killed: int = 0
+	for child: Node in _enemies.get_children():
+		var enemy: Enemy = child as Enemy
+		if enemy != null and not enemy.is_dead():
+			enemy.kill()
+			killed += 1
+	return killed
+
+
+## The wave runner, or null when waves are disabled (verification tools).
+func wave_runner() -> WaveRunner:
+	return _waves
+
 ## Where the player enters the arena (center of the playable area), in global coordinates.
 func player_spawn_position() -> Vector2:
 	var frame_px: Vector2 = Vector2((Const.ROOM_TILES + Vector2i(2, 2)) * Const.TILE_SIZE)
 	return to_global(frame_px / 2.0)
+
+
+func _setup_waves() -> void:
+	var runner: WaveRunner = WaveRunner.new()
+	_waves = runner
+	runner.name = "WaveRunner"
+	runner.setup(self, WAVE_LIST) # before add_child()
+	add_child(runner)
 
 
 ## The player's BulletManager, at the room origin like Walls. Added last: drawn above the player (Combat layer).
@@ -253,6 +291,8 @@ func _overlaps_living_enemy(rect: Rect2) -> bool:
 
 func _on_enemy_tree_exited() -> void:
 	_alive = maxi(_alive - 1, 0)
+	if _alive == 0:
+		emptied.emit()
 
 
 ## A failed assert aborts the function it is in (debug builds): kept apart so the caller carries on (AR28).

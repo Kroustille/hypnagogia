@@ -17,3 +17,9 @@ signal enemy_damaged(world_position: Vector2, amount: float)
 ## telemetry (story 2.8).
 @warning_ignore("unused_signal")
 signal run_ended(outcome: int)
+
+## The last enemy of a wave died: the room has no enemy left. room: the room (Node: autoloads/ depends on no
+## feature folder). The room's lowest lucidity tier joins it with the lucidity rules (epic 3).
+## Listeners: loot and item effects (epic 5), telemetry (story 2.8).
+@warning_ignore("unused_signal")
+signal room_cleared(room: Node)

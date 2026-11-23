@@ -1,0 +1,105 @@
+[gd_resource type="Resource" script_class="WaveList" load_steps=27 format=3]
+
+[ext_resource type="Script" path="res://rooms/waves/wave_list.gd" id="1_list"]
+[ext_resource type="Script" path="res://rooms/waves/wave_def.gd" id="2_wave"]
+[ext_resource type="Script" path="res://rooms/waves/wave_entry.gd" id="3_entry"]
+[ext_resource type="Resource" path="res://data/enemies/sleepwalker.tres" id="S"]
+[ext_resource type="Resource" path="res://data/enemies/night_light.tres" id="N"]
+[ext_resource type="Resource" path="res://data/enemies/lullaby.tres" id="L"]
+[ext_resource type="Resource" path="res://data/enemies/sheep.tres" id="M"]
+
+[sub_resource type="Resource" id="e1_1"]
+script = ExtResource("3_entry")
+enemy = ExtResource("S")
+count = 3
+
+[sub_resource type="Resource" id="w1"]
+script = ExtResource("2_wave")
+entries = Array[ExtResource("3_entry")]([SubResource("e1_1")])
+
+[sub_resource type="Resource" id="e2_1"]
+script = ExtResource("3_entry")
+enemy = ExtResource("N")
+count = 2
+
+[sub_resource type="Resource" id="e2_2"]
+script = ExtResource("3_entry")
+enemy = ExtResource("S")
+count = 1
+
+[sub_resource type="Resource" id="w2"]
+script = ExtResource("2_wave")
+entries = Array[ExtResource("3_entry")]([SubResource("e2_1"), SubResource("e2_2")])
+
+[sub_resource type="Resource" id="e3_1"]
+script = ExtResource("3_entry")
+enemy = ExtResource("L")
+count = 2
+
+[sub_resource type="Resource" id="e3_2"]
+script = ExtResource("3_entry")
+enemy = ExtResource("S")
+count = 2
+
+[sub_resource type="Resource" id="w3"]
+script = ExtResource("2_wave")
+entries = Array[ExtResource("3_entry")]([SubResource("e3_1"), SubResource("e3_2")])
+
+[sub_resource type="Resource" id="e4_1"]
+script = ExtResource("3_entry")
+enemy = ExtResource("M")
+count = 2
+
+[sub_resource type="Resource" id="w4"]
+script = ExtResource("2_wave")
+entries = Array[ExtResource("3_entry")]([SubResource("e4_1")])
+
+[sub_resource type="Resource" id="e5_1"]
+script = ExtResource("3_entry")
+enemy = ExtResource("N")
+count = 1
+
+[sub_resource type="Resource" id="e5_2"]
+script = ExtResource("3_entry")
+enemy = ExtResource("L")
+count = 1
+
+[sub_resource type="Resource" id="e5_3"]
+script = ExtResource("3_entry")
+enemy = ExtResource("M")
+count = 1
+
+[sub_resource type="Resource" id="e5_4"]
+script = ExtResource("3_entry")
+enemy = ExtResource("S")
+count = 1
+
+[sub_resource type="Resource" id="w5"]
+script = ExtResource("2_wave")
+entries = Array[ExtResource("3_entry")]([SubResource("e5_1"), SubResource("e5_2"), SubResource("e5_3"), SubResource("e5_4")])
+
+[sub_resource type="Resource" id="e6_1"]
+script = ExtResource("3_entry")
+enemy = ExtResource("M")
+count = 2
+
+[sub_resource type="Resource" id="e6_2"]
+script = ExtResource("3_entry")
+enemy = ExtResource("L")
+count = 2
+
+[sub_resource type="Resource" id="e6_3"]
+script = ExtResource("3_entry")
+enemy = ExtResource("S")
+count = 2
+
+[sub_resource type="Resource" id="w6"]
+script = ExtResource("2_wave")
+entries = Array[ExtResource("3_entry")]([SubResource("e6_1"), SubResource("e6_2"), SubResource("e6_3")])
+
+[resource]
+script = ExtResource("1_list")
+waves = Array[ExtResource("2_wave")]([SubResource("w1"), SubResource("w2"), SubResource("w3"), SubResource("w4"), SubResource("w5"), SubResource("w6")])
+start_delay = 1.0
+pause_duration = 2.0
+spawn_slots = PackedVector2Array(4, 4, 34, 4, 4, 17, 34, 17, 19, 3, 19, 18, 3, 10, 35, 10)

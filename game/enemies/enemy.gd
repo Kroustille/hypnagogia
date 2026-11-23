@@ -88,6 +88,11 @@ func is_dead() -> bool:
 	return _dead
 
 
+## Kills the enemy as a lethal hit would (debug tools, waves): disabled now, freed at the end of the frame. Once.
+func kill() -> void:
+	_die()
+
+
 ## Rectangle of the physical body in global coordinates (what other bodies collide with).
 func body_world_rect() -> Rect2:
 	var rectangle: RectangleShape2D = _body.shape as RectangleShape2D
