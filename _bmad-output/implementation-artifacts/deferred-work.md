@@ -208,3 +208,11 @@
 ## Deferred from: code review of 2-7-lire-son-etat-dans-le-hud (2026-11-23)
 
 - **`HeartRow` limité à 12 icônes sans garde-fou** (story 5.1, Dent qui tombe : −1 cœur max) : `icons()` tronque à `MAX_ICONS` en silence. Avec des PV max impairs et une armure impaire au plafond (ex. 5 + 19), il faudrait 13 icônes : une icône d'armure disparaît. Un plafond réglé au-dessus de 24 (`CombatTuning`, `@export_range(1, 48, …, "or_greater")`, non borné par `Health.setup`) tronque les cœurs eux-mêmes (dégâts invisibles). Un dernier réceptacle impair est dessiné comme un cœur entier à moitié vide, identique à un cœur entamé. Au choix : réserver 13 icônes (117 px, la jauge commence à 240), borner le plafond (`Log.error` + `assert` au-delà de 2 × `MAX_ICONS`), journaliser la troncature, dessiner un demi-réceptacle.
+
+## Deferred from: story 2-8 (2026-11-23)
+
+- **NON ÉVALUÉ (humain) : présentation de la question sur l'écran de réveil** (taille des boutons Oui/Non, lisibilité, tentation de répondre au lieu de relancer, navigation au clavier ou à la manette entre Oui, Non et la relance). Aucune capture WSLg examinée par un humain ; à juger au premier playtest avec les amis.
+- **NON VÉRIFIÉ : écriture de `user://telemetry/` sur un build exporté Windows** (chemin réel, droits) ; vérifié seulement en headless sous Linux/WSL. À contrôler avec l'export de la story 1.8.
+- **Cause de la mort limitée à la source du coup** (`enemy_bullet`, `contact`…), sans l'identité de l'ennemi : le signal `player_hit(damage, source)` ne la porte pas. À enrichir si le playtest veut savoir quel ennemi tue (epic 3 ou plus).
+- **Temps par palier de lucidité (NFR12)** : absent du journal, les paliers arrivent avec l'epic 3 ; la télémétrie devra écouter `Events.lucidity_tier_changed`.
+- Report de 2.2 « cause de la mort en télémétrie » : **résolu** par la story 2.8 (source du dernier `player_hit` avant `run_ended`).

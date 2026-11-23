@@ -1,6 +1,6 @@
 # Story 2.8 : Dire si sa mort était juste
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -22,11 +22,11 @@ Exigences : FR34, NFR12, AR25 (epics.md, Story 2.8). Architecture : D18 « journ
 
 ## Tâches
 
-- [ ] `Events.run_started`, `Events.death_judged(just)` ; `Run` émet `run_started` à la fin de `_ready`. Commentaire de `run_ended` mis à jour.
-- [ ] `telemetry/telemetry_session.gd` (`RefCounted`, pur : événements, agrégats, `to_dict()`), `telemetry/telemetry.gd` (autoload : écoute, horloge, écriture), déclaré dans `project.godot` après `Audio`.
-- [ ] Écran de réveil : question, Oui, Non, signal `verdict_given(just)`, états (garde, répondu) ; `Main` relaie sur `Events.death_judged`.
-- [ ] Clés `UI_WAKE_QUESTION`, `UI_WAKE_YES`, `UI_WAKE_NO`, `UI_WAKE_ANSWERED` dans `strings.csv`.
-- [ ] Vérifications headless (`.scratch/t_telemetry.gd`, ajoutée à `run_all.sh`), `--quit-after 120` propre.
+- [x] `Events.run_started`, `Events.death_judged(just)` ; `Run` émet `run_started` à la fin de `_ready`. Commentaire de `run_ended` mis à jour.
+- [x] `telemetry/telemetry_session.gd` (`RefCounted`, pur : événements, agrégats, `to_dict()`), `telemetry/telemetry.gd` (autoload : écoute, horloge, écriture), déclaré dans `project.godot` après `Audio`.
+- [x] Écran de réveil : question, Oui, Non, signal `verdict_given(just)`, états (garde, répondu) ; `Main` relaie sur `Events.death_judged`.
+- [x] Clés `UI_WAKE_QUESTION`, `UI_WAKE_YES`, `UI_WAKE_NO`, `UI_WAKE_ANSWERED` dans `strings.csv`.
+- [x] Vérifications headless (`.scratch/t_telemetry.gd`, ajoutée à `run_all.sh`), `--quit-after 120` propre.
 
 ## État du code concerné
 
@@ -69,6 +69,18 @@ Exigences : FR34, NFR12, AR25 (epics.md, Story 2.8). Architecture : D18 « journ
 
 ### Agent Model Used
 
+Claude Sonnet 5.5
+
 ### Completion Notes
 
+- `Telemetry` (autoload, `telemetry/`) n'écoute que `Events` : `run_started` (nouveau, émis par `Run`), `player_hit`, `run_ended`, `death_judged` (nouveau, émis par `Main` depuis `WakeScreen.verdict_given`). `TelemetrySession` (pur) tient événements et indicateurs ; fichier réécrit à chaque événement dans `user://telemetry/<session>.json`, `session_end` à `quit()` ou fermeture.
+- Écran de réveil : question, Oui, Non (désactivés pendant la garde, une réponse par mort, le focus revient sur la relance, aucune relance automatique). Relancer sans répondre donne `no_answer`.
+- Vérifié : `t_telemetry` 24 contrôles (agrégats purs, réponse, garde, absence, cause jamais périmée, fichier relu, fin de session, aucune référence à `Telemetry` hors du dossier) ; `run_all.sh` en mode normal : 752 contrôles, toutes les scènes PASS ; `--quit-after 120` propre.
+- **NON ÉVALUÉ** (humain) : présentation de la question à l'écran, navigation manette ; **NON VÉRIFIÉ** : écriture sur un build Windows exporté (voir deferred-work).
+- Aucun écart aux décisions ci-dessus.
+
 ### File List
+
+- `game/telemetry/telemetry.gd`, `telemetry_session.gd` (+ `.uid`) (NEW)
+- `game/autoloads/events.gd`, `game/run/run.gd`, `game/main/main.gd`, `game/ui/menus/wake_screen.gd`, `wake_screen.tscn`, `game/localization/strings.csv`, `game/project.godot` (UPDATE)
+- ce fichier, `sprint-status.yaml`, `deferred-work.md` (UPDATE)
