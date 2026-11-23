@@ -213,7 +213,7 @@ physics/common/physics_ticks_per_second = 60
 
 | Niveau | Où il vit | Durée de vie | Exemples |
 |---|---|---|---|
-| Application | Autoloads `Events`, `Log`, `Settings`, `SaveService`, `Audio`, `GameClock` | Tout le temps | Réglages, profil, bus audio, échelles de temps |
+| Application | Autoloads `Events`, `Log`, `Settings`, `SaveService`, `Audio`, `GameClock`, `Telemetry` (dans `telemetry/`, hors `autoloads/`, écoute le bus) | Tout le temps | Réglages, profil, bus audio, échelles de temps |
 | Run | Nœud `Run` (enfant de `Main`) et ses objets | Une nuit ; détruit à la mort ou à la victoire | Seed et flux RNG, étage, carte, Éclats, heure du réveil |
 | Salle | Scène de salle active | De l'entrée à la sortie | Ennemis, projectiles, vagues, `room_tier` |
 
@@ -1003,7 +1003,7 @@ mkdir -p game art_source tools
 printf '\n# Godot\ngame/.godot/\nbuilds/\n' >> .gitignore
 ```
 
-Puis, dans Godot 4.7.2 : créer un projet dans `game/` avec les réglages de la section Moteur et framework, nommer les couches de collision, et déclarer les autoloads `Events`, `Log`, `Settings`, `SaveService`, `Audio`, `GameClock`.
+Puis, dans Godot 4.7.2 : créer un projet dans `game/` avec les réglages de la section Moteur et framework, nommer les couches de collision, et déclarer les autoloads `Events`, `Log`, `Settings`, `SaveService`, `Audio`, `GameClock`, `Telemetry` (dans `telemetry/`, hors `autoloads/`, écoute le bus).
 
 ### Premiers pas
 
