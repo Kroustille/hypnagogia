@@ -1,6 +1,6 @@
 class_name DebugPanel
 extends Control
-## F1 debug panel (AR24): commands on keys 1 to 8 while it is visible and the game is not paused.
+## F1 debug panel (AR24): commands on keys 1 to 9 while it is visible and the game is not paused.
 ## It only calls public methods of the game (Health, Hurtbox, BulletManager), never private fields.
 ## Instantiated by Main in debug builds only. Texts are technical readouts: they intentionally bypass tr()
 ## (exemption of debug/).
@@ -18,6 +18,7 @@ const SPAWN_REQUEST: Vector2 = Vector2(304, 40)
 const SLEEPWALKER_DEF: EnemyDef = preload("res://data/enemies/sleepwalker.tres")
 const NIGHT_LIGHT_DEF: EnemyDef = preload("res://data/enemies/night_light.tres")
 const LULLABY_DEF: EnemyDef = preload("res://data/enemies/lullaby.tres")
+const SHEEP_DEF: EnemyDef = preload("res://data/enemies/sheep.tres")
 
 var _auto_fire: bool = false
 var _auto_ticks: float = 0.0
@@ -60,6 +61,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_spawn(NIGHT_LIGHT_DEF, "night light")
 		KEY_8:
 			_spawn(LULLABY_DEF, "lullaby")
+		KEY_9:
+			_spawn(SHEEP_DEF, "sheep")
 		_:
 			handled = false
 	if handled:
@@ -118,7 +121,7 @@ func _hit_player() -> void:
 	_log("hit applied" if accepted else "hit ignored (invulnerable or dead)")
 
 
-## Asks the active room for an enemy (story 2.6 replaces keys 6 to 8 with the chosen enemy).
+## Asks the active room for an enemy (story 2.6 replaces keys 6 to 9 with the chosen enemy).
 func _spawn(def: EnemyDef, label: String) -> void:
 	var room: Arena = get_tree().get_first_node_in_group(Const.GROUP_ROOM) as Arena # never cached: F5 and restarts recreate it
 	if room == null:
@@ -199,7 +202,7 @@ func _refresh_text() -> void:
 		return
 	var player: Player = get_tree().get_first_node_in_group(Const.GROUP_PLAYER) as Player
 	var lines: PackedStringArray = PackedStringArray([
-		"F1 panel (keys 1-8)",
+		"F1 panel (keys 1-9)",
 		"1 invulnerable: %s" % ("on" if _invulnerable_now(player) else "off"),
 		"2 +1/2 armor",
 		"3 -1/2 heart",
@@ -208,6 +211,7 @@ func _refresh_text() -> void:
 		"6 spawn sleepwalker",
 		"7 spawn night light",
 		"8 spawn lullaby",
+		"9 spawn sheep",
 	])
 	if player != null:
 		var health: Health = player.health
