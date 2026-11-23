@@ -106,6 +106,7 @@ func spawn_enemy(def: EnemyDef, requested: Vector2) -> Enemy:
 	if enemy.hurtbox == null or enemy.process_mode == Node.PROCESS_MODE_DISABLED:
 		# Its _ready() failed: never counted, registered nor left visible and hittable.
 		Log.error("room", "spawn of %s refused: enemy setup failed" % def.id)
+		_enemies.remove_child(enemy) # no named node left in Enemies until the end of the frame
 		enemy.queue_free()
 		_assert_failed("enemy setup failed")
 		return null

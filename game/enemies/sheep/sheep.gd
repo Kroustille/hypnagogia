@@ -181,7 +181,7 @@ func _enter(next: State) -> void:
 			_ticks_left = _backup_seconds * Engine.physics_ticks_per_second
 		State.CHARGE:
 			_sprite.texture = _charge_texture
-			var body: PhysicsBody2D = _target as PhysicsBody2D
+			var body: PhysicsBody2D = _target as PhysicsBody2D if is_instance_valid(_target) else null
 			if is_instance_valid(body) and _excepted_body == null:
 				add_collision_exception_with(body)
 				_excepted_body = body
