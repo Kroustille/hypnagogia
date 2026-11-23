@@ -197,3 +197,10 @@
 
 - **`room_cleared` émis pendant que `Enemies` est verrouillé** (epic 5, effets d'objets et renforts) : `Arena.emptied` part du `tree_exited` du dernier ennemi, pendant le `remove_child` de `Enemies` (`data.blocked`). Un écouteur de `Events.room_cleared` qui appellerait `spawn_enemy()` en synchrone aurait « Parent node is busy » (`add_child` refusé). Aucun écouteur aujourd'hui. Le jour venu : apparition différée (`call_deferred`) dans l'écouteur, ou émission différée de `room_cleared` avec test `is_instance_valid(room)`.
 - **Dossier `game/.scratch` à exclure de l'export** (story 1.8) : les scènes de vérification (dont `th.gd`, qui écrit `Arena.waves_enabled = false`) sont sous `res://`. Le jeu ne les charge jamais (pas de fuite en release), mais le filtre d'export doit les exclure.
+
+## Deferred from: story 2-7 (2026-11-23)
+
+- **Lisibilité d'un coup reçu en plein combat : NON ÉVALUÉE** (report de 2.1, maintenant avec HUD). Flash blanc de 0,25 s de la rangée de cœurs ; seule la mise à jour est vérifiée (headless et capture), pas le ressenti en jeu.
+- **Taille des icônes (8x7 px) et contraste du HUD à l'échelle réelle : NON ÉVALUÉS** (étape humaine). Couleurs et formes provisoires, palette finale en 7.2.
+- Panneau F1 : désormais sous la bande de HUD (report de 2.1 traité) ; il recouvre le haut du cadre de murs sur 250 px de large, sans enjeu.
+- Restent aux stories suivantes : jauge de lucidité dans sa place réservée (3.1), Éclats, objet actif et consommable (epic 5). Le HUD reste visible derrière le test de charge F5 (outil de debug).

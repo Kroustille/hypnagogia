@@ -1,6 +1,6 @@
 # Story 2.7 : Lire son état dans le HUD
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -21,13 +21,13 @@ Exigences : FR33, AR22 (epics.md, Story 2.7). GDD : cœurs de départ 3 (6 demi-
 
 ## Tâches
 
-- [ ] `Events.player_health_changed(half_hearts, max_half_hearts, armor)` (primitives), émis par `Player` sur `Health.changed` et une fois à la mise en place (état initial d'une nouvelle partie).
-- [ ] `ui/hud/hud.tscn` + `hud.gd` : fond de bande, `HeartRow`, `LucidityGaugeSlot`, Éclats (icône + nombre), deux `HudSlot` vides. Écoute `Events.player_health_changed` et `Events.player_hit`.
-- [ ] `ui/hud/heart_row.gd` : dessin en code (masque de pixels 8x7), `set_state()`, `flash()`.
-- [ ] `Main` instancie le HUD dans `UI`, avant les surcouches de debug et les menus (ils restent au-dessus).
-- [ ] Panneau F1 : `offset_top` sous la bande. Commentaires de `Const` mis à jour.
-- [ ] Clé `UI_HUD_SHARDS` dans `strings.csv`.
-- [ ] Vérifications headless (`.scratch/t_hud.gd`, ajoutée à `run_all.sh`), lancement `--quit-after 120` propre, capture WSLg.
+- [x] `Events.player_health_changed(half_hearts, max_half_hearts, armor)` (primitives), émis par `Player` sur `Health.changed` et une fois à la mise en place (état initial d'une nouvelle partie).
+- [x] `ui/hud/hud.tscn` + `hud.gd` : fond de bande, `HeartRow`, `LucidityGaugeSlot`, Éclats (icône + nombre), deux `HudSlot` vides. Écoute `Events.player_health_changed` et `Events.player_hit`.
+- [x] `ui/hud/heart_row.gd` : dessin en code (masque de pixels 8x7), `set_state()`, `flash()`.
+- [x] `Main` instancie le HUD dans `UI`, avant les surcouches de debug et les menus (ils restent au-dessus).
+- [x] Panneau F1 : `offset_top` sous la bande. Commentaires de `Const` mis à jour.
+- [x] Clé `UI_HUD_SHARDS` dans `strings.csv`.
+- [x] Vérifications headless (`.scratch/t_hud.gd`, ajoutée à `run_all.sh`), lancement `--quit-after 120` propre, capture WSLg.
 
 ## État du code concerné
 
@@ -69,4 +69,20 @@ Exigences : FR33, AR22 (epics.md, Story 2.7). GDD : cœurs de départ 3 (6 demi-
 
 ## Dev Agent Record
 
-(à remplir)
+### Agent Model Used
+
+Claude Sonnet 5.5
+
+### Completion Notes
+
+- `Events.player_health_changed` émis par `Player` (sur `Health.changed` et à l'état initial) ; `Hud` (`ui/hud/`) dans la couche `UI` de `Main`, ajouté en premier (sous les surcouches). Cœurs et armure dessinés en code (`HeartRow`), cadres vides (`HudSlot`) pour la lucidité et les deux emplacements, Éclats « 0 » via `tr(&"UI_HUD_SHARDS")`.
+- Un coup fait flasher la rangée 0,25 s (`Events.player_hit`). Panneau F1 descendu sous la bande (`offset_top` 28).
+- Vérifié : `.scratch/t_hud.gd` 20 ok (bande 640x24, éléments dans la bande, état initial, coup, armure, soin, mort puis relance, F1 sous la bande, un seul HUD) ; `run_all.sh` en mode normal : ALL PASS, 723 ok, FAILS=0 ; capture WSLg : bande lisible (cœurs, demi-cœur bleu, jauge vide au centre, Éclats, deux cadres).
+- **NON ÉVALUÉ** (humain) : lisibilité d'un coup en plein combat (flash de 0,25 s), taille des cœurs (8x7 px) à l'échelle réelle.
+- Aucun écart aux décisions ci-dessus.
+
+### File List
+
+- `game/ui/hud/hud.gd`, `hud.tscn`, `heart_row.gd`, `hud_slot.gd` (+ `.uid`) (NEW)
+- `game/autoloads/events.gd`, `game/player/player.gd`, `game/main/main.gd`, `game/debug/debug_panel.tscn`, `game/core/constants.gd`, `game/localization/strings.csv` (UPDATE)
+- ce fichier, `sprint-status.yaml`, `deferred-work.md` (UPDATE)
