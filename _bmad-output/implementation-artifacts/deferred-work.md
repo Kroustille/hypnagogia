@@ -181,3 +181,14 @@
 
 - **Une charge qui ne touche rien ne finit jamais** (stories 4.3 et 4.8) : `Sheep._process_charge()` ne quitte `CHARGE` que sur une collision ; la décision 16 de la 2.5 suppose une salle fermée. Une porte ouverte (4.8), un trou (4.3) ou une limite de salle hors `LAYER_WALLS` laisseraient le Mouton charger sans fin (salle jamais nettoyée). Garder les portes fermées en combat, ou ajouter une durée ou une distance maximale de charge qui ramène au repos (avec une ligne de journal).
 - **`Enemy._move_toward()` ne s'arrête plus quand la cible disparaît** (story 4.5) : depuis la 2.5, la règle « pas de cible, pas de mouvement » repose sur l'appelant, qui passe `_target_position()` (la position de l'ennemi sans cible). Sans effet aujourd'hui (Somnambule et Berceuse, 4 appels) ; un appelant qui passe un point fixe (chemin `AStarGrid2D` de la 4.5) avancerait vers lui sans cible : la 4.5 garde la règle dans son appelant.
+
+## Deferred from: story 2-6 (2026-11-23)
+
+- **NON ÉVALUÉ (à juger au jeu)** : contenu des 6 vagues (2 à 7 ennemis), délai de la première vague (1 s) et pause (2 s), lisibilité de 6 ennemis à l'écran, difficulté de la boucle sans fin. Tout est dans `data/waves/arena_waves.tres`, aucune valeur en code. Le GDD ne donne ni liste ni durée.
+- **NON ÉVALUÉ à l'oreille** : plusieurs télégraphes qui partent ensemble (vague de Somnambules, de Moutons) ; `Audio` plafonne à 3 voix par flux, un 4e est muet (décision 5 : plafond gardé, l'animation annonce l'attaque). Plafond propre au télégraphe ou son positionnel : story 7.7.
+- **NON VÉRIFIÉ à l'écran** : aucune vérification fenêtrée sous WSLg (pipeline allégé) : apparition de 6 ennemis, enchaînement visuel des vagues, ligne `wave N …` du panneau F1.
+- **Plafond de projectiles ennemis (report 2.4) : mesuré, pas de plafond ajouté.** 12 Veilleuses (`MAX_WAVE_ENEMIES`) pendant 20 s : aucun tir refusé, aucune salve tronquée (pic mesuré dans `t_waves`, très loin des 512). À reprendre si un ennemi de l'acte 1 tire beaucoup plus (le plafond `MAX_WAVE_ENEMIES` ne compte pas les projectiles par ennemi).
+- **Points d'apparition fixes, sans RNG** : les 8 points de la donnée sont parcourus en continu ; `RunRng` et `EnemySpawn` (epic 4) remplacent la liste. Le `WaveRunner` sera à rattacher à la salle prédessinée (une salle = ses vagues).
+- **`Events.room_cleared(room: Node)` sans `lowest_tier`** : le palier de lucidité (epic 3) s'ajoute à la signature ; les écouteurs de l'epic 5 devront être adaptés.
+- **`Arena.waves_enabled` statique** : réglage réservé aux outils de vérification (`.scratch/th.gd` le met à faux) ; à retirer quand les salles auront un `WaveList` propre (epic 4).
+- **Vagues non bornées en temps** : une vague dont un ennemi n'est jamais atteignable (cible hors portée) bloque la suite ; le « chrono » et les renforts (Abandon, objets) arrivent avec les epics 3 et 5. « Vague suivante » (F1, touche `-`) débloque.
