@@ -1,0 +1,74 @@
+# Story 2.8 : Dire si sa mort était juste
+
+Status: ready-for-dev
+
+## Story
+
+En tant que développeur qui fait jouer ses amis,
+je veux qu'on demande après chaque mort si elle était juste, et journaliser les sessions,
+afin de mesurer les indicateurs de playtest.
+
+Exigences : FR34, NFR12, AR25 (epics.md, Story 2.8). Architecture : D18 « journal JSON de playtest » ; `telemetry/` (`telemetry.gd`, `telemetry_session.gd`) écoute le bus, aucun système ne l'appelle, rien ne dépend de `telemetry/` (game-architecture.md l. 245, 500, 601, 697) ; fichier `user://telemetry/<session>.json`, écrit en continu, vidé en fin de session. Report de 2.2 (deferred-work, décision 20) : la cause de la mort se lit dans la source du dernier `player_hit` avant `run_ended` (ordre tenu : `changed`, `player_hit`, `run_ended`, même tick).
+
+## Critères d'acceptation
+
+1. **Question** : l'écran de réveil affiche « Cette mort était-elle juste ? » avec deux boutons Oui et Non, en plus du bouton de relance. Même garde d'entrée de 0,3 s que la relance.
+2. **Ne bloque pas** : la relance reste possible (touche ou bouton) sans répondre ; une réponse ne relance pas, ne retire pas la relance, et ne peut être donnée qu'une fois par mort (les boutons se désactivent, la question devient « Noté. »). Relancer sans répondre enregistre une absence de réponse (`no_answer`).
+3. **Télémétrie par le bus uniquement** : autoload `Telemetry` (`telemetry/telemetry.gd`) qui n'écoute que `Events` ; aucun autre code ne l'appelle ni ne la référence. Nouveaux signaux : `Events.run_started()` (émis par `Run`) et `Events.death_judged(just: bool)` (émis par `Main` à la réponse du joueur, l'écran de réveil ne connaît que Main).
+4. **Journal** : `user://telemetry/<session>.json`, réécrit à chaque événement (une plantade ne perd rien). Événements : début de session, début de partie, mort et sa cause (nom de la `DamageInfo.Source` du dernier `player_hit`, `unknown` sinon), réponse, absence de réponse, fin de session (fermeture de la fenêtre ou `quit()`).
+5. **Indicateurs par session** (`summary`) : durée de jeu (`play_seconds`), nombre de parties (`runs`), `deaths`, `yes`, `no`, `no_answer`, taux de oui (`yes_rate` = oui / (oui + non), `null` sans réponse).
+6. **Builds des amis** : l'autoload n'est pas protégé par `OS.is_debug_build()` ; aucun `debug/` impliqué.
+7. Textes par `tr()` et `strings.csv`, aucun texte en dur.
+
+## Tâches
+
+- [ ] `Events.run_started`, `Events.death_judged(just)` ; `Run` émet `run_started` à la fin de `_ready`. Commentaire de `run_ended` mis à jour.
+- [ ] `telemetry/telemetry_session.gd` (`RefCounted`, pur : événements, agrégats, `to_dict()`), `telemetry/telemetry.gd` (autoload : écoute, horloge, écriture), déclaré dans `project.godot` après `Audio`.
+- [ ] Écran de réveil : question, Oui, Non, signal `verdict_given(just)`, états (garde, répondu) ; `Main` relaie sur `Events.death_judged`.
+- [ ] Clés `UI_WAKE_QUESTION`, `UI_WAKE_YES`, `UI_WAKE_NO`, `UI_WAKE_ANSWERED` dans `strings.csv`.
+- [ ] Vérifications headless (`.scratch/t_telemetry.gd`, ajoutée à `run_all.sh`), `--quit-after 120` propre.
+
+## État du code concerné
+
+- `Run._on_player_died` émet `Events.run_ended(DEATH)` ; `Main._on_events_run_ended` gèle et ouvre `WakeScreen` ; relance par `restart_requested` → `Main._start_run()` (nouveau `Run`).
+- `Events.player_hit(damage, source)` : `source` = `DamageInfo.Source` en entier (`PLAYER_SHOT 0, ENEMY_BULLET 1, DEBUG 2, CONTACT 3`).
+- `WakeScreen` : garde `_armed` comptée en ticks physiques bruts (le jeu est gelé), bouton `RestartButton` focalisé, `Panel/Items` en `VBoxContainer`.
+- `SaveService` est une coquille vide (6.8) : la télémétrie écrit elle-même, ce n'est pas une sauvegarde.
+- Pas d'ennemi nommé dans `player_hit` : la cause est la source du coup, pas l'ennemi (voir décision 3).
+
+## Pièges
+
+- Un autoload ne voit pas `class_name` d'un dossier de fonctionnalité en cycle : `Telemetry` utilise `DamageInfo.Source` (lecture seule) ; rien ne l'importe en retour.
+- `_exit_tree` d'un autoload tourne à `quit()` : fin de session idempotente (`_ended`), plus `NOTIFICATION_WM_CLOSE_REQUEST`.
+- La réponse arrive pendant que le jeu est gelé : la télémétrie utilise `Time.get_ticks_msec()`, jamais `GameClock`.
+- Tests : le fichier de session de la scène est dans `user://telemetry/` ; la scène le relit puis le supprime.
+
+### Décisions prises sans Kroustille (à valider en fin d'epic)
+
+1. **Réponse = deux boutons sur l'écran de réveil, sans touche dédiée** — Raison : le CA demande Oui et Non ; pas de nouvelle action d'entrée pour un outil de playtest ; la relance garde le focus par défaut (Entrée/relance sans répondre = `no_answer`).
+2. **Une réponse ne relance pas** et ne se donne qu'une fois — Raison : « ne bloque pas la relance », réponse non ambiguë dans le journal.
+3. **Cause de la mort = nom de la `DamageInfo.Source`** du dernier `player_hit` (`enemy_bullet`, `contact`…), sans identité d'ennemi — Raison : `player_hit` porte seulement la source (primitives sur le bus) ; enrichir le signal attend un besoin réel (3.x). Limite consignée dans deferred-work.
+4. **`no_answer` aussi si la session se ferme sur un écran de réveil sans réponse** — Raison : un joueur qui quitte sans répondre n'a pas répondu ; cohérent avec le taux.
+5. **Durée de jeu = temps réel de la session** (de l'autoload à la sortie, pauses comprises) — Raison : simple et suffisant pour le playtest ; temps par palier (NFR12) arrive avec l'epic 3.
+6. **Réécriture complète du fichier à chaque événement** — Raison : quelques dizaines d'événements par session, aucune perte en cas de plantade, pas de tampon à vider.
+7. **`yes_rate` = oui / (oui + non)**, les absences exclues (comptées à part dans `no_answer`) ; `null` si aucune réponse.
+8. **Identifiant de session** = date et heure locales `AAAAMMJJ-HHMMSS`, suffixé `-n` en cas de collision de nom.
+
+## Vérifications prévues (`.scratch/t_telemetry.gd`, sur `main.tscn`)
+
+- `TelemetrySession` pur : agrégats (runs, morts, oui/non/absence, `yes_rate`, `null` sans réponse), cause `unknown` sans coup.
+- Dans le jeu : l'écran de réveil a Oui, Non, relance ; Oui enregistre `answer just=true` et désactive les boutons, la relance reste possible ; mort suivante relancée sans répondre : `no_answer` ; cause = `debug` pour un coup `DEBUG` ; réponse refusée pendant la garde.
+- Le fichier JSON existe, se relit (`JSON.parse`), `summary` cohérent ; fin de session par `Telemetry.end_session()` ajoute `session_end`.
+- Aucun code hors `telemetry/` ne référence `Telemetry` (hors `.scratch`).
+
+## Fichiers prévus
+
+`game/telemetry/{telemetry.gd,telemetry_session.gd}`, `game/autoloads/events.gd`, `game/run/run.gd`, `game/main/main.gd`, `game/ui/menus/wake_screen.{gd,tscn}`, `game/localization/strings.csv`, `game/project.godot`, `game/.scratch/t_telemetry.*` (non versionné).
+
+## Dev Agent Record
+
+### Agent Model Used
+
+### Completion Notes
+
+### File List
