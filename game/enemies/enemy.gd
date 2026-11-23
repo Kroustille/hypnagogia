@@ -124,13 +124,17 @@ func _die() -> void:
 	queue_free()
 
 
-## The straight line of AR23 (AStarGrid2D replaces it in story 4.5). velocity is rewritten every tick.
+## The straight line of AR23 (AStarGrid2D replaces it in story 4.5): toward a point, stopping on it.
+## velocity is rewritten every tick. Without a target, callers pass _target_position() (the enemy's own position).
 func _move_toward(point: Vector2, speed_px: float, clock_scale: float) -> void:
 	var to: Vector2 = point - global_position
-	if not is_instance_valid(_target) or to.length_squared() < 1e-6:
-		velocity = Vector2.ZERO
-	else:
-		velocity = to.normalized() * speed_px * clock_scale
+	_move_in_direction(to.normalized() if to.length_squared() >= 1e-6 else Vector2.ZERO, speed_px, clock_scale)
+
+
+## Moves along a direction (unit vector, or zero to stand still) at speed_px per second, scaled by the clock:
+## never stops on a point (a charge goes on until something stops it). move_and_slide() reports what it hit.
+func _move_in_direction(direction: Vector2, speed_px: float, clock_scale: float) -> void:
+	velocity = direction * speed_px * clock_scale
 	move_and_slide()
 
 
