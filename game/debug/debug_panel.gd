@@ -65,7 +65,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_spawn(SHEEP_DEF, "sheep")
 		KEY_0:
 			_kill_all()
-		KEY_MINUS:
+		KEY_MINUS, KEY_KP_SUBTRACT:
 			_next_wave()
 		_:
 			handled = false
@@ -138,7 +138,7 @@ func _spawn(def: EnemyDef, label: String) -> void:
 		_log("%s spawned at %s" % [label, enemy.global_position])
 
 
-## Kills every living enemy of the active room, without clearing the room (no Events.room_cleared from the kill itself).
+## Kills every living enemy of the active room. During a wave the runner then clears the room (Events.room_cleared), as for player kills.
 func _kill_all() -> void:
 	var room: Arena = get_tree().get_first_node_in_group(Const.GROUP_ROOM) as Arena
 	if room == null:
@@ -237,7 +237,7 @@ func _refresh_text() -> void:
 		"8 spawn lullaby",
 		"9 spawn sheep",
 		"0 kill all enemies",
-		"- next wave",
+		"- next wave (keypad -; ) on AZERTY)",
 	])
 	if player != null:
 		var health: Health = player.health
@@ -248,7 +248,10 @@ func _refresh_text() -> void:
 		lines.append("enemies alive %d" % room.alive_enemy_count())
 		var runner: WaveRunner = room.wave_runner()
 		if runner != null:
-			lines.append("wave %d %s" % [runner.wave_number(), runner.state_name().to_lower()])
+			var state: String = runner.state_name().to_lower()
+			if state == "waiting":
+				state = "pause"
+			lines.append("wave %d %s" % [runner.wave_number(), state])
 	if not _last_message.is_empty():
 		lines.append(_last_message)
 	_label.text = "\n".join(lines)

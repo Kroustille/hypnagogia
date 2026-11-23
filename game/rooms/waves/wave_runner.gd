@@ -46,11 +46,16 @@ func _ready() -> void:
 		_waves.clear()
 		return
 	_room.emptied.connect(_on_room_emptied)
+	Events.run_ended.connect(_on_events_run_ended)
 	_wait(_list.start_delay)
 
 
 func _exit_tree() -> void:
 	_state = State.IDLE # a room torn down (restart) emits nothing
+
+
+func _on_events_run_ended(_outcome: int) -> void:
+	_state = State.IDLE # a finished run clears no room and spawns no wave
 
 
 ## 1 for the first wave while it runs; 0 before it; keeps counting after the list loops.
@@ -73,7 +78,10 @@ func force_next_wave() -> void:
 func _physics_process(_delta: float) -> void:
 	if _state != State.WAITING:
 		return
-	_ticks_left -= GameClock.scale(GameClock.Group.ENEMIES)
+	var step: float = GameClock.scale(GameClock.Group.ENEMIES)
+	if step <= 0.0:
+		return
+	_ticks_left -= step
 	if _ticks_left <= 1e-6:
 		_start_next_wave()
 
@@ -87,8 +95,9 @@ func _on_room_emptied() -> void:
 	if _state != State.FIGHTING:
 		return # pause, debug spawns or teardown
 	Log.debug("room", "wave %d cleared" % _wave_number)
-	Events.room_cleared.emit(_room)
+	# state first: a listener that re-enters or tears the room down must see WAITING (or IDLE)
 	_wait(_list.pause_duration)
+	Events.room_cleared.emit(_room)
 
 
 ## Spawns the next valid wave. Nothing could appear: the wave is skipped and the pause starts (never a stuck room).
@@ -112,16 +121,20 @@ func _start_next_wave() -> void:
 ## Keeps the valid enemies of each wave (one EnemyDef per enemy). Invalid entries are reported and ignored.
 func _validate() -> void:
 	_waves.clear()
-	for wave: WaveDef in _list.waves:
+	for index: int in _list.waves.size():
+		var wave: WaveDef = _list.waves[index]
 		var defs: Array[EnemyDef] = []
-		if wave != null:
-			for entry: WaveEntry in wave.entries:
-				if entry == null or entry.enemy == null or entry.count <= 0:
-					Log.error("room", "wave entry ignored: it needs an enemy and a count above 0")
-					_assert_failed("WaveEntry needs an enemy and count > 0")
-					continue
-				for i: int in entry.count:
-					defs.append(entry.enemy)
+		if wave == null or wave.entries.is_empty():
+			Log.error("room", "wave %d ignored: null or without entries" % index)
+			_assert_failed("a WaveDef needs at least one entry")
+			continue
+		for entry: WaveEntry in wave.entries:
+			if entry == null or entry.enemy == null or entry.enemy.scene == null or entry.count <= 0:
+				Log.error("room", "wave entry ignored: it needs an enemy with a scene and a count above 0")
+				_assert_failed("WaveEntry needs an enemy with a scene and count > 0")
+				continue
+			for i: int in entry.count:
+				defs.append(entry.enemy)
 		if defs.size() > MAX_WAVE_ENEMIES:
 			Log.error("room", "wave of %d enemies truncated to %d" % [defs.size(), MAX_WAVE_ENEMIES])
 			_assert_failed("a wave holds at most MAX_WAVE_ENEMIES enemies")

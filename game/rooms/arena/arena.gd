@@ -8,6 +8,10 @@ extends Node2D
 ## The player is given by the Run through setup() (it is the parent of the room, not a child).
 ## World origin = top-left corner of the wall frame, in pixels.
 
+## The last enemy left the tree (end of the frame it died in). Also emitted while the room is torn down: listeners must
+## ignore it then (the WaveRunner does).
+signal emptied
+
 const WALL_COLOR: Color = Color(0.35, 0.3, 0.55)
 const FLOOR_COLOR: Color = Color(0.09, 0.09, 0.16)
 const FLOOR_ALT_COLOR: Color = Color(0.10, 0.10, 0.18)
@@ -20,10 +24,6 @@ const WAVE_LIST: WaveList = preload("res://data/waves/arena_waves.tres")
 ## Verification tools set this to false before creating a Run: the room then stays empty, as before story 2.6.
 ## Nothing in the game writes it.
 static var waves_enabled: bool = true
-
-## The last enemy left the tree (end of the frame it died in). Also emitted while the room is torn down: listeners must
-## ignore it then (the WaveRunner does).
-signal emptied
 
 ## Technical pool size of the enemy bullets, same as the load test (F5).
 const ENEMY_BULLET_CAPACITY: int = 512
@@ -53,7 +53,7 @@ var _enemy_bullets: BulletManager
 var _alive: int = 0
 ## Spawns of this room so far: names the next enemy <id>_<n>, never reused (a refused spawn may lose a number).
 var _spawn_serial: int = 0
-var _waves: WaveRunner
+var _wave_runner: WaveRunner
 
 
 ## Dependency injection: call before add_child().
@@ -152,7 +152,8 @@ func kill_all_enemies() -> int:
 
 ## The wave runner, or null when waves are disabled (verification tools).
 func wave_runner() -> WaveRunner:
-	return _waves
+	return _wave_runner
+
 
 ## Where the player enters the arena (center of the playable area), in global coordinates.
 func player_spawn_position() -> Vector2:
@@ -162,7 +163,7 @@ func player_spawn_position() -> Vector2:
 
 func _setup_waves() -> void:
 	var runner: WaveRunner = WaveRunner.new()
-	_waves = runner
+	_wave_runner = runner
 	runner.name = "WaveRunner"
 	runner.setup(self, WAVE_LIST) # before add_child()
 	add_child(runner)
