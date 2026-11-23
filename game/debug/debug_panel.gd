@@ -12,6 +12,8 @@ const BURST_COUNT: int = 3
 const BURST_SPREAD_DEGREES: float = 15.0
 const AUTO_FIRE_INTERVAL: float = 0.25 # seconds
 const REFRESH_INTERVAL: float = 0.25
+## Values the L key cycles through: one per lucidity tier (story 3.1).
+const LUCIDITY_PRESETS: PackedInt32Array = [100, 75, 50, 25, 0]
 
 ## Debug request of the spawn commands: top center of the playable area, replaced by the room when too close.
 const SPAWN_REQUEST: Vector2 = Vector2(304, 40)
@@ -21,6 +23,7 @@ const LULLABY_DEF: EnemyDef = preload("res://data/enemies/lullaby.tres")
 const SHEEP_DEF: EnemyDef = preload("res://data/enemies/sheep.tres")
 
 var _auto_fire: bool = false
+var _lucidity_preset: int = -1
 var _auto_ticks: float = 0.0
 var _last_message: String = ""
 var _since_refresh: float = 0.0
@@ -65,6 +68,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_spawn(SHEEP_DEF, "sheep")
 		KEY_0:
 			_kill_all()
+		KEY_L:
+			_cycle_lucidity()
 		KEY_MINUS, KEY_KP_SUBTRACT:
 			_next_wave()
 		_:
@@ -158,6 +163,16 @@ func _next_wave() -> void:
 	_log("next wave (%d)" % runner.wave_number())
 
 
+## Sets the lucidity to the next preset, through the same public method as the game rules.
+func _cycle_lucidity() -> void:
+	var player: Player = _find_player()
+	if player == null:
+		return
+	_lucidity_preset = (_lucidity_preset + 1) % LUCIDITY_PRESETS.size()
+	player.lucidity.set_value(LUCIDITY_PRESETS[_lucidity_preset])
+	_log("lucidity set to %d" % player.lucidity.value)
+
+
 func _fire_burst() -> void:
 	if _fire(BURST_COUNT, BURST_SPREAD_DEGREES):
 		_log("burst fired")
@@ -237,10 +252,12 @@ func _refresh_text() -> void:
 		"8 spawn lullaby",
 		"9 spawn sheep",
 		"0 kill all enemies",
+		"L lucidity cycle (100, 75, 50, 25, 0)",
 		"- next wave (keypad -; ) on AZERTY)",
 	])
 	if player != null:
 		var health: Health = player.health
+		lines.append("lucidity %d (%s)" % [player.lucidity.value, Lucidity.Tier.find_key(player.lucidity.live_tier)])
 		lines.append("hearts %d/%d  armor %d  cap %d" % [
 			health.half_hearts, health.max_half_hearts, health.armor, health.cap_half_hearts()])
 	var room: Arena = get_tree().get_first_node_in_group(Const.GROUP_ROOM) as Arena

@@ -57,12 +57,21 @@ func _refresh_text() -> void:
 	var size: Vector2i = get_window().size
 	var factor: int = Const.integer_scale(size)
 	var bullets: Vector2i = _bullet_counts()
-	_label.text = "FPS %d | 1%% low %d | %dx%d x%d\nBullets %d | refused %d" % [
+	_label.text = "FPS %d | 1%% low %d | %dx%d x%d\nBullets %d | refused %d\n%s" % [
 		roundi(Engine.get_frames_per_second()),
 		roundi(_one_percent_low()),
 		size.x, size.y, factor,
 		bullets.x, bullets.y,
+		_lucidity_text(),
 	]
+
+
+## Live lucidity of the player in the room, or a dash when there is none (live, refreshed with the overlay).
+func _lucidity_text() -> String:
+	var player: Player = get_tree().get_first_node_in_group(Const.GROUP_PLAYER) as Player
+	if player == null:
+		return "Lucidity -"
+	return "Lucidity %d (%s)" % [player.lucidity.value, Lucidity.Tier.find_key(player.lucidity.live_tier)]
 
 
 ## Sum of (active, refused) over every BulletManager, found by node group. Called at 2 Hz only.
