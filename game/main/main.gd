@@ -14,6 +14,7 @@ const SLOW_MOTION_SCALE: float = 0.25
 const WAKE_SCREEN_SCENE: PackedScene = preload("res://ui/menus/wake_screen.tscn")
 const PAUSE_MENU_SCENE: PackedScene = preload("res://ui/menus/pause_menu.tscn")
 const SETTINGS_MENU_SCENE: PackedScene = preload("res://ui/menus/settings_menu.tscn")
+const HUD_SCENE: PackedScene = preload("res://ui/hud/hud.tscn")
 
 var _last_scale_factor: int = -1
 var _last_window_size: Vector2i = Vector2i.ZERO
@@ -31,6 +32,9 @@ var _settings_menu: SettingsMenu
 
 func _ready() -> void:
 	get_window().min_size = Const.VIEWPORT
+	var hud: Node = HUD_SCENE.instantiate()
+	_ui.add_child(hud)
+	_ui.move_child(hud, 0) # below every overlay and menu; added before the run starts, so it gets the first health state
 	if OS.is_debug_build():
 		_check_viewport_size()
 		_check_collision_layer_names()

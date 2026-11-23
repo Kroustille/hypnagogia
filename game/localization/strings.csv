@@ -15,3 +15,4 @@ UI_SETTINGS_BACK,Retour
 UI_SETTINGS_PERCENT,%d %%
 UI_WAKE_TITLE,Tu te réveilles.
 UI_WAKE_RESTART,Se rendormir (%s)
+UI_HUD_SHARDS,%d

@@ -23,3 +23,8 @@ signal run_ended(outcome: int)
 ## Listeners: loot and item effects (epic 5), telemetry (story 2.8).
 @warning_ignore("unused_signal")
 signal room_cleared(room: Node)
+
+## The player's health changed (hit, heal, armor) or a fresh player came in (initial state of a run), in half-hearts.
+## Listeners: HUD (story 2.7).
+@warning_ignore("unused_signal")
+signal player_health_changed(half_hearts: int, max_half_hearts: int, armor: int)

@@ -99,6 +99,8 @@ func _setup_health() -> void:
 		GameClock.Group.PLAYER
 	)
 	add_child(health)
+	health.changed.connect(_on_health_changed)
+	_on_health_changed() # initial state for the HUD
 
 	hurtbox = Hurtbox.new()
 	hurtbox.name = "Hurtbox"
@@ -211,6 +213,11 @@ func _update_dash_tint() -> void:
 ## Hit filter of the hurtbox: bullets pass through while invulnerable or dead.
 func _can_be_hit() -> bool:
 	return not is_invulnerable() and not health.is_dead()
+
+
+## Tells the HUD (through the bus: the Run, so the player, is recreated every run).
+func _on_health_changed() -> void:
+	Events.player_health_changed.emit(health.half_hearts, health.max_half_hearts, health.armor)
 
 
 ## Death is handled here, after player_hit, not on Health.died (emitted inside apply_damage()).

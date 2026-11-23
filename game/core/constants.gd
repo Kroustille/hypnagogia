@@ -4,7 +4,7 @@ class_name Const
 const TILE_SIZE: int = 16
 const VIEWPORT: Vector2i = Vector2i(640, 360)
 
-## Height in pixels of the HUD band above the room (empty until story 2.7).
+## Height in pixels of the HUD band above the room (filled by the HUD, story 2.7).
 const HUD_BAND_HEIGHT: int = 24
 ## Playable tiles of a one-screen room, walls excluded.
 const ROOM_TILES: Vector2i = Vector2i(36, 19)
@@ -55,7 +55,7 @@ const COLOR_ENEMY_BULLET: Color = Color(1.0, 0.2, 0.55)
 const COLOR_ENEMY_BULLET_OUTLINE: Color = Color(0.4, 0.0, 0.2)
 
 ## z_index of the enemy BulletManager: above everything else in the world (entities, player shots, damage numbers),
-## whatever its place in the tree (AR19, NFR8). Below the reticle (100), an aim aid that moves to the HUD in story 2.7.
+## whatever its place in the tree (AR19, NFR8). Below the reticle (100), an aim aid that stays in the world: the HUD canvas layer draws above it.
 const Z_INDEX_ENEMY_BULLETS: int = 10
 
 ## Node group of the player, found by debug tools without a node path.
