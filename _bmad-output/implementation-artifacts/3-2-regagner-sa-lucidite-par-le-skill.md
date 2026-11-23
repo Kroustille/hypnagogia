@@ -1,6 +1,6 @@
 # Story 3.2 : Regagner sa lucidité par le skill
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -26,14 +26,14 @@ Hors périmètre : `try_spend` (3.3), bonus de palier (3.5), `room_tier` et dang
 
 ## Tâches
 
-- [ ] `LucidityTuning` : `graze_radius` (1.0, tuiles), `graze_gain` (2), `perfect_dash_gain` (5), `room_cleared_gain` (5), `graze_cap_per_room` (20).
-- [ ] `Lucidity` : `enum Source { OTHER, GRAZE, PERFECT_DASH, ROOM_CLEARED, CONSUMABLE }` ; `gain(amount: int, source: Source = Source.OTHER) -> int` (renvoie le gain réel ; `GRAZE` borné par `graze_cap_per_room - _room_graze_gained`) ; `begin_room()`. Le défaut garde les appels de 3.1.
-- [ ] `Hurtbox` : `set_evade_filter(Callable)` et `is_evading() -> bool` (faux sans filtre) ; le joueur y branche `is_dash_invulnerable`.
-- [ ] `BulletManager` : `FLAG_DODGED = 4` ; `enable_graze(hurtbox, radius_tiles)` ; signaux locaux `grazed(position: Vector2)` et `dodged(position: Vector2)` ; test de graze et d'esquive dans la boucle (voir État du code) ; livraison des signaux après la boucle.
-- [ ] `Arena` : `begin_room()`, branche `bullets.enable_graze(...)` et connecte les signaux au joueur ; `WaveRunner._start_next_wave()` appelle `_room.begin_room()`.
-- [ ] `Player` : `on_bullet_grazed(position)` / `on_bullet_dodged(position)` (gain, `Events`, son, `Log.debug`) ; écoute de `Events.room_cleared` ; filtre d'esquive.
-- [ ] `Events.player_grazed`, `Events.perfect_dash` ; `CollisionDrawer` (F2) dessine la zone de graze.
-- [ ] Sons et vérifications headless (`t_graze`), `run_all.sh` une fois à la fin, `--quit-after 120` propre.
+- [x] `LucidityTuning` : `graze_radius` (1.0, tuiles), `graze_gain` (2), `perfect_dash_gain` (5), `room_cleared_gain` (5), `graze_cap_per_room` (20).
+- [x] `Lucidity` : `enum Source { OTHER, GRAZE, PERFECT_DASH, ROOM_CLEARED, CONSUMABLE }` ; `gain(amount: int, source: Source = Source.OTHER) -> int` (renvoie le gain réel ; `GRAZE` borné par `graze_cap_per_room - _room_graze_gained`) ; `begin_room()`. Le défaut garde les appels de 3.1.
+- [x] `Hurtbox` : `set_evade_filter(Callable)` et `is_evading() -> bool` (faux sans filtre) ; le joueur y branche `is_dash_invulnerable`.
+- [x] `BulletManager` : `FLAG_DODGED = 4` ; `enable_graze(hurtbox, radius_tiles)` ; signaux locaux `grazed(position: Vector2)` et `dodged(position: Vector2)` ; test de graze et d'esquive dans la boucle (voir État du code) ; livraison des signaux après la boucle.
+- [x] `Arena` : `begin_room()`, branche `bullets.enable_graze(...)` et connecte les signaux au joueur ; `WaveRunner._start_next_wave()` appelle `_room.begin_room()`.
+- [x] `Player` : `on_bullet_grazed(position)` / `on_bullet_dodged(position)` (gain, `Events`, son, `Log.debug`) ; écoute de `Events.room_cleared` ; filtre d'esquive.
+- [x] `Events.player_grazed`, `Events.perfect_dash` ; `CollisionDrawer` (F2) dessine la zone de graze.
+- [x] Sons et vérifications headless (`t_graze`), `run_all.sh` une fois à la fin, `--quit-after 120` propre.
 
 ## État du code concerné
 
@@ -86,11 +86,33 @@ Distance au carré, sans racine ; un test de boîte englobante élargie écarte 
 5. **Gain de salle vidée porté par le joueur (écoute de `Events.room_cleared`)** — Raison : le joueur possède `Lucidity` ; la salle n'a pas à le connaître. `Arena.begin_room()` est lui appelé par `WaveRunner`.
 6. **Un dash parfait n'est pas plafonné** — Raison : le GDD ne plafonne que le graze ; le dash parfait est le geste difficile.
 7. **Zone de graze en F2 = rectangle élargi** (coins carrés, pas arrondis) — Raison : outil de debug ; l'écart de coin (0,4 tuile) est invisible en jeu.
+8. **Le graze est compté quand le projectile s'éloigne du rectangle (vitesse · (position − point le plus proche) > 0), pas à l'entrée dans la zone** — Raison : à l'entrée, un projectile qui va toucher le joueur (ou être esquivé) serait compté comme frôlé juste avant (la zone précède l'impact), ce qui contredit « sans la toucher » et donnerait +2 à chaque coup. Conséquence : un projectile esquivé n'a jamais été frôlé avant, donc le cas « 2 + 5 » de la décision 1 ne se produit pas ; `FLAG_DODGED` reste séparé de `FLAG_COUNTED` (sans coût). Alternative : compter à l'entrée et annuler en cas de coup (plus complexe).
+9. **`Hurtbox.show_graze_zone(margin_px)` + groupe `Const.GROUP_DEBUG_GRAZE`** pour la zone F2 (appelé par `BulletManager.enable_graze`) — Raison : `CollisionDrawer` ne connaît aucune classe du jeu ; second tracé jaune du même rectangle élargi.
+10. **Sons générés par un script Python jetable non versionné** (sinus avec enveloppe : graze 1800 à 2400 Hz, 60 ms ; dash parfait 700 à 1500 Hz, 180 ms) — Raison : provisoires, remplacés en 7.7.
 
 ## Dev Agent Record
 
 ### Agent Model Used
 
+Claude Sonnet 5.5
+
 ### Completion Notes
 
+- `LucidityTuning` : 5 valeurs. `Lucidity.gain(amount, source) -> int` (plafond de graze par salle ; un montant négatif donne 0), `begin_room()`, `enum Source`.
+- `Hurtbox` : `set_evade_filter` / `is_evading`. `BulletManager` : `FLAG_DODGED`, `enable_graze`, signaux `grazed` / `dodged` livrés après la boucle, test de graze dans `_test_targets` (boîte englobante élargie d'abord, distance au carré). Voir décision 8 (graze compté à l'éloignement).
+- `Arena.begin_room()` appelé par `WaveRunner._start_next_wave()` ; l'arène branche le graze du joueur et ses signaux. `Player` : `on_bullet_grazed`, `on_bullet_dodged`, `_on_room_cleared`, filtre d'esquive = `is_dash_invulnerable`. `Events.player_grazed`, `Events.perfect_dash`. F2 : zone de graze en jaune.
+- Vérifications : `.scratch/t_graze` (35 checks : Lucidity pur, manager avec hurtbox factice, jeu réel avec vrai dash, vagues, mort, F2), ajouté à `run_all.sh` ; `run_all.sh` en mode normal : ALL PASS (827 checks), `--quit-after 120` propre. `t_hud` a montré une fois un avertissement de fuite à la sortie sous charge parallèle (non reproduit seul ni au second passage complet).
+- NON ÉVALUÉ (humain) : sensation du graze (rayon d'1 tuile, +2), audibilité et distinction des deux sons, lisibilité de la zone F2, dash parfait assez atteignable en réaction. Reporté au playtest du jalon A (`deferred-work.md`).
+
 ### File List
+
+- game/core/lucidity_tuning.gd, game/data/tuning/lucidity_tuning.tres, game/core/constants.gd
+- game/player/lucidity.gd, game/player/player.gd
+- game/combat/hurtbox.gd, game/combat/bullets/bullet_manager.gd
+- game/rooms/arena/arena.gd, game/rooms/waves/wave_runner.gd
+- game/autoloads/events.gd, game/debug/collision_drawer.gd
+- game/audio/sfx/sfx_graze.wav, sfx_perfect_dash.wav (+ .import)
+
+### Change Log
+
+- 2026-11-23 : implémentation de la story 3.2 (graze, dash parfait, salle vidée, plafond par vague).

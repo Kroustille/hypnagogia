@@ -238,3 +238,7 @@
 - **Événement `run_end` ambigu et ligne INFO seulement à la mort** (story 6.4) : `run_end` sert à la mort, à la relance F1 et à la sortie, sans champ pour les distinguer, et précède l'événement `death` de la même partie. Ajouter `reason` (`ended`, `restarted`, `session_end`) et écrire aussi la ligne `Log.info("lucidity", …)` pour les fins sans mort (décision 10 de la story 3.1).
 - **`summary.tier_seconds` sans la partie en cours** (story 1.8) : le temps par palier n'est crédité qu'en fin de partie ou de session ; après un crash, `play_seconds` compte la partie mais `tier_seconds` non. Dans `to_dict(at)`, ajouter le tronçon ouvert `at - _tier_since` au palier en cours sans modifier l'état.
 - **`Lucidity.gain()` accepte un montant négatif** (story 3.3) : une dépense déguisée qui contourne `try_spend`. Ajouter `assert(amount >= 0)`.
+
+## Deferred from: story 3-2 (2026-11-23)
+
+- **NON ÉVALUÉ (humain) : sensation du graze et du dash parfait** : rayon de graze d'1 tuile, +2 / +5 / plafond 20, graze compté quand le projectile s'éloigne (décision 8), audibilité et distinction de `sfx_graze` et `sfx_perfect_dash` (provisoires, remplacés par 7.7), lisibilité de la zone F2. Un projectile esquivé qui recouvre encore la hurtbox à la fin de l'invulnérabilité du dash touche le joueur : à noter au playtest du jalon A.
