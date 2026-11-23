@@ -55,7 +55,7 @@ const COLOR_ENEMY_BULLET: Color = Color(1.0, 0.2, 0.55)
 const COLOR_ENEMY_BULLET_OUTLINE: Color = Color(0.4, 0.0, 0.2)
 
 ## z_index of the enemy BulletManager: above everything else in the world (entities, player shots, damage numbers),
-## whatever its place in the tree (AR19, NFR8). Below the reticle (100), an aim aid that stays in the world: the HUD canvas layer draws above it.
+## whatever its place in the tree (AR19, NFR8). Below the reticle (100), an aim aid that stays in the world: the HUD canvas layer draws above it, so the reticle keeps out of the band.
 const Z_INDEX_ENEMY_BULLETS: int = 10
 
 ## Node group of the player, found by debug tools without a node path.

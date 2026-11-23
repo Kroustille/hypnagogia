@@ -12,7 +12,7 @@ const ITEM_SLOT_SIZE: Vector2 = Vector2(16, 16)
 const ITEM_SLOT_GAP: int = 8
 const SHARD_COLOR: Color = Color(0.85, 0.8, 0.4)
 
-var shards: int = 0
+var _shards: int = 0 # static 0 until epic 5 (decision 4), then set from an Events signal
 
 var _hearts: HeartRow
 var _lucidity_slot: HudSlot
@@ -27,8 +27,11 @@ func _ready() -> void:
 
 	_hearts = HeartRow.new()
 	_hearts.name = "Hearts"
-	_hearts.position = Vector2(MARGIN, (Const.HUD_BAND_HEIGHT - HeartRow.ICON_SIZE.y) / 2.0)
+	@warning_ignore("integer_division")
+	_hearts.position = Vector2(MARGIN, (Const.HUD_BAND_HEIGHT - HeartRow.ICON_SIZE.y) / 2)
 	add_child(_hearts)
+	Events.player_health_changed.connect(_on_events_player_health_changed)
+	Events.player_hit.connect(_on_events_player_hit)
 
 	_lucidity_slot = _make_slot("LucidityGaugeSlot", LUCIDITY_SLOT_SIZE, Vector2(
 		(Const.VIEWPORT.x - LUCIDITY_SLOT_SIZE.x) / 2.0, (Const.HUD_BAND_HEIGHT - LUCIDITY_SLOT_SIZE.y) / 2.0))
@@ -49,8 +52,6 @@ func _ready() -> void:
 	add_child(_shards_label)
 	_refresh_shards()
 
-	Events.player_health_changed.connect(_on_events_player_health_changed)
-	Events.player_hit.connect(_on_events_player_hit)
 
 
 func hearts() -> HeartRow:
@@ -88,7 +89,7 @@ func _make_slot(slot_name: String, slot_size: Vector2, slot_position: Vector2) -
 
 
 func _refresh_shards() -> void:
-	_shards_label.text = tr(&"UI_HUD_SHARDS") % shards
+	_shards_label.text = tr(&"UI_HUD_SHARDS") % _shards
 
 
 func _on_events_player_health_changed(half_hearts: int, max_half_hearts: int, armor: int) -> void:

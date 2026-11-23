@@ -4,7 +4,7 @@ extends Node2D
 ## Moved in _process (presentation only: every gameplay decision stays in _physics_process), so physics
 ## interpolation is off. Hides the system cursor while it is in the tree and shows it again when it leaves.
 ## While the game is paused (an ancestor disabled), it hides itself and shows the cursor.
-## Placeholder drawing until epic 7; moves to the HUD layer with story 2.7.
+## Placeholder drawing until epic 7; stays in the world, drawn below the HUD band (story 2.7).
 
 ## Length of each of the 4 branches, in pixels (visual).
 const BRANCH_LENGTH: int = 3
@@ -61,6 +61,11 @@ func _process(_delta: float) -> void:
 		target = _player.global_position + _player.aim_direction() * STICK_RETICLE_DISTANCE * Const.TILE_SIZE
 	else:
 		target = get_global_mouse_position()
+	# the whole reticle stays below the HUD band (display only: aim is unchanged)
+	var canvas: Transform2D = get_viewport().get_canvas_transform()
+	var screen: Vector2 = canvas * target
+	screen.y = maxf(screen.y, Const.HUD_BAND_HEIGHT + CENTER_GAP + BRANCH_LENGTH)
+	target = canvas.affine_inverse() * screen
 	# The center pixel covers [floor, floor + 1): the reticle stays on whole pixels.
 	global_position = target.floor()
 

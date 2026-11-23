@@ -32,7 +32,7 @@ var _settings_menu: SettingsMenu
 
 func _ready() -> void:
 	get_window().min_size = Const.VIEWPORT
-	var hud: Node = HUD_SCENE.instantiate()
+	var hud: Hud = HUD_SCENE.instantiate() as Hud
 	_ui.add_child(hud)
 	_ui.move_child(hud, 0) # below every overlay and menu; added before the run starts, so it gets the first health state
 	if OS.is_debug_build():
