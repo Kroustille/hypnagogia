@@ -95,7 +95,8 @@ func _on_events_lucidity_tier_changed(tier: int, _previous_tier: int) -> void:
 
 func _on_events_run_ended(_outcome: int) -> void:
 	var tiers: Array[float] = _session.run_ended(_now())
-	Log.info("lucidity", "time per tier (s) %s" % [TelemetrySession.tier_dict(tiers)])
+	if not tiers.is_empty():
+		Log.info("lucidity", "time per tier (s) %s" % [TelemetrySession.tier_dict(tiers)])
 	var key: Variant = DamageInfo.Source.find_key(_last_hit_source)
 	var cause: String = str(key).to_lower() if key != null else "unknown"
 	_session.death(_now(), cause)

@@ -28,13 +28,17 @@ func _ready() -> void:
 	set_process(false)
 
 
-## Sets what to show. A tier change (not the first state) starts the flash.
-func set_state(value: int, tier: int, announce: bool) -> void:
+## Sets what to show. Never flashes: the HUD calls flash() on a real tier change.
+func set_state(value: int, tier: int) -> void:
 	_value = value
 	_tier = tier
-	if announce:
-		_flash_left = FLASH_SECONDS
-		set_process(true)
+	queue_redraw()
+
+
+## Starts the tier-change flash.
+func flash() -> void:
+	_flash_left = FLASH_SECONDS
+	set_process(true)
 	queue_redraw()
 
 

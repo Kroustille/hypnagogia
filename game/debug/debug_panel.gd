@@ -12,9 +12,6 @@ const BURST_COUNT: int = 3
 const BURST_SPREAD_DEGREES: float = 15.0
 const AUTO_FIRE_INTERVAL: float = 0.25 # seconds
 const REFRESH_INTERVAL: float = 0.25
-## Values the L key cycles through: one per lucidity tier (story 3.1).
-const LUCIDITY_PRESETS: PackedInt32Array = [100, 75, 50, 25, 0]
-
 ## Debug request of the spawn commands: top center of the playable area, replaced by the room when too close.
 const SPAWN_REQUEST: Vector2 = Vector2(304, 40)
 const SLEEPWALKER_DEF: EnemyDef = preload("res://data/enemies/sleepwalker.tres")
@@ -23,7 +20,10 @@ const LULLABY_DEF: EnemyDef = preload("res://data/enemies/lullaby.tres")
 const SHEEP_DEF: EnemyDef = preload("res://data/enemies/sheep.tres")
 
 var _auto_fire: bool = false
-var _lucidity_preset: int = -1
+## Values the L key cycles through, built from the tuning: the maximum, then just below each tier floor.
+var _lucidity_presets: PackedInt32Array = _build_lucidity_presets()
+## Index of the preset the lucidity was last set to (0: the full gauge a run starts with).
+var _lucidity_preset: int = 0
 var _auto_ticks: float = 0.0
 var _last_message: String = ""
 var _since_refresh: float = 0.0
@@ -163,13 +163,21 @@ func _next_wave() -> void:
 	_log("next wave (%d)" % runner.wave_number())
 
 
+static func _build_lucidity_presets() -> PackedInt32Array:
+	var result: PackedInt32Array = [Tuning.LUCIDITY.max_value]
+	for floor_value: int in Tuning.LUCIDITY.tier_floors:
+		if floor_value > 0:
+			result.append(floor_value - 1)
+	return result
+
+
 ## Sets the lucidity to the next preset, through the same public method as the game rules.
 func _cycle_lucidity() -> void:
 	var player: Player = _find_player()
 	if player == null:
 		return
-	_lucidity_preset = (_lucidity_preset + 1) % LUCIDITY_PRESETS.size()
-	player.lucidity.set_value(LUCIDITY_PRESETS[_lucidity_preset])
+	_lucidity_preset = (_lucidity_preset + 1) % _lucidity_presets.size()
+	player.lucidity.set_value(_lucidity_presets[_lucidity_preset])
 	_log("lucidity set to %d" % player.lucidity.value)
 
 
@@ -252,7 +260,7 @@ func _refresh_text() -> void:
 		"8 spawn lullaby",
 		"9 spawn sheep",
 		"0 kill all enemies",
-		"L lucidity cycle (100, 75, 50, 25, 0)",
+		"L lucidity cycle (%s)" % ", ".join(Array(_lucidity_presets).map(str)),
 		"- next wave (keypad -; ) on AZERTY)",
 	])
 	if player != null:

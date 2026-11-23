@@ -54,6 +54,8 @@ func tier_changed(at: float, tier: int) -> void:
 
 ## Run end: the time in each tier of this run, as a "run_end" event. Returns that run's seconds per tier.
 func run_ended(at: float) -> Array[float]:
+	if _tier == -1:
+		return []
 	_close_tiers(at)
 	return _run_tier_seconds.duplicate()
 

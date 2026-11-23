@@ -19,6 +19,12 @@ var _tuning: LucidityTuning
 
 
 func _init(tuning: LucidityTuning) -> void:
+	var floors: PackedInt32Array = tuning.tier_floors
+	assert(floors.size() == Tier.size(), "one floor per lucidity tier")
+	assert(floors[floors.size() - 1] == 0, "the last tier floor is 0")
+	assert(floors[0] <= tuning.max_value, "the first tier floor is reachable")
+	for i: int in range(1, floors.size()):
+		assert(floors[i] < floors[i - 1], "tier floors strictly decrease")
 	_tuning = tuning
 	value = tuning.max_value
 	live_tier = tier_for(value)
@@ -39,7 +45,7 @@ func set_value(new_value: int) -> void:
 	var tier_moved: bool = tier != live_tier
 	live_tier = tier # both fields are up to date before any listener runs
 	value_changed.emit(value)
-	if tier_moved:
+	if tier_moved and live_tier == tier: # a listener may have moved the tier again: its own emit is the current one
 		tier_changed.emit(tier)
 
 

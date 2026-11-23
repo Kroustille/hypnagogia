@@ -57,6 +57,7 @@ func _ready() -> void:
 	_tier_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_tier_label)
 	Events.lucidity_value_changed.connect(_on_events_lucidity_value_changed)
+	Events.lucidity_tier_changed.connect(_on_events_lucidity_tier_changed)
 
 	var slot_y: float = (Const.HUD_BAND_HEIGHT - ITEM_SLOT_SIZE.y) / 2.0
 	var consumable_x: float = Const.VIEWPORT.x - MARGIN - ITEM_SLOT_SIZE.x
@@ -130,8 +131,11 @@ func _on_events_player_hit(_damage: int, _source: int) -> void:
 	_hearts.flash()
 
 
+func _on_events_lucidity_tier_changed(_tier_value: int, _previous_tier: int) -> void:
+	_lucidity_gauge.flash()
+
 func _on_events_lucidity_value_changed(value: int, tier: int) -> void:
-	_lucidity_gauge.set_state(value, tier, _tier != -1 and tier != _tier)
+	_lucidity_gauge.set_state(value, tier)
 	if tier != _tier:
 		_tier = tier
 		_tier_label.text = tr(TIER_NAME_KEYS[clampi(tier, 0, TIER_NAME_KEYS.size() - 1)])
