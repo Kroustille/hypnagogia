@@ -1,5 +1,5 @@
 # generated: 2026-11-20
-# last_updated: 2026-11-22
+# last_updated: 2026-11-23
 # project: hypnagogia
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-11-20
-last_updated: 2026-11-22
+last_updated: 2026-11-23
 project: hypnagogia
 project_key: NOKEY
 tracking_system: file-system
@@ -62,7 +62,7 @@ development_status:
   2-2-mourir-et-relancer-en-moins-de-3-secondes: done
   2-3-affronter-le-somnambule: done
   2-4-affronter-la-veilleuse-et-la-berceuse: done
-  2-5-affronter-le-mouton: backlog
+  2-5-affronter-le-mouton: ready-for-dev
   2-6-enchainer-les-vagues-dans-l-arene: backlog
   2-7-lire-son-etat-dans-le-hud: backlog
   2-8-dire-si-sa-mort-etait-juste: backlog
