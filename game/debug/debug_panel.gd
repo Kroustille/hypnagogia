@@ -63,6 +63,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			_spawn(LULLABY_DEF, "lullaby")
 		KEY_9:
 			_spawn(SHEEP_DEF, "sheep")
+		KEY_0:
+			_kill_all()
+		KEY_MINUS:
+			_next_wave()
 		_:
 			handled = false
 	if handled:
@@ -121,7 +125,7 @@ func _hit_player() -> void:
 	_log("hit applied" if accepted else "hit ignored (invulnerable or dead)")
 
 
-## Asks the active room for an enemy (story 2.6 replaces keys 6 to 9 with the chosen enemy).
+## Asks the active room for the enemy of the pressed key (6 to 9).
 func _spawn(def: EnemyDef, label: String) -> void:
 	var room: Arena = get_tree().get_first_node_in_group(Const.GROUP_ROOM) as Arena # never cached: F5 and restarts recreate it
 	if room == null:
@@ -132,6 +136,26 @@ func _spawn(def: EnemyDef, label: String) -> void:
 		_log("spawn refused")
 	else:
 		_log("%s spawned at %s" % [label, enemy.global_position])
+
+
+## Kills every living enemy of the active room, without clearing the room (no Events.room_cleared from the kill itself).
+func _kill_all() -> void:
+	var room: Arena = get_tree().get_first_node_in_group(Const.GROUP_ROOM) as Arena
+	if room == null:
+		_last_message = "no room"
+		return
+	_log("%d enemies killed" % room.kill_all_enemies())
+
+
+## Kills every enemy and spawns the next wave at once.
+func _next_wave() -> void:
+	var room: Arena = get_tree().get_first_node_in_group(Const.GROUP_ROOM) as Arena
+	var runner: WaveRunner = room.wave_runner() if room != null else null
+	if runner == null:
+		_log("no wave runner")
+		return
+	runner.force_next_wave()
+	_log("next wave (%d)" % runner.wave_number())
 
 
 func _fire_burst() -> void:
@@ -212,6 +236,8 @@ func _refresh_text() -> void:
 		"7 spawn night light",
 		"8 spawn lullaby",
 		"9 spawn sheep",
+		"0 kill all enemies",
+		"- next wave",
 	])
 	if player != null:
 		var health: Health = player.health
@@ -220,6 +246,9 @@ func _refresh_text() -> void:
 	var room: Arena = get_tree().get_first_node_in_group(Const.GROUP_ROOM) as Arena
 	if room != null:
 		lines.append("enemies alive %d" % room.alive_enemy_count())
+		var runner: WaveRunner = room.wave_runner()
+		if runner != null:
+			lines.append("wave %d %s" % [runner.wave_number(), runner.state_name().to_lower()])
 	if not _last_message.is_empty():
 		lines.append(_last_message)
 	_label.text = "\n".join(lines)
