@@ -1,6 +1,6 @@
 # Story 3.1 : Voir sa lucidité et ses paliers
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -30,6 +30,22 @@ Hors périmètre (stories suivantes) : gains graze/dash parfait/salle vidée (3.
 - [x] `ui/hud/lucidity_gauge.gd` dans le HUD, étiquette de palier, clés `UI_LUCIDITY_*` dans `strings.csv`.
 - [x] F1 touche `L` ; ligne F3 ; télémétrie par palier (`TelemetrySession` pur + `Telemetry`).
 - [x] Vérifications headless (`.scratch/t_lucidity.gd`, ajoutée à `run_all.sh`), `run_all.sh` complet une fois, `--quit-after 120` propre.
+
+### Review Findings
+
+Revue de code du 2026-11-23 (mode complet : Blind Hunter, Edge Case Hunter, Acceptance Auditor). 0 décision en attente (3 tranchées, voir les décisions 9 à 11), 5 corrections, 6 reports, 10 écartées.
+
+- [ ] [Review][Patch] Flash de la jauge au début d'une nouvelle partie si la précédente a fini hors de Lucide [game/ui/hud/hud.gd:134] — `_tier` du HUD survit au joueur, donc l'état initial `(100, LUCID)` du nouveau joueur passe pour un changement de palier. Correction : ne plus déduire l'annonce de l'événement de valeur. Dans `hud.gd:134`, appeler `set_state(value, tier)` sans annonce (retirer le paramètre `announce` de `LucidityGauge.set_state`, `lucidity_gauge.gd:32-37`) ; ajouter `LucidityGauge.flash()` (`_flash_left = FLASH_SECONDS` puis `set_process(true)`) ; dans `Hud._ready` (`hud.gd:59`), brancher `Events.lucidity_tier_changed` sur un gestionnaire qui appelle `_lucidity_gauge.flash()`. Le bus n'émet jamais ce signal pour l'état initial, et il arrive après l'événement de valeur.
+- [ ] [Review][Patch] `set_value()` réentrant : un `tier_changed` périmé est émis après un appel imbriqué [game/player/lucidity.gd:42] — si un auditeur de `value_changed` rappelle `set_value()`/`gain()` (Éveil 3.3, Glissement 3.4), l'appel externe émet ensuite l'ancien palier : deux sons, télémétrie et `Player._announced_tier` faux. Correction : `if tier_moved and live_tier == tier:` à la place de `if tier_moved:`.
+- [ ] [Review][Patch] `LucidityTuning` non validé [game/player/lucidity.gd:21-24] — 6 planchers donnent un `Tier` hors de l'enum (pinces silencieuses dans le HUD et la télémétrie, `<null>` en F1/F3), un ordre faux donne un mauvais palier. Correction : dans `_init`, `assert(tuning.tier_floors.size() == Tier.size())`, `assert(tuning.tier_floors[-1] == 0)`, `assert(tuning.tier_floors[0] <= tuning.max_value)` et une boucle `assert(tuning.tier_floors[i] < tuning.tier_floors[i - 1])`.
+- [ ] [Review][Patch] `run_ended()` hors partie renvoie les secondes de la partie précédente [game/telemetry/telemetry_session.gd:56-58] — mort sans `run_started` (arène non chargée, `run.gd:22-26`, puis F1 `3`) : la ligne INFO « time per tier » donne les chiffres d'une ancienne partie. Correction : `if _tier == -1: return []` avant `_close_tiers`, et dans `telemetry.gd:97-98` ne journaliser que si le tableau rendu n'est pas vide.
+- [ ] [Review][Patch] Préréglages F1 `L` écrits en dur et premier appui sans effet [game/debug/debug_panel.gd:16, 26, 171, 255] — `[100, 75, 50, 25, 0]` répète le tuning (CA7) ; l'index part de -1, donc le premier appui pose 100 sur une jauge pleine (aucun signal, mais « lucidity set to 100 » au journal). Correction : construire les préréglages depuis `Tuning.LUCIDITY` (`max_value`, puis `floor - 1` pour chaque plancher `> 0`), démarrer `_lucidity_preset` à 0 pour que le premier appui donne 75, et construire la ligne d'aide depuis ce tableau.
+- [x] [Review][Defer] Télémétrie : palier de départ supposé Lucide [game/telemetry/telemetry_session.gd:39] — reporté à 3.6 (début de salle, `begin_room`).
+- [x] [Review][Defer] Jauge : repères au pixel près (76 identique à 75, 26 à 25, 51 déborde d'un pixel) et règle `floor_value > 1` [game/ui/hud/lucidity_gauge.gd:44, 52-53] — reporté à 7.2 (aspect final du HUD).
+- [x] [Review][Defer] Abandon total invisible sur la jauge (remplissage nul, flash sur une largeur de 0) [game/ui/hud/lucidity_gauge.gd:76-78] — reporté à 3.8 (distorsions par palier).
+- [x] [Review][Defer] Événement `run_end` ambigu (mort, relance F1, sortie) et ligne INFO seulement à la mort [game/telemetry/telemetry_session.gd:37, 57, 84 ; game/telemetry/telemetry.gd:97-98] — reporté à 6.4 (issue de partie dans la télémétrie).
+- [x] [Review][Defer] `summary.tier_seconds` sans la partie en cours (crash) [game/telemetry/telemetry_session.gd:109] — reporté à 1.8 (préparation du playtest).
+- [x] [Review][Defer] `gain()` accepte un montant négatif [game/player/lucidity.gd:28-29] — reporté à 3.3 (`try_spend`).
 
 ## État du code concerné
 
@@ -69,6 +85,9 @@ Hors périmètre (stories suivantes) : gains graze/dash parfait/salle vidée (3.
 6. **Touche F1 `L` : cycle de 5 valeurs (100, 75, 50, 25, 0)** — Raison : touches 1 à 9, 0 et `-` prises ; une valeur par palier suffit au debug, les bords sont vérifiés en scène.
 7. **Temps par palier en temps réel de session, pauses comptées** — Raison : cohérent avec la durée de jeu de 2.8 (décision 5) ; la précision d'une pause n'altère pas l'indicateur « temps sous Lucide » à l'échelle d'un playtest.
 8. **`gain(amount)` sans paramètre `source` ni plafond de graze** — Raison : ils arrivent en 3.2 ; ajouter la source maintenant serait une signature spéculative.
+9. **(Revue de code) Signature `Events.lucidity_value_changed(value, tier)` gardée, le CA3 est à lire ainsi** — Question : le CA3 dit `(value)`, le code envoie `(value, tier)`. Choix : garder le code. Raison : le HUD n'écoute que `Events` et a besoin du palier sans lire le jeu ; l'architecture ne fixe pas cette signature.
+10. **(Revue de code) « Fin de partie » du CA6 = la mort** — Question : la ligne INFO « time per tier » n'est écrite qu'à la mort ; une relance F1 ou une sortie en pleine partie ne laisse que l'événement `run_end` dans le JSON. Choix : accepté pour 3.1, l'issue de partie est reportée à 6.4. Raison : la mort est aujourd'hui la seule vraie fin de partie ; relance F1 et sortie sont des cas de debug ou d'abandon.
+11. **(Revue de code) Palier de départ de la télémétrie : Lucide** — Question : la télémétrie suppose le palier 0 au début de chaque partie au lieu de lire le palier réel. Choix : reporté à 3.6. Raison : c'est voulu par la spec (« joueur neuf ») et vrai avec le tuning actuel ; le début de salle (3.6) revoit le début de partie.
 
 ## Dev Agent Record
 
