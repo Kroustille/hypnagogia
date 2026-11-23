@@ -13,6 +13,13 @@ var yes: int = 0
 var no: int = 0
 var no_answer: int = 0
 var play_seconds: float = 0.0
+## Seconds spent in each lucidity tier (index = Lucidity.Tier), all runs of the session (NFR12).
+var tier_seconds: Array[float] = [0.0, 0.0, 0.0, 0.0, 0.0]
+## Tier of the run in progress and when it began, -1 outside a run.
+var _tier: int = -1
+var _tier_since: float = 0.0
+## Seconds per tier of the current run only.
+var _run_tier_seconds: Array[float] = [0.0, 0.0, 0.0, 0.0, 0.0]
 ## True from a death until it is answered or skipped.
 var _death_open: bool = false
 
@@ -27,8 +34,28 @@ func start(at: float) -> void:
 
 func run_started(at: float) -> void:
 	_close_death(at) # restarting without answering is an absence of answer
+	_close_tiers(at) # a run that never reported its end (restart from the debug panel)
 	runs += 1
+	_tier = 0
+	_tier_since = at
+	_run_tier_seconds = [0.0, 0.0, 0.0, 0.0, 0.0]
 	_add("run_start", at)
+
+
+## The live lucidity tier changed: the time since the previous change goes to the previous tier.
+## Ignored outside a run (a fresh player announces itself before run_started).
+func tier_changed(at: float, tier: int) -> void:
+	if _tier == -1:
+		return
+	_credit(at)
+	_tier = clampi(tier, 0, tier_seconds.size() - 1)
+	_tier_since = at
+
+
+## Run end: the time in each tier of this run, as a "run_end" event. Returns that run's seconds per tier.
+func run_ended(at: float) -> Array[float]:
+	_close_tiers(at)
+	return _run_tier_seconds.duplicate()
 
 
 ## cause: DamageInfo.Source name of the lethal hit, "unknown" when no hit was seen.
@@ -54,6 +81,7 @@ func answer(at: float, just: bool) -> bool:
 
 func end(at: float) -> void:
 	_close_death(at)
+	_close_tiers(at)
 	play_seconds = at
 	_add("session_end", at)
 
@@ -78,8 +106,32 @@ func to_dict(at: float) -> Dictionary:
 			"no": no,
 			"no_answer": no_answer,
 			"yes_rate": yes_rate(),
+			"tier_seconds": tier_dict(tier_seconds),
 		},
 	}
+
+
+func _credit(at: float) -> void:
+	var elapsed: float = maxf(at - _tier_since, 0.0)
+	tier_seconds[_tier] += elapsed
+	_run_tier_seconds[_tier] += elapsed
+
+
+## Ends the tier tracking of the run in progress, if any; records its seconds per tier as a "run_end" event.
+func _close_tiers(at: float) -> void:
+	if _tier == -1:
+		return
+	_credit(at)
+	_tier = -1
+	_add("run_end", at, {"tier_seconds": tier_dict(_run_tier_seconds)})
+
+
+## Tier name (Lucidity.Tier key, lower case) to seconds, rounded to 10 ms.
+static func tier_dict(seconds: Array[float]) -> Dictionary:
+	var result: Dictionary = {}
+	for i: int in seconds.size():
+		result[str(Lucidity.Tier.find_key(i)).to_lower()] = snappedf(seconds[i], 0.01)
+	return result
 
 
 func _close_death(at: float) -> void:

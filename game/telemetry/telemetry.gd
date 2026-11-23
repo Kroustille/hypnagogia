@@ -36,6 +36,7 @@ func _ready() -> void:
 	Events.player_hit.connect(_on_events_player_hit)
 	Events.run_started.connect(_on_events_run_started)
 	Events.run_ended.connect(_on_events_run_ended)
+	Events.lucidity_tier_changed.connect(_on_events_lucidity_tier_changed)
 	Events.death_judged.connect(_on_events_death_judged)
 	_write()
 
@@ -88,7 +89,13 @@ func _on_events_run_started() -> void:
 	_write()
 
 
+func _on_events_lucidity_tier_changed(tier: int, _previous_tier: int) -> void:
+	_session.tier_changed(_now(), tier)
+
+
 func _on_events_run_ended(_outcome: int) -> void:
+	var tiers: Array[float] = _session.run_ended(_now())
+	Log.info("lucidity", "time per tier (s) %s" % [TelemetrySession.tier_dict(tiers)])
 	var key: Variant = DamageInfo.Source.find_key(_last_hit_source)
 	var cause: String = str(key).to_lower() if key != null else "unknown"
 	_session.death(_now(), cause)
