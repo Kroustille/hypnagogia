@@ -57,7 +57,7 @@ development_status:
   epic-1-retrospective: optional
 
   # Epic 2: Survivre aux cauchemars de l'Endormissement
-  epic-2: in-progress
+  epic-2: done
   2-1-encaisser-des-coups: done
   2-2-mourir-et-relancer-en-moins-de-3-secondes: done
   2-3-affronter-le-somnambule: done
