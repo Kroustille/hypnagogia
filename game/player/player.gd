@@ -128,7 +128,7 @@ func _setup_health() -> void:
 	hurtbox.add_child(shape_node) # before add_child(hurtbox): its _ready() looks for the shape
 	add_child(hurtbox)
 	hurtbox.set_hit_filter(_can_be_hit)
-	hurtbox.set_evade_filter(is_dash_invulnerable)
+	hurtbox.set_evade_filter(_is_evading)
 	hurtbox.damage_received.connect(_on_hurtbox_damage_received)
 
 
@@ -223,6 +223,11 @@ func _fire() -> void:
 
 func _update_dash_tint() -> void:
 	_sprite.modulate = DASH_TINT if is_dash_invulnerable() else Color.WHITE
+
+
+## Evade filter: only the dash of a player who could otherwise be hit pays a perfect dash.
+func _is_evading() -> bool:
+	return is_dash_invulnerable() and not health.is_invulnerable() and not health.is_dead()
 
 
 ## Hit filter of the hurtbox: bullets pass through while invulnerable or dead.

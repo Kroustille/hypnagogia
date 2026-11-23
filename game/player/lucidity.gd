@@ -42,10 +42,12 @@ func gain(amount: int, source: Source = Source.OTHER) -> int:
 	var wanted: int = maxi(amount, 0)
 	if source == Source.GRAZE:
 		wanted = mini(wanted, maxi(_tuning.graze_cap_per_room - _room_graze_gained, 0))
-		_room_graze_gained += wanted # the cap counts what was granted, even when the gauge was already full
 	var before: int = value
 	set_value(value + wanted)
-	return value - before
+	var gained: int = value - before
+	if source == Source.GRAZE:
+		_room_graze_gained += gained # the cap counts what was really gained
+	return gained
 
 
 ## Starts a wave: the graze cap opens again.

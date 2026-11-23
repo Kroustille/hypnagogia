@@ -311,6 +311,8 @@ func _test_targets(i: int) -> bool:
 		var rect: Rect2 = _target_rects[t]
 		if rect.size == Vector2.ZERO or not _target_hittable[t]:
 			continue
+		if t == _graze_index and _flags[i] & FLAG_DODGED != 0:
+			continue # a dodged bullet no longer hits the dodging target; it keeps flying
 		var closest: Vector2 = Vector2(
 			clampf(pos.x, rect.position.x, rect.end.x), clampf(pos.y, rect.position.y, rect.end.y)
 		)
@@ -343,7 +345,10 @@ func _test_graze(i: int) -> void:
 		if _flags[i] & FLAG_DODGED == 0 and distance_sq <= _radii[i] * _radii[i]:
 			_flags[i] |= FLAG_DODGED | FLAG_COUNTED
 			_dodged_positions.append(to_global(pos))
-	elif _target_hittable[_graze_index] and _flags[i] & FLAG_COUNTED == 0:
+	elif not _target_hittable[_graze_index]:
+		if distance_sq <= _radii[i] * _radii[i]:
+			_flags[i] |= FLAG_COUNTED # it went through the target: never a graze
+	elif _flags[i] & FLAG_COUNTED == 0:
 		# Counted once the bullet is moving away: one that was heading for the hurtbox either hits it or is dodged,
 		# and a hit must not also pay a graze.
 		if distance_sq < _graze_radius_px * _graze_radius_px and _velocities[i].dot(pos - closest) > 0.0:
