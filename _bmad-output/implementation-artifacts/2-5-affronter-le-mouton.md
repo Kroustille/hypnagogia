@@ -1,6 +1,6 @@
 # Story 2.5 : Affronter Le Mouton
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -46,6 +46,16 @@ afin de jouer avec la salle pour le punir.
 - [ ] **T7. Vérifications fenêtrées sous WSLg** (CA 1, 2, 6) : grattage, recul, charge, étourdissement, **F2 sous `main.tscn`** (leçon de 2.4), captures. Ce qui n'est pas capturé est marqué NON VÉRIFIÉ à l'écran.
 - [x] **T8. Régression** : import et lancement sans erreur, recherche des interdits, `run_all.sh` complet (scènes de 2.3 et 2.4 inchangées, et nouvelles).
 - [x] **T9. Reports** : mettre à jour `deferred-work.md` (entrée « Base des ennemis pour la 2.5 » résolue, voir « Reports traités par cette story » ; nouvelles entrées NON ÉVALUÉ / NON VÉRIFIÉ, voir « Stratégie de test » point 15).
+
+### Review Findings
+
+Revue de code du 2026-11-23 (`gds-code-review`, mode complet, trois couches : Blind Hunter, Edge Case Hunter, Acceptance Auditor ; diff `fc7469e..70dec34 -- game/ _bmad-output/game-architecture.md`). Les CA 1 à 13 sont implémentés dans le code. Points demandés : l'exception de collision tient dans tous les cas sondés par l'Edge Case Hunter (gel en pleine charge, mort du Mouton, deux Moutons, relance, dash sans changement de couche), mais la pose de l'exception lit une cible libérée sans test (patch 1) ; `_move_toward()` est strictement équivalent pour le Somnambule et la Berceuse (les 4 appelants passent `_target_position()`, `>= 1e-6` est l'exact contraire de l'ancien `< 1e-6`) ; noms `<id>_<n>` uniques par construction, mais une apparition refusée laisse son nœud nommé une frame (patch 2). Contrôles de `game/.scratch` non audités (pipeline allégé). 3 patchs, 0 décision, 2 reports, 13 rejetés.
+
+- [ ] [Review][Patch] **Cible libérée avant l'entrée en charge : `_target as PhysicsBody2D` lève `SCRIPT ERROR: Trying to cast a freed object`** [game/enemies/sheep/sheep.gd:184] — Reproduit par l'Edge Case Hunter (cible libérée pendant le grattage ou le recul, puis entrée en `CHARGE`) ; en debug, la suite d'`_enter()` est abandonnée. Inatteignable en jeu aujourd'hui (le joueur n'est libéré qu'avec le `Run`), mais toutes les autres lectures de `_target` testent d'abord sa validité. Correctif : remplacer la ligne 184 par `var body: PhysicsBody2D = _target as PhysicsBody2D if is_instance_valid(_target) else null` (la ligne 185 reste). Vérifier : `t_sheep` point 7 étendu d'un cas « cible libérée pendant le recul » → la charge part, aucune exception posée, aucun `SCRIPT ERROR`.
+- [ ] [Review][Patch] **Apparition refusée après `add_child()` : le nœud nommé `<id>_<n>` reste dans `Enemies` jusqu'à la fin de la frame** [game/rooms/arena/arena.gd:107-108] — Contredit la stratégie de test point 10 (« ne laisse aucun nœud nommé dans `Enemies` ») ; consigné par le dev dans `deferred-work.md` mais « Aucun écart » dans les Completion Notes. Correctif : dans la branche `if enemy.hurtbox == null or enemy.process_mode == Node.PROCESS_MODE_DISABLED:`, appeler `_enemies.remove_child(enemy)` juste avant `enemy.queue_free()` (rien n'est encore connecté ni enregistré à ce stade : `tree_exited` et `register_hurtbox()` viennent après). Puis barrer l'entrée « Apparition refusée après `add_child()` » de la section 2-5 de `deferred-work.md` (« Résolu en revue »).
+- [ ] [Review][Patch] **T1 coché, ses deux sous-tâches non cochées** [_bmad-output/implementation-artifacts/2-5-affronter-le-mouton.md:38-40] — Le travail est fait (lexique, « Création d'entités », « États et télégraphes », arborescence `sheep/` dans `game-architecture.md`, commit `e7ce92b`). Correctif : cocher les deux sous-tâches `- [ ]` sous T1.
+- [x] [Review][Defer] **Une charge qui ne touche rien ne finit jamais** [game/enemies/sheep/sheep.gd:130-146] — deferred, stories 4.3 (trous) et 4.8 (portes) : la décision 16 suppose une salle fermée ; une porte ouverte, un trou ou une limite de salle hors `LAYER_WALLS` laisseraient le Mouton charger sans fin (salle jamais nettoyée). Garder les portes fermées en combat, ou ajouter une durée ou une distance maximale de charge qui ramène au repos.
+- [x] [Review][Defer] **`_move_toward()` ne s'arrête plus quand la cible disparaît : la règle « pas de cible, pas de mouvement » repose sur l'appelant** [game/enemies/enemy.gd:129-131] — deferred, story 4.5 : sans effet aujourd'hui (les 4 appelants passent `_target_position()`), mais un appelant qui passe un point fixe (chemin `AStarGrid2D`) avancerait vers lui sans cible. La 4.5 garde la règle dans son appelant.
 
 ## Dev Notes
 
@@ -414,3 +424,4 @@ Claude Sonnet 5.5
 
 - 2026-11-23 : story 2.5 créée (`ready-for-dev`).
 - 2026-11-23 : story 2.5 implémentée, passée en `review` (T7 fenêtré et mutations non faits : pipeline allégé).
+- 2026-11-23 : revue de code (trois couches) : 3 patchs laissés en actions, 2 reports, 13 rejetés ; story repassée en `in-progress`.

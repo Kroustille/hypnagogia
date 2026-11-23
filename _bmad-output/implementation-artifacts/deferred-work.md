@@ -176,3 +176,8 @@
 - **Mutations non faites** : les contrôles par mutation de la stratégie de test (point 13) ont été sautés par décision de Kroustille (pipeline allégé, 2026-11-23).
 - **Un Mouton dont la cible n'est pas le joueur réel** est arrêté par le joueur réel (l'exception ne vise que `_target`) : sans objet tant que la cible est toujours le joueur.
 - **Apparition refusée après `add_child()`** (setup raté) : le nœud nommé reste dans `Enemies` jusqu'à la fin de la frame (`queue_free()`), puis disparaît ; son numéro est perdu (non réutilisé).
+
+## Deferred from: code review of 2-5-affronter-le-mouton (2026-11-23)
+
+- **Une charge qui ne touche rien ne finit jamais** (stories 4.3 et 4.8) : `Sheep._process_charge()` ne quitte `CHARGE` que sur une collision ; la décision 16 de la 2.5 suppose une salle fermée. Une porte ouverte (4.8), un trou (4.3) ou une limite de salle hors `LAYER_WALLS` laisseraient le Mouton charger sans fin (salle jamais nettoyée). Garder les portes fermées en combat, ou ajouter une durée ou une distance maximale de charge qui ramène au repos (avec une ligne de journal).
+- **`Enemy._move_toward()` ne s'arrête plus quand la cible disparaît** (story 4.5) : depuis la 2.5, la règle « pas de cible, pas de mouvement » repose sur l'appelant, qui passe `_target_position()` (la position de l'ennemi sans cible). Sans effet aujourd'hui (Somnambule et Berceuse, 4 appels) ; un appelant qui passe un point fixe (chemin `AStarGrid2D` de la 4.5) avancerait vers lui sans cible : la 4.5 garde la règle dans son appelant.
