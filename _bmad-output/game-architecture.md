@@ -556,7 +556,7 @@ hypnagogia/
     ├── enemies/         — enemy.gd, enemy_def.gd, shooter_enemy.gd, shooter_def.gd, reinforcement.gd
     │   ├── sleepwalker/ — sleepwalker.tscn/.gd, sprites/
     │   ├── night_light/
-    │   ├── sheep/
+    │   ├── sheep/       — sheep.tscn/.gd, sheep_def.gd
     │   └── lullaby/
     ├── bosses/          — boss.gd, boss_def.gd, boss_attack.gd
     │   └── professor/   — professor.tscn/.gd, attacks/, sprites/
@@ -681,6 +681,7 @@ hypnagogia/
 | Run, nuit, partie ; mort ; issue de la run ; écran de réveil ; se rendormir, relancer ; emplacement de salle ; transition ; couche de décor | `run` ; `death` ; `outcome` ; `wake_screen` ; `restart` ; `room_slot` ; `transition` ; `decor` |
 | Ennemi ; PV ; dégâts au contact ; zone de contact ; apparition ; distance minimale d'apparition ; ennemis vivants ; poursuite ; accélération du Somnambule ; lever les bras | `enemy` ; `hp` (`HitPoints`) ; `contact_damage` ; `Hitbox` ; `spawn` ; `min_spawn_distance` ; `alive_enemies` ; `chase` ; `rush` ; `raise_arms` |
 | Tireuse ; cycle de tir ; lueur ; inspirer ; éventail ; écart de l'éventail ; salve ; projectile visé ; distance de maintien (min, max) ; se tenir à distance ; projectile ennemi ; apparence réservée des projectiles ennemis | `shooter` (`ShooterEnemy`, `ShooterDef`) ; `fire_interval` ; `glow` ; `inhale` ; `fan` ; `spread_angle` ; `volley` ; `aimed shot` ; `min_distance`, `max_distance` ; `keep_distance` ; `enemy_bullet` ; `EnemyBulletLook` (`COLOR_ENEMY_BULLET`, `COLOR_ENEMY_BULLET_OUTLINE`) |
+| Charge ; gratter le sol ; reculer ; étourdi, étourdissement ; repos (entre deux attaques) ; direction de charge ; ce qui assomme ; nom d'un ennemi apparu | `charge` ; `scrape` ; `backup` ; `stun` ; `rest` ; `charge_direction` ; `STUNNING_LAYERS` ; `spawn_serial` (`<id>_<n>`) |
 
 Tout nouveau terme du GDD entre dans ce lexique avant d'apparaître dans le code.
 
@@ -836,6 +837,7 @@ func _ready() -> void:
 - Injection de dépendances : `setup()` est appelée **avant** `add_child()`. Les dépendances internes à la scène passent par `@export` ou `%NomUnique`.
 - Pools uniquement pour les projectiles et les effets d'impact.
 - Story 2.4 : `Enemy.setup(def, target, target_hurtbox, bullets)` : l'arène passe son `BulletManager` ennemi à tout ennemi (les tireuses tirent par lui, les autres l'ignorent).
+- Story 2.5 : `spawn_enemy()` nomme l'ennemi `<id>_<n>` (`id` de la `Def`, `n` compteur de la salle à partir de 1, jamais réutilisé) avant `add_child()` : aucun nom généré en `@` dans les journaux.
 - Apparition d'un ennemi (story 2.3) : à au moins `min_spawn_distance` (3 tuiles) du joueur ; une position trop proche ou hors de la zone jouable est remplacée de façon déterministe (sans RNG avant l'epic 4). Un ennemi n'est jamais mis en pool ni déplacé d'un parent à l'autre.
 
 ```gdscript
@@ -853,6 +855,7 @@ func spawn_enemy(def: EnemyDef, pos: Vector2) -> Enemy:
 
 - Machine à états par `enum` + `match`, une fonction `_process_<état>()` par état, transitions par `_enter(state)` uniquement.
 - **Toute attaque passe par le composant `Telegraph`** : animation, son et durée = `maxf(base * danger.telegraph_mult, Tuning.COMBAT.min_telegraph)`.
+- Story 2.5 : une charge qui traverse sa cible pose une exception de collision avec le corps de la cible pendant la charge, levée au premier tick où les corps ne se chevauchent plus ; elle s'arrête au premier contact, et un mur est reconnu par la couche du collisionneur dans `STUNNING_LAYERS` (pas par son type).
 
 ```gdscript
 func _enter(next: State) -> void:
