@@ -71,13 +71,13 @@ development_status:
   # Epic 3: Jouer avec sa lucidité
   epic-3: in-progress
   3-1-voir-sa-lucidite-et-ses-paliers: done
-  3-2-regagner-sa-lucidite-par-le-skill: backlog
-  3-3-depenser-sa-lucidite-eveil: backlog
-  3-4-depenser-sa-lucidite-glissement: backlog
-  3-5-etre-precis-en-lucide-frapper-fort-dans-l-abandon: backlog
-  3-6-subir-le-danger-du-palier-le-plus-bas: backlog
-  3-7-voir-arriver-le-renfort-de-l-abandon: backlog
-  3-8-sentir-l-abandon-sans-perdre-le-combat-de-vue: backlog
+  3-2-regagner-sa-lucidite-par-le-skill: ready-for-dev
+  3-3-depenser-sa-lucidite-eveil: ready-for-dev
+  3-4-depenser-sa-lucidite-glissement: ready-for-dev
+  3-5-etre-precis-en-lucide-frapper-fort-dans-l-abandon: ready-for-dev
+  3-6-subir-le-danger-du-palier-le-plus-bas: ready-for-dev
+  3-7-voir-arriver-le-renfort-de-l-abandon: ready-for-dev
+  3-8-sentir-l-abandon-sans-perdre-le-combat-de-vue: ready-for-dev
   epic-3-retrospective: optional
 
   # Epic 4: Explorer un étage né d'une seed
