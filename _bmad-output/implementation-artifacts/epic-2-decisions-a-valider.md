@@ -1,5 +1,7 @@
 # Epic 2 : décisions prises sans toi, à valider
 
+> **Validé par Kroustille le 2026-11-23 : les 167 décisions sont acceptées sans changement.**
+
 Pendant l'epic 2 (stories 2.1 à 2.8), 167 décisions ont été prises sans toi. Elles sont toutes notées dans la section « Décisions prises sans Kroustille » de chaque story. Ce document les trie pour que tu puisses valider vite.
 
 **Comment répondre :** réponds avec les numéros à changer et ce que tu veux à la place ; tout le reste est validé. Exemple : « D2.5-4 : le joueur ne traverse pas le Mouton ; D2.6-2 : 4 vagues ».
