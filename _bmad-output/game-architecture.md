@@ -509,6 +509,8 @@ func _ready() -> void:
 	Events.room_cleared.connect(_on_events_room_cleared)
 ```
 
+Signature actuelle (story 2.6) : `room_cleared(room: Node)` ; `Room` et `lowest_tier` arrivent avec la lucidité (epic 3) et les salles (epic 4).
+
 ### Outils de debug
 
 **Activation :** cheats disponibles uniquement si `OS.is_debug_build()` ; compteur de perf disponible partout.
