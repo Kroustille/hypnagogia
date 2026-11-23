@@ -40,6 +40,8 @@ var _player: Player
 var _player_bullets: BulletManager
 var _enemy_bullets: BulletManager
 var _alive: int = 0
+## Spawns of this room so far: names the next enemy <id>_<n>, never reused (a refused spawn may lose a number).
+var _spawn_serial: int = 0
 
 
 ## Dependency injection: call before add_child().
@@ -98,6 +100,8 @@ func spawn_enemy(def: EnemyDef, requested: Vector2) -> Enemy:
 		return null
 	enemy.setup(def, _player, _player.hurtbox, _enemy_bullets) # before add_child()
 	enemy.position = position_px
+	_spawn_serial += 1
+	enemy.name = "%s_%d" % [_enemy_base_name(def), _spawn_serial] # readable and unique: never a generated "@" name
 	_enemies.add_child(enemy)
 	if enemy.hurtbox == null or enemy.process_mode == Node.PROCESS_MODE_DISABLED:
 		# Its _ready() failed: never counted, registered nor left visible and hittable.
@@ -110,7 +114,7 @@ func spawn_enemy(def: EnemyDef, requested: Vector2) -> Enemy:
 		_player_bullets.register_hurtbox(enemy.hurtbox)
 	_alive += 1
 	enemy.tree_exited.connect(_on_enemy_tree_exited, CONNECT_ONE_SHOT)
-	Log.debug("room", "spawned %s at %s alive=%d" % [def.id, position_px, _alive])
+	Log.debug("room", "spawned %s at %s alive=%d node=%s" % [def.id, position_px, _alive, enemy.name])
 	return enemy
 
 
@@ -331,3 +335,9 @@ func _checker_image() -> Image:
 			if (x / block + y / block) % 2 == 1:
 				image.set_pixel(x, y, FLOOR_ALT_COLOR)
 	return image
+
+
+## The def id as a valid node name ("enemy" when the id is empty).
+func _enemy_base_name(def: EnemyDef) -> String:
+	var base: String = String(def.id).validate_node_name()
+	return base if not base.is_empty() else "enemy"
