@@ -242,3 +242,10 @@
 ## Deferred from: story 3-2 (2026-11-23)
 
 - **NON ÉVALUÉ (humain) : sensation du graze et du dash parfait** : rayon de graze d'1 tuile, +2 / +5 / plafond 20, graze compté quand le projectile s'éloigne (décision 8), audibilité et distinction de `sfx_graze` et `sfx_perfect_dash` (provisoires, remplacés par 7.7), lisibilité de la zone F2. Un projectile esquivé qui recouvre encore la hurtbox à la fin de l'invulnérabilité du dash touche le joueur : à noter au playtest du jalon A.
+
+## Deferred from: code review of 3-2-regagner-sa-lucidite-par-le-skill (2026-11-23)
+
+- **Graze à l'éloignement manqué par les projectiles rapides** (première story qui tire au-delà de ~12 tuiles/s) : la fenêtre d'éloignement vaut √(R² − d²) le long de la trajectoire ; à ≤ 6 tuiles/s seuls les passages à plus de 15,9 px sont perdus, au-delà une bande notable du rayon disparaît. Correction : test balayé (point le plus proche du segment parcouru pendant le tick) dans `BulletManager._test_graze`.
+- **`Player._on_room_cleared(_room)` ne tolère pas un argument de plus** malgré son commentaire (story 3.6) : mettre à jour la signature et le commentaire quand `room_cleared` reçoit `lowest_tier`.
+- **Graze puis coup quand le joueur rattrape un projectile qui s'éloigne** (playtest du jalon A) : le test d'éloignement lit la vitesse du projectile, pas la vitesse relative ; rare (6 tuiles/s contre 5–6). Si gênant : tester la vitesse relative au déplacement de la hurtbox.
+- Le cas « projectile esquivé qui touche à la fin de l'invulnérabilité du dash » (report de la story 3-2 ci-dessus) est traité par une correction de revue (décision 12 : un projectile esquivé ne touche plus le joueur).
