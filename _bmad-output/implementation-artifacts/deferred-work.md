@@ -192,3 +192,8 @@
 - **`Events.room_cleared(room: Node)` sans `lowest_tier`** : le palier de lucidité (epic 3) s'ajoute à la signature ; les écouteurs de l'epic 5 devront être adaptés.
 - **`Arena.waves_enabled` statique** : réglage réservé aux outils de vérification (`.scratch/th.gd` le met à faux) ; à retirer quand les salles auront un `WaveList` propre (epic 4).
 - **Vagues non bornées en temps** : une vague dont un ennemi n'est jamais atteignable (cible hors portée) bloque la suite ; le « chrono » et les renforts (Abandon, objets) arrivent avec les epics 3 et 5. « Vague suivante » (F1, touche `-`) débloque.
+
+## Deferred from: code review of 2-6-enchainer-les-vagues-dans-l-arene (2026-11-23)
+
+- **`room_cleared` émis pendant que `Enemies` est verrouillé** (epic 5, effets d'objets et renforts) : `Arena.emptied` part du `tree_exited` du dernier ennemi, pendant le `remove_child` de `Enemies` (`data.blocked`). Un écouteur de `Events.room_cleared` qui appellerait `spawn_enemy()` en synchrone aurait « Parent node is busy » (`add_child` refusé). Aucun écouteur aujourd'hui. Le jour venu : apparition différée (`call_deferred`) dans l'écouteur, ou émission différée de `room_cleared` avec test `is_instance_valid(room)`.
+- **Dossier `game/.scratch` à exclure de l'export** (story 1.8) : les scènes de vérification (dont `th.gd`, qui écrit `Arena.waves_enabled = false`) sont sous `res://`. Le jeu ne les charge jamais (pas de fuite en release), mais le filtre d'export doit les exclure.
