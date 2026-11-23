@@ -99,5 +99,10 @@ func _give_verdict(just: bool) -> void:
 
 
 func _set_answers_enabled(enabled: bool) -> void:
-	_yes_button.disabled = not enabled or _answered
-	_no_button.disabled = not enabled or _answered
+	var active: bool = enabled and not _answered
+	_yes_button.disabled = not active
+	_no_button.disabled = not active
+	# Disabled buttons must not take the focus (a stick still pushed at death would land on Yes)
+	var mode: Control.FocusMode = Control.FOCUS_ALL if active else Control.FOCUS_NONE
+	_yes_button.focus_mode = mode
+	_no_button.focus_mode = mode

@@ -5,23 +5,31 @@ extends Node
 ## (answers arrive while the game is frozen).
 
 const DIRECTORY: String = "user://telemetry"
+const MAX_SESSION_FILES: int = 100
 
 var _session: TelemetrySession
 var _path: String = ""
 var _start_msec: int = 0
 var _last_hit_source: int = -1
 var _ended: bool = false
+var _disabled: bool = false
 
 
 func _ready() -> void:
 	_start_msec = Time.get_ticks_msec()
 	var stamp: String = Time.get_datetime_string_from_system().replace("-", "").replace(":", "").replace("T", "-")
-	DirAccess.make_dir_recursive_absolute(DIRECTORY)
-	var session_id: String = stamp
+	var dir_err: Error = DirAccess.make_dir_recursive_absolute(DIRECTORY)
+	if dir_err != OK:
+		Log.warn("save", "telemetry directory not writable (error %d): telemetry disabled" % dir_err)
+		_disabled = true
+	else:
+		_prune_old_sessions()
+	var base_id: String = "%s-%d" % [stamp, OS.get_process_id()]
+	var session_id: String = base_id
 	var n: int = 1
 	while FileAccess.file_exists("%s/%s.json" % [DIRECTORY, session_id]):
 		n += 1
-		session_id = "%s-%d" % [stamp, n]
+		session_id = "%s-%d" % [base_id, n]
 	_path = "%s/%s.json" % [DIRECTORY, session_id]
 	_session = TelemetrySession.new(session_id)
 	_session.start(0.0)
@@ -30,6 +38,18 @@ func _ready() -> void:
 	Events.run_ended.connect(_on_events_run_ended)
 	Events.death_judged.connect(_on_events_death_judged)
 	_write()
+
+
+## Keeps the folder bounded: deletes the oldest session files (timestamped names) beyond the cap, leaving room for the new one.
+func _prune_old_sessions() -> void:
+	var names: Array[String] = []
+	for file_name: String in DirAccess.get_files_at(DIRECTORY):
+		if file_name.ends_with(".json"):
+			names.append(file_name)
+	names.sort()
+	var excess: int = names.size() - (MAX_SESSION_FILES - 1)
+	for i: int in range(maxi(excess, 0)):
+		DirAccess.remove_absolute(DIRECTORY.path_join(names[i]))
 
 
 func session_path() -> String:
@@ -69,11 +89,8 @@ func _on_events_run_started() -> void:
 
 
 func _on_events_run_ended(_outcome: int) -> void:
-	var cause: String = "unknown"
-	var names: Array[String] = []
-	names.assign(DamageInfo.Source.keys())
-	if _last_hit_source >= 0 and _last_hit_source < names.size():
-		cause = names[_last_hit_source].to_lower()
+	var key: Variant = DamageInfo.Source.find_key(_last_hit_source)
+	var cause: String = str(key).to_lower() if key != null else "unknown"
 	_session.death(_now(), cause)
 	_write()
 
@@ -84,10 +101,21 @@ func _on_events_death_judged(just: bool) -> void:
 
 
 func _write() -> void:
-	if _ended and _session.events.back()["type"] != "session_end":
+	if _disabled or (_ended and _session.events.back()["type"] != "session_end"):
 		return
-	var file: FileAccess = FileAccess.open(_path, FileAccess.WRITE)
+	var tmp_path: String = _path + ".tmp"
+	var file: FileAccess = FileAccess.open(tmp_path, FileAccess.WRITE)
 	if file == null:
-		Log.warn("run", "telemetry file not writable: %s" % _path)
+		Log.warn("save", "telemetry file not writable: %s (telemetry disabled)" % tmp_path)
+		_disabled = true
 		return
-	file.store_string(JSON.stringify(_session.to_dict(_now()), "\t"))
+	var ok: bool = file.store_string(JSON.stringify(_session.to_dict(_now()), "\t"))
+	file.close()
+	if not ok:
+		Log.warn("save", "telemetry write failed: %s (telemetry disabled)" % tmp_path)
+		_disabled = true
+		return
+	var err: Error = DirAccess.rename_absolute(tmp_path, _path)
+	if err != OK:
+		Log.warn("save", "telemetry rename failed (error %d): telemetry disabled" % err)
+		_disabled = true
