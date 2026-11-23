@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="SheepDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://enemies/sheep/sheep_def.gd" id="1_def"]
+[ext_resource type="PackedScene" path="res://enemies/sheep/sheep.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_def")
+rest_duration = 1.0
+telegraph_duration = 0.5
+backup_distance = 0.5
+backup_speed = 2.0
+charge_speed = 10.0
+stun_duration = 1.0
+id = &"sheep"
+scene = ExtResource("2_scene")
+max_hp = 50.0
+body_size = Vector2(0.625, 0.625)
+hurtbox_size = Vector2(0.75, 1.25)
+contact_size = Vector2(0.75, 0.75)
