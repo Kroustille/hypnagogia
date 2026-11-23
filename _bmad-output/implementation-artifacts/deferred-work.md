@@ -216,3 +216,10 @@
 - **Cause de la mort limitée à la source du coup** (`enemy_bullet`, `contact`…), sans l'identité de l'ennemi : le signal `player_hit(damage, source)` ne la porte pas. À enrichir si le playtest veut savoir quel ennemi tue (epic 3 ou plus).
 - **Temps par palier de lucidité (NFR12)** : absent du journal, les paliers arrivent avec l'epic 3 ; la télémétrie devra écouter `Events.lucidity_tier_changed`.
 - Report de 2.2 « cause de la mort en télémétrie » : **résolu** par la story 2.8 (source du dernier `player_hit` avant `run_ended`).
+
+## Deferred from: code review of 2-8-dire-si-sa-mort-etait-juste (2026-11-23)
+
+- **`Telemetry._on_events_run_ended` ignore l'issue** (story 6.4, victoire) : toute fin de partie est comptée en `deaths`, ajoute un événement `death` et ouvre une question qui deviendra `no_answer`. À la victoire : ne journaliser une mort que pour `DEATH` (l'issue arrive en entier sur le bus), et un événement `run_end` distinct pour les autres issues.
+- **Cause de mort périmée pour une mort sans `player_hit`** (story 4.3, fosses) : `_last_hit_source` n'est remis à zéro qu'au début de partie ; une mort qui ne passe pas par `player_hit` serait attribuée au dernier coup reçu, même ancien. Aujourd'hui toute mort passe par `player_hit` dans le même tick. Si les fosses tuent autrement : n'accepter la source que si elle date du même tick physique, ou porter la cause dans `run_ended`.
+- **Sessions de dev dans `user://telemetry/`** (story 1.8) : chaque lancement (éditeur, `--quit-after`, scènes de `run_all.sh`) écrit sa session ; seul `t_telemetry` supprime la sienne. Sans effet sur les builds des amis ; sur la machine de dev, ignorer le headless (sauf argument `--telemetry` passé par `t_telemetry`) ou marquer la session `"debug": true`.
+- **Télémétrie sans avertissement ni option pour la couper** (story 1.8 / préparation du playtest du jalon A) : aucun texte ne dit au joueur que des fichiers sont écrits. Ajouter une ligne dans le README livré avec le build (où trouver les fichiers, quoi renvoyer), voire un réglage plus tard. Contenu : horodatage local et compteurs, aucune donnée personnelle.

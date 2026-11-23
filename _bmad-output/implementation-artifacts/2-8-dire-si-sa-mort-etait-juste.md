@@ -1,6 +1,6 @@
 # Story 2.8 : Dire si sa mort était juste
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -28,6 +28,22 @@ Exigences : FR34, NFR12, AR25 (epics.md, Story 2.8). Architecture : D18 « journ
 - [x] Clés `UI_WAKE_QUESTION`, `UI_WAKE_YES`, `UI_WAKE_NO`, `UI_WAKE_ANSWERED` dans `strings.csv`.
 - [x] Vérifications headless (`.scratch/t_telemetry.gd`, ajoutée à `run_all.sh`), `--quit-after 120` propre.
 
+### Review Findings
+
+Revue complète (3 couches : Blind Hunter, Edge Case Hunter, Acceptance Auditor), diff `106ff91..43dbd6d`. 7 patch, 4 defer, 9 rejetés. Attribution de la cause vérifiée : `changed` → `player_hit` → `died` → `run_ended` dans le même tick, le dernier coup est toujours le coup mortel. Aucune donnée personnelle (horodatage local et compteurs seulement). Les 4 nouveaux textes passent par `tr()` et `strings.csv`.
+
+- [ ] [Review][Patch] Écriture non atomique : `FileAccess.open(WRITE)` vide le fichier avant d'écrire, une plantade pendant l'écriture perd toute la session (contredit CA4) ; résultat de `store_string` ignoré [game/telemetry/telemetry.gd:89-93] — reprendre l'approche de `Settings._save` : écrire dans `_path + ".tmp"`, `var ok: bool = file.store_string(json)`, `file.close()`, avertir et sortir si `not ok`, puis `DirAccess.rename_absolute(tmp_path, _path)` et avertir si `!= OK`.
+- [ ] [Review][Patch] `user://` non inscriptible : échec de `make_dir_recursive_absolute` ignoré, puis un avertissement à chaque événement, sous la catégorie `run` [game/telemetry/telemetry.gd:19, 90-92] — `var dir_err: Error = DirAccess.make_dir_recursive_absolute(DIRECTORY)` ; si `!= OK`, un seul `Log.warn("save", …)` et `_disabled = true` ; `_write()` sort tôt si `_disabled` et le met à vrai au premier échec d'ouverture ou de renommage (un seul avertissement par session). Catégorie `save` (E/S fichier) au lieu de `run`.
+- [ ] [Review][Patch] Collision d'identifiant de session : deux processus lancés dans la même seconde (dont les scènes parallèles de `run_all.sh`, qui peuvent écraser le fichier relu par `t_telemetry`) peuvent passer le test `file_exists` avant la première écriture [game/telemetry/telemetry.gd:20] — `var session_id: String = "%s-%d" % [stamp, OS.get_process_id()]`, boucle de suffixe `-n` conservée en secours.
+- [ ] [Review][Patch] Croissance sans fin de `user://telemetry/` : un fichier par lancement, jamais supprimé [game/telemetry/telemetry.gd:19] — `const MAX_SESSION_FILES: int = 100` ; après la création du dossier, lister `DirAccess.get_files_at(DIRECTORY)` filtré sur `.json`, trier (noms horodatés), supprimer par `DirAccess.remove_absolute(DIRECTORY.path_join(name))` les plus anciens au-delà de `MAX_SESSION_FILES - 1` (place pour la nouvelle session).
+- [ ] [Review][Patch] Cause lue par position dans `Source.keys()` et non par valeur : faux nom si une valeur explicite de l'enum n'est plus contiguë (fosses en 4.3) [game/telemetry/telemetry.gd:72-76] — `var key: Variant = DamageInfo.Source.find_key(_last_hit_source)` puis `var cause: String = str(key).to_lower() if key != null else "unknown"` (supprime `names`).
+- [ ] [Review][Patch] Oui/Non désactivés restent focalisables : un joueur manette qui pousse encore le stick gauche à la mort (`ui_down` par défaut inclut le stick) envoie le focus sur Oui pendant la garde, puis A répond « Oui » au lieu de relancer (fausse le `yes_rate`) ; idem après une réponse [game/ui/menus/wake_screen.gd:101-103] — `var active: bool = enabled and not _answered` ; `disabled = not active` sur les deux boutons ; `var mode: Control.FocusMode = Control.FOCUS_ALL if active else Control.FOCUS_NONE` appliqué à `_yes_button.focus_mode` et `_no_button.focus_mode`.
+- [ ] [Review][Patch] Architecture non mise à jour pour le nouvel autoload [_bmad-output/game-architecture.md:216, 1006] — ajouter `Telemetry` (dans `telemetry/`, hors `autoloads/`, écoute le bus) à la ligne « Application » du tableau des niveaux d'état (l. 216) et à la liste des autoloads à déclarer (l. 1006).
+- [x] [Review][Defer] `run_ended` ignore l'issue : toute fin de partie est comptée comme une mort (et ouvre une question) [game/telemetry/telemetry.gd:71] — deferred, story 6.4 (seule `DEATH` existe aujourd'hui).
+- [x] [Review][Defer] Source de coup périmée pour une mort sans `player_hit` [game/telemetry/telemetry.gd:61-66] — deferred, story 4.3 (aucune mort sans coup aujourd'hui).
+- [x] [Review][Defer] Lancements de dev et scènes headless écrivent leur session dans `user://telemetry/` [game/telemetry/telemetry.gd:16-32] — deferred, story 1.8.
+- [x] [Review][Defer] Télémétrie écrite sans prévenir le joueur ni option pour la couper [game/telemetry/telemetry.gd:2-5] — deferred, story 1.8 / préparation du playtest du jalon A.
+
 ## État du code concerné
 
 - `Run._on_player_died` émet `Events.run_ended(DEATH)` ; `Main._on_events_run_ended` gèle et ouvre `WakeScreen` ; relance par `restart_requested` → `Main._start_run()` (nouveau `Run`).
@@ -53,6 +69,11 @@ Exigences : FR34, NFR12, AR25 (epics.md, Story 2.8). Architecture : D18 « journ
 6. **Réécriture complète du fichier à chaque événement** — Raison : quelques dizaines d'événements par session, aucune perte en cas de plantade, pas de tampon à vider.
 7. **`yes_rate` = oui / (oui + non)**, les absences exclues (comptées à part dans `no_answer`) ; `null` si aucune réponse.
 8. **Identifiant de session** = date et heure locales `AAAAMMJJ-HHMMSS`, suffixé `-n` en cas de collision de nom.
+9. **Revue : croissance du dossier de télémétrie** — Choix : garder les 100 sessions les plus récentes (patch) plutôt que couper la télémétrie en headless (reporté à 1.8). Raison : borne simple qui protège les machines des amis ; 100 lancements laissent largement le temps d'envoyer les fichiers.
+10. **Revue : collision d'identifiant** — Choix : suffixer l'identifiant par l'identifiant de processus (modifie la décision 8). Raison : supprime la course entre `file_exists` et la première écriture, sans verrou de fichier.
+11. **Revue : issue de `run_ended` ignorée** — Choix : reporter à 6.4 plutôt que corriger maintenant. Raison : seule l'issue `DEATH` existe ; `Run` n'est pas référencé par la télémétrie (chaîne de préchargement), la victoire tranchera la forme (événement `run_end` distinct).
+12. **Revue : catégorie de journal d'un échec d'écriture** — Choix : `save` (catégorie existante des E/S fichier) plutôt qu'une nouvelle catégorie `telemetry`. Raison : pas de changement de `Log.CATEGORIES` ni de l'architecture.
+13. **Revue : focus initial sur la relance** (signalé comme biais des réponses) — Choix : rejeté, la décision 1 est maintenue ; seul le focus sur des boutons désactivés est corrigé. Raison : la relance ne doit pas être ralentie par la question.
 
 ## Vérifications prévues (`.scratch/t_telemetry.gd`, sur `main.tscn`)
 
