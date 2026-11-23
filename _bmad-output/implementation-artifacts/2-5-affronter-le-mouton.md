@@ -1,6 +1,6 @@
 # Story 2.5 : Affronter Le Mouton
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -35,17 +35,17 @@ afin de jouer avec la salle pour le punir.
 
 ## Tâches / sous-tâches
 
-- [ ] **T1. Lexique et architecture** (AR32 : un terme entre dans le lexique **avant** le code)
+- [x] **T1. Lexique et architecture** (AR32 : un terme entre dans le lexique **avant** le code)
   - [ ] `game-architecture.md`, section « Lexique » : ajouter la ligne `Charge ; gratter le sol ; reculer ; étourdi, étourdissement ; repos (entre deux attaques) ; direction de charge ; ce qui assomme ; nom d'un ennemi apparu | charge ; scrape ; backup ; stun ; rest ; charge_direction ; STUNNING_LAYERS ; spawn_serial (<id>_<n>)`.
   - [ ] `game-architecture.md` : « Création d'entités », une ligne story 2.5 (`spawn_enemy()` nomme l'ennemi `<id>_<n>`, compteur de la salle) ; « États et télégraphes », une ligne story 2.5 (charge qui traverse sa cible : exception de collision avec le corps de la cible pendant la charge, levée quand les corps ne se chevauchent plus ; arrêt au premier contact, mur = couche du collisionneur dans `STUNNING_LAYERS`) ; « Arborescence », `enemies/sheep/` : `sheep.tscn/.gd, sheep_def.gd`.
-- [ ] **T2. Base des ennemis** (CA 1, 5) : `enemies/enemy.gd` : `_move_in_direction()`, `_move_toward()` sans test de la cible (voir « `Enemy` »).
-- [ ] **T3. Noms lisibles** (CA 12) : `rooms/arena/arena.gd` : compteur et nom avant `add_child()`, journal d'apparition (voir « Arène »).
-- [ ] **T4. Le Mouton** (CA 1 à 9) : `enemies/sheep/sheep_def.gd` (`SheepDef`), `sheep.tscn` + `sheep.gd`, `data/enemies/sheep.tres`, `audio/sfx/sfx_enemy_sheep_telegraph.wav` (voir « Le Mouton », « Son du télégraphe »).
-- [ ] **T5. Panneau F1** (CA 11) : touche 9 (voir « Panneau F1 »).
-- [ ] **T6. Vérifications headless** (CA 1 à 13) : nouvelles scènes de `game/.scratch`, `run_all.sh` étendu (voir « Stratégie de test »).
+- [x] **T2. Base des ennemis** (CA 1, 5) : `enemies/enemy.gd` : `_move_in_direction()`, `_move_toward()` sans test de la cible (voir « `Enemy` »).
+- [x] **T3. Noms lisibles** (CA 12) : `rooms/arena/arena.gd` : compteur et nom avant `add_child()`, journal d'apparition (voir « Arène »).
+- [x] **T4. Le Mouton** (CA 1 à 9) : `enemies/sheep/sheep_def.gd` (`SheepDef`), `sheep.tscn` + `sheep.gd`, `data/enemies/sheep.tres`, `audio/sfx/sfx_enemy_sheep_telegraph.wav` (voir « Le Mouton », « Son du télégraphe »).
+- [x] **T5. Panneau F1** (CA 11) : touche 9 (voir « Panneau F1 »).
+- [x] **T6. Vérifications headless** (CA 1 à 13) : nouvelles scènes de `game/.scratch`, `run_all.sh` étendu (voir « Stratégie de test »).
 - [ ] **T7. Vérifications fenêtrées sous WSLg** (CA 1, 2, 6) : grattage, recul, charge, étourdissement, **F2 sous `main.tscn`** (leçon de 2.4), captures. Ce qui n'est pas capturé est marqué NON VÉRIFIÉ à l'écran.
-- [ ] **T8. Régression** : import et lancement sans erreur, recherche des interdits, `run_all.sh` complet (scènes de 2.3 et 2.4 inchangées, et nouvelles).
-- [ ] **T9. Reports** : mettre à jour `deferred-work.md` (entrée « Base des ennemis pour la 2.5 » résolue, voir « Reports traités par cette story » ; nouvelles entrées NON ÉVALUÉ / NON VÉRIFIÉ, voir « Stratégie de test » point 15).
+- [x] **T8. Régression** : import et lancement sans erreur, recherche des interdits, `run_all.sh` complet (scènes de 2.3 et 2.4 inchangées, et nouvelles).
+- [x] **T9. Reports** : mettre à jour `deferred-work.md` (entrée « Base des ennemis pour la 2.5 » résolue, voir « Reports traités par cette story » ; nouvelles entrées NON ÉVALUÉ / NON VÉRIFIÉ, voir « Stratégie de test » point 15).
 
 ## Dev Notes
 
@@ -377,12 +377,40 @@ Aucune bloquante. Points à faire valider par Kroustille en fin d'epic : les dé
 
 ### Agent Model Used
 
+Claude Sonnet 5.5
+
 ### Debug Log References
+
+- **Contrôles par mutation SAUTÉS** par décision de Kroustille (pipeline allégé, 2026-11-23) : aucun mécanisme n'a été retiré pour voir échouer une scène. Les contrôles restent des assertions réelles (témoins simples inclus dans les scènes), mais la preuve « le contrôle sait échouer » n'est pas faite.
+- Scènes ajoutées (`game/.scratch`, hors git) : `t_sheep` (cycle, direction figée, murs, traversée du joueur actif, joueur collé au mur, arrêt par un ennemi, tirs et mort, contact, sans cible, F4, noms, `_move_in_direction`), `t_sheep_main` (touche 9, pause et écran de réveil dans les 5 états, F4, mort par la charge, cinq relances), `t_invalid25` (17 assertions annoncées = 17 vues). `th.gd` : ajout de `SHEEP_DEF`. `run_all.sh` : trois scènes ajoutées, contrôle « aucune ligne `telegraph @` », comptes `TELEGRAPH_COUNT` / `CHARGE_END_COUNT` contre les journaux, lignes `spawned … node=<id>_<n>`. Les règles de source (nombres du GDD 2.5, machine à états du Mouton) ont été retirées (pipeline allégé).
+- Seule scène existante adaptée : `t_shooters_main`, le contrôle du texte du panneau F1 attend désormais `keys 1-9` (la touche 9 est le changement légitime de la 2.5).
+- **Point 3 (symétrie de l'exception)** : confirmé. Joueur actif sans entrée, position identique au bit près pendant toute la traversée ; le joueur qui marche traverse aussi un Mouton qui charge (99 pas sans blocage). Le repli (`body.add_collision_exception_with(self)`) n'a pas été nécessaire.
+- Sonde au passage : un Mouton dont la cible est un autre corps que le joueur réel est arrêté par le joueur réel (l'exception ne vise que `_target`) ; sans objet en jeu.
 
 ### Completion Notes List
 
+- T1 : lexique et architecture mis à jour avant le code (lexique, Création d'entités, États et télégraphes, arborescence `sheep/`).
+- T2 : `Enemy._move_in_direction()`, `_move_toward()` sans test de la cible ; Somnambule et Berceuse inchangés (leurs scènes passent telles quelles).
+- T3 : `spawn_enemy()` nomme `<id>_<n>` (compteur de salle, `validate_node_name()`, `enemy` si `id` vide), journal `… node=<nom>`.
+- T4 : `SheepDef`, `Sheep` (REST / TELEGRAPH / BACKUP / CHARGE / STUN), `sheep.tres` (valeurs explicites relues après import), son de grattage généré (0,4 s, déterministe), textures provisoires. Valeurs invalides : bornées à 0 (repos, recul, étourdissement) ; `charge_speed` invalide : inerte. Calendrier mesuré : premier télégraphe au tick 60, recul 15 pas de 8/15 px, charge de 8/3 px par tick dès N + 47, étourdissement 60 ticks, télégraphe suivant à M + 121 ; sous F4 tout est ×4.
+- T5 : touche 9 du panneau F1 ; `Label` agrandi (160 px).
+- T6 : voir Debug Log. t_sheep 94 contrôles, t_sheep_main 56, t_invalid25 11 (+17 assertions).
+- T7 : **NON FAIT** (pipeline allégé) : aucune capture fenêtrée ; NON VÉRIFIÉ à l'écran (voir `deferred-work.md`).
+- T8 : `run_all.sh` ALL PASS (617 contrôles de scènes : 9 scènes existantes inchangées sauf le texte du panneau dans `t_shooters_main`, t_sheep 94, t_sheep_main 56, t_invalid25 11), import et `--quit-after 120` propres. T9 : `deferred-work.md` mis à jour (report « Base des ennemis pour la 2.5 » résolu, entrées NON ÉVALUÉ / NON VÉRIFIÉ).
+- Aucun écart aux « Décisions prises sans Kroustille ». Détail d'implémentation : le journal de fin de charge contre un ennemi nomme le collisionneur (`sheep_1 charge stopped by night_light_2`).
+
 ### File List
+
+- `_bmad-output/game-architecture.md` (UPDATE)
+- `game/enemies/enemy.gd` (UPDATE)
+- `game/rooms/arena/arena.gd` (UPDATE)
+- `game/enemies/sheep/sheep.gd`, `sheep.tscn`, `sheep_def.gd` (+ `.uid`) (NEW)
+- `game/data/enemies/sheep.tres` (NEW)
+- `game/audio/sfx/sfx_enemy_sheep_telegraph.wav` (+ `.import`) (NEW)
+- `game/debug/debug_panel.gd`, `debug_panel.tscn` (UPDATE)
+- `_bmad-output/implementation-artifacts/deferred-work.md`, `sprint-status.yaml`, ce fichier (UPDATE)
 
 ### Change Log
 
 - 2026-11-23 : story 2.5 créée (`ready-for-dev`).
+- 2026-11-23 : story 2.5 implémentée, passée en `review` (T7 fenêtré et mutations non faits : pipeline allégé).
