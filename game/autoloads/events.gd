@@ -37,3 +37,13 @@ signal run_started
 ## answering: the telemetry derives the absence of answer from the next run_started. Listeners: telemetry (story 2.8).
 @warning_ignore("unused_signal")
 signal death_judged(just: bool)
+
+## The lucidity value changed, or a fresh player came in (initial state of a run). value: 0..100; tier: Lucidity.Tier
+## as an int (autoloads/ depends on no feature folder). Listeners: HUD gauge (story 3.1).
+@warning_ignore("unused_signal")
+signal lucidity_value_changed(value: int, tier: int)
+
+## The live lucidity tier changed, in either direction. tier and previous_tier: Lucidity.Tier as ints.
+## Never emitted for the initial state. Listeners: telemetry (story 3.1); danger and effects (stories 3.5+).
+@warning_ignore("unused_signal")
+signal lucidity_tier_changed(tier: int, previous_tier: int)

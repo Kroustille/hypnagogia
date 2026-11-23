@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="LucidityTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/lucidity_tuning.gd" id="1_tuning"]
+
+[resource]
+script = ExtResource("1_tuning")
+max_value = 100
+tier_floors = PackedInt32Array(76, 51, 26, 1, 0)
