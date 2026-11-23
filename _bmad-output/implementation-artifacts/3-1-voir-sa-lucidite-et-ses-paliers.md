@@ -1,6 +1,6 @@
 # Story 3.1 : Voir sa lucidité et ses paliers
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -24,12 +24,12 @@ Hors périmètre (stories suivantes) : gains graze/dash parfait/salle vidée (3.
 
 ## Tâches
 
-- [ ] `core/lucidity_tuning.gd` + `data/tuning/lucidity_tuning.tres` (valeurs max et plancher de chaque palier), `Tuning.LUCIDITY`.
-- [ ] `player/lucidity.gd` : `Tier` (LUCID, FLOATING, DRIFT, ABANDON, TOTAL_ABANDON), `value`, `live_tier`, `gain()`, `set_value()`, `tier_for()`, signaux.
-- [ ] `Events.lucidity_value_changed`, `Events.lucidity_tier_changed` ; `Player` crée `lucidity`, relaie sur le bus et joue le son ; deux sons `sfx_lucidity_tier_down.wav` / `sfx_lucidity_tier_up.wav` (générés par script, placeholders).
-- [ ] `ui/hud/lucidity_gauge.gd` dans le HUD, étiquette de palier, clés `UI_LUCIDITY_*` dans `strings.csv`.
-- [ ] F1 touche `L` ; ligne F3 ; télémétrie par palier (`TelemetrySession` pur + `Telemetry`).
-- [ ] Vérifications headless (`.scratch/t_lucidity.gd`, ajoutée à `run_all.sh`), `run_all.sh` complet une fois, `--quit-after 120` propre.
+- [x] `core/lucidity_tuning.gd` + `data/tuning/lucidity_tuning.tres` (valeurs max et plancher de chaque palier), `Tuning.LUCIDITY`.
+- [x] `player/lucidity.gd` : `Tier` (LUCID, FLOATING, DRIFT, ABANDON, TOTAL_ABANDON), `value`, `live_tier`, `gain()`, `set_value()`, `tier_for()`, signaux.
+- [x] `Events.lucidity_value_changed`, `Events.lucidity_tier_changed` ; `Player` crée `lucidity`, relaie sur le bus et joue le son ; deux sons `sfx_lucidity_tier_down.wav` / `sfx_lucidity_tier_up.wav` (générés par script, placeholders).
+- [x] `ui/hud/lucidity_gauge.gd` dans le HUD, étiquette de palier, clés `UI_LUCIDITY_*` dans `strings.csv`.
+- [x] F1 touche `L` ; ligne F3 ; télémétrie par palier (`TelemetrySession` pur + `Telemetry`).
+- [x] Vérifications headless (`.scratch/t_lucidity.gd`, ajoutée à `run_all.sh`), `run_all.sh` complet une fois, `--quit-after 120` propre.
 
 ## État du code concerné
 
@@ -78,4 +78,15 @@ Claude Sonnet 5.5
 
 ### Completion Notes
 
+- `Lucidity` (pur, `player/lucidity.gd`) : valeur 0..100, `live_tier`, `gain()`, `set_value()`, signaux `value_changed` / `tier_changed` émis après mise à jour des deux champs. Paliers dans `LucidityTuning` (`max_value`, `tier_floors`). Le joueur le crée et relaie : `Events.lucidity_value_changed(value, tier)` (état initial compris) et `Events.lucidity_tier_changed(tier, previous)` avec un son (descente ou montée) et une ligne INFO `lucidity`.
+- HUD : `LucidityGauge` (dessin en code) posée sur le cadre réservé, remplissage proportionnel, couleur par palier, 3 repères, flash de 0,3 s au changement de palier ; nom du palier à droite (`UI_LUCIDITY_*`). Le slot reste vide, le HUD n'écoute que `Events`.
+- F1 `L` cycle 100/75/50/25/0 par `lucidity.set_value()` ; F3 ligne « Lucidity n (TIER) » (zone du libellé agrandie).
+- Télémétrie : `TelemetrySession.tier_changed/run_ended`, événement `run_end` avec les secondes par palier, `summary.tier_seconds` ; ligne INFO `lucidity` à chaque fin de partie. `t_telemetry` adaptée : son helper ignore les événements `run_end`.
+- Vérifié : `t_lucidity` 30 contrôles (bornes des 9 valeurs limites, plafond et plancher, signaux, relais bus, son, HUD, F1, F3, télémétrie pure et dans le jeu, nouvelle partie à 100) ; `run_all.sh` normal : 789 contrôles, toutes les scènes PASS (seul `t_lucidity` avait un avertissement de fuite à la sortie, corrigé en laissant finir le son) ; `--quit-after 120` propre.
+- **NON ÉVALUÉ** (humain) : lisibilité de la jauge de 160×8 px et des couleurs de palier à l'échelle réelle, audibilité et distinction des deux sons de palier, utilité de l'étiquette. Voir `deferred-work.md`.
+
 ### File List
+
+- `game/core/lucidity_tuning.gd` (+ `.uid`), `game/data/tuning/lucidity_tuning.tres`, `game/player/lucidity.gd` (+ `.uid`), `game/ui/hud/lucidity_gauge.gd` (+ `.uid`), `game/audio/sfx/sfx_lucidity_tier_{down,up}.wav` (+ `.import`) (NEW)
+- `game/core/tuning.gd`, `game/autoloads/events.gd`, `game/player/player.gd`, `game/ui/hud/hud.gd`, `game/localization/strings.csv`, `game/debug/debug_panel.gd`, `game/debug/perf_overlay.{gd,tscn}`, `game/telemetry/telemetry.gd`, `game/telemetry/telemetry_session.gd` (UPDATE)
+- ce fichier, `sprint-status.yaml`, `deferred-work.md` (UPDATE) ; `game/.scratch/t_lucidity.*`, `t_telemetry.gd`, `run_all.sh` (non versionnés)
