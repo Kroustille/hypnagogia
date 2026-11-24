@@ -275,3 +275,9 @@
 
 - **NON ÉVALUÉ (humain) : signalement de l'aggravation et valeurs de danger** : son grave provisoire (`sfx_danger_raised.wav`, généré), anneau rouge de 2 tuiles autour du joueur, projectiles x1,1 en Dérive, télégraphes x0,85 en Abandon. À juger au playtest du jalon A (lisibilité, photosensibilité : aucun flash plein écran).
 - **Toute dépense fait aggraver la salle** : Éveil (30) depuis 100 passe en Flottant, donc le danger ne bouge pas (x1 / x1), mais le son et l'anneau rouge sont joués dès le premier palier perdu, même sans effet de danger. Voir au playtest si le signal est trop bavard aux paliers Lucide -> Flottant.
+
+## Deferred from: story 3-7 (2026-11-24)
+
+- **NON ÉVALUÉ (humain) : lisibilité du renfort** : cercle ambre qui se resserre sur 0,6 s, son provisoire (`sfx_reinforcement.wav`, généré), position des 4 marqueurs de l'arène (coins éloignés des emplacements de départ). À juger au playtest du jalon A (le délai de 0,6 s laisse-t-il le temps de réagir ? le renfort tombe-t-il parfois dans le dos du joueur ?).
+- **Renfort après aggravation tardive** : le renfort vient dès le premier passage en Abandon de la vague, même s'il ne reste qu'un ennemi ; il retarde alors `room_cleared` de 0,6 s. Voir au playtest si c'est trop punitif.
+- **Salles de cauchemar** (epic 6) : `Arena.is_nightmare` n'est qu'un drapeau exporté ; à poser depuis la salle réelle.

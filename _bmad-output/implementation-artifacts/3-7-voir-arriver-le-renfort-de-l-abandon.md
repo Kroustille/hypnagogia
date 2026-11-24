@@ -1,6 +1,6 @@
 # Story 3.7 : Voir arriver le renfort de l'abandon
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -28,14 +28,14 @@ Hors périmètre : salles de cauchemar réelles (epic 6 : ici seulement un drape
 
 ## Tâches
 
-- [ ] `core/run_rng.gd` : `RunRng.new(seed: int)` ; `static func draw_seed() -> int` (via `Crypto.generate_random_bytes`, 40 bits) ; `stream(name: StringName, floor_index: int = 0) -> RandomNumberGenerator` (cache par nom et étage) ; `seed_code() -> String` (8 caractères Crockford base32) ; `static func code_to_seed(code)`. Seed d'un flux : 8 premiers octets de `sha256_buffer("%d:%s:%d")`.
-- [ ] `Run` : `var rng: RunRng` créé au début de `_ready()` ; journalise la seed ; `arena.setup(_player, rng)` (paramètre facultatif : sans lui, l'arène fabrique une `RunRng` fixe pour les scènes de vérification).
-- [ ] `arena.tscn` : nœud `ReinforcementSpawns` avec 4 `Marker2D` (coins éloignés, hors `spawn_slots`) ; `Arena.is_nightmare` (`@export`, faux).
-- [ ] `Arena` : `begin_room(wave_defs: Array[EnemyDef])` mémorise la composition de la vague, réarme le renfort ; écoute `room_danger_raised` et `begin_room` : `_maybe_schedule_reinforcement()` ; file d'attente des renforts (`_pending`), décompte en ticks, signe visuel ; compte `_pending` dans la condition de `emptied`.
-- [ ] `WaveRunner._start_next_wave()` passe la liste des définitions prévues à `begin_room`.
-- [ ] `vfx/reinforcement_sign.gd` (signe placeholder : cercle qui se resserre sur 0,6 s, couleur dédiée, via `ring_pulse` inversé ou dessin propre) ; son `sfx_reinforcement.wav`.
-- [ ] `LucidityTuning.reinforcement_warning` (0,6 s) ; `reinforcement_min_player_distance` = `CombatTuning.min_spawn_distance` (3 tuiles, pas de nouvelle valeur).
-- [ ] `t_reinforcement` ; `run_all.sh` une fois à la fin.
+- [x] `core/run_rng.gd` : `RunRng.new(seed: int)` ; `static func draw_seed() -> int` (via `Crypto.generate_random_bytes`, 40 bits) ; `stream(name: StringName, floor_index: int = 0) -> RandomNumberGenerator` (cache par nom et étage) ; `seed_code() -> String` (8 caractères Crockford base32) ; `static func code_to_seed(code)`. Seed d'un flux : 8 premiers octets de `sha256_buffer("%d:%s:%d")`.
+- [x] `Run` : `var rng: RunRng` créé au début de `_ready()` ; journalise la seed ; `arena.setup(_player, rng)` (paramètre facultatif : sans lui, l'arène fabrique une `RunRng` fixe pour les scènes de vérification).
+- [x] `arena.tscn` : nœud `ReinforcementSpawns` avec 4 `Marker2D` (coins éloignés, hors `spawn_slots`) ; `Arena.is_nightmare` (`@export`, faux).
+- [x] `Arena` : `begin_room(wave_defs: Array[EnemyDef])` mémorise la composition de la vague, réarme le renfort ; écoute `room_danger_raised` et `begin_room` : `_maybe_schedule_reinforcement()` ; file d'attente des renforts (`_pending`), décompte en ticks, signe visuel ; compte `_pending` dans la condition de `emptied`.
+- [x] `WaveRunner._start_next_wave()` passe la liste des définitions prévues à `begin_room`.
+- [x] `vfx/reinforcement_sign.gd` (signe placeholder : cercle qui se resserre sur 0,6 s, couleur dédiée, via `ring_pulse` inversé ou dessin propre) ; son `sfx_reinforcement.wav`.
+- [x] `LucidityTuning.reinforcement_warning` (0,6 s) ; `reinforcement_min_player_distance` = `CombatTuning.min_spawn_distance` (3 tuiles, pas de nouvelle valeur).
+- [x] `t_reinforcement` ; `run_all.sh` une fois à la fin.
 
 ## État du code concerné
 
@@ -88,6 +88,26 @@ Hors périmètre : salles de cauchemar réelles (epic 6 : ici seulement un drape
 
 ### Agent Model Used
 
+Claude Sonnet 5.5
+
 ### Completion Notes
 
+- `RunRng` (`core/run_rng.gd`) : seed de run de 40 bits tirée par `Crypto` (sans RNG global), flux par `(seed, nom, étage)` via `sha256_buffer`, code de 8 caractères Crockford. `Run` la crée au début de `_ready()`, journalise `seed XXXXXXXX` et la passe à `Arena.setup(player, rng)` (sans `rng`, l'arène prend une `RunRng` fixe pour les scènes de vérification).
+- `Arena` : `begin_room(wave_defs)` rearme et programme le renfort (vague qui commence en Abandon) ; `_on_room_danger_raised` le programme en pleine vague ; file `_pending` décomptée en ticks (`GameClock.Group.ENEMIES`) dans `_physics_process` ; `emptied` attend `_pending` vide (aussi quand le renfort échoue) ; file vidée à `begin_room`, `run_ended` et `_exit_tree`. `is_nightmare` exporté. Type : le plus présent de la vague prévue, égalité tranchée dans `combat` (un seul tirage, seulement en cas d'égalité) ; place : un tirage `combat` parmi les marqueurs à 3 tuiles ou plus du joueur (sinon le plus éloigné). 4 marqueurs `ReinforcementSpawns` dans `arena.tscn` (groupe `reinforcement_spawn`).
+- Signe `vfx/reinforcement_sign.gd` (cercle ambre qui se resserre sur 0,6 s, sans flash) et `sfx_reinforcement.wav` (généré, provisoire). `LucidityTuning.reinforcement_warning = 0.6`. Journal : `Log.info("room", "reinforcement <id> announced/appeared/failed to appear")`.
+- Vérifications : `t_reinforcement` (36 contrôles : `RunRng` pur, annonce, apparition à 36 ticks, un seul par vague, rearmement, cauchemar, déterminisme, `emptied`, pause, `WaveRunner`, `run_ended`). `run_all.sh` : règle « constructions interdites » assouplie pour les appels `_rng.stream(...)` (les `randi_range` du flux `combat` sont le chemin voulu). Le cas « renfort impossible (aucune place) » n'est pas testé de bout en bout (il faudrait saturer l'arène) ; le chemin `_appear` -> `_emit_emptied_if_done` est celui de `emptied` ci-dessus.
+- NON ÉVALUÉ (humain) : lisibilité du signe et du son, délai de 0,6 s, position des 4 marqueurs (voir `deferred-work.md`).
+
+### Décisions prises sans Kroustille (ajouts du dev)
+
+10. **`wave_defs` vide (appel `begin_room()` sans plan) : aucun renfort** — Raison : les scènes de vérification et les outils de debug appellent `begin_room()` sans vague ; sans plan il n'y a pas de « type le plus présent ».
+11. **Pas de renfort entre deux vagues** (drapeau `_wave_active`, levé à `emptied`) — Raison : une aggravation pendant la pause ne doit pas faire paraître un ennemi dans une salle vidée.
+12. **Les tirages de l'égalité et de la place sont faits à l'annonce, dans cet ordre** — Raison : déterminisme (même situation, mêmes tirages).
+
 ### File List
+
+`game/core/run_rng.gd`, `game/core/lucidity_tuning.gd`, `game/core/constants.gd`, `game/data/tuning/lucidity_tuning.tres`, `game/run/run.gd`, `game/rooms/arena/arena.gd`, `game/rooms/arena/arena.tscn`, `game/rooms/waves/wave_runner.gd`, `game/vfx/reinforcement_sign.gd`, `game/audio/sfx/sfx_reinforcement.wav`, `_bmad-output/implementation-artifacts/deferred-work.md`, `.scratch/t_reinforcement.*` et `.scratch/run_all.sh` (non versionnés).
+
+### Change Log
+
+- 2026-11-24 : implémentation de la 3.7 (RunRng, renfort de l'Abandon), passage en `review`.
