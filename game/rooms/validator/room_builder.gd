@@ -5,7 +5,7 @@ extends Node
 ##
 ## Source format (blank lines and lines starting with // are ignored):
 ##   type: combat          start | combat | treasure | shop | nightmare
-##   size: screen          screen
+##   size: screen          screen (36x19 playable tiles) | wide (72x19) | tall (36x38)
 ##   grid: loose           optional, test fixtures only: the grid may differ from the playable area (an error otherwise)
 ##   <grid rows>           the playable area, one row per line: . floor, # wall, H high obstacle, L low obstacle, P pit
 ##   spawn <enemy> <wave> <x> <y>     enemy: sleepwalker, night_light, lullaby, sheep (none = no enemy, for fixtures)
@@ -31,7 +31,7 @@ const ROOM_TYPES: Dictionary = {
 	"start": Room.RoomType.START, "combat": Room.RoomType.COMBAT, "treasure": Room.RoomType.TREASURE,
 	"shop": Room.RoomType.SHOP, "nightmare": Room.RoomType.NIGHTMARE,
 }
-const SIZE_KINDS: Dictionary = {"screen": Room.SizeKind.SCREEN}
+const SIZE_KINDS: Dictionary = {"screen": Room.SizeKind.SCREEN, "wide": Room.SizeKind.WIDE, "tall": Room.SizeKind.TALL}
 const DOOR_SIDES: Dictionary = {"N": Door.Side.N, "E": Door.Side.E, "S": Door.Side.S, "W": Door.Side.W}
 
 ## Set by the `grid: loose` header: the grid is not checked against the playable area.
@@ -164,7 +164,7 @@ func _paint(room: Room, grid: Array[String]) -> void:
 	var high: TileMapLayer = room.get_node("HighObstacles") as TileMapLayer
 	var low: TileMapLayer = room.get_node("LowObstacles") as TileMapLayer
 	var pits: TileMapLayer = room.get_node("Pits") as TileMapLayer
-	var frame: Vector2i = room.playable_tiles() + Vector2i(2, 2)
+	var frame: Vector2i = room.frame_cells()
 	for x: int in frame.x:
 		walls.set_cell(Vector2i(x, 0), Room.TILE_WALL, Vector2i.ZERO)
 		walls.set_cell(Vector2i(x, frame.y - 1), Room.TILE_WALL, Vector2i.ZERO)
@@ -221,7 +221,7 @@ func _add_door(room: Room, words: PackedStringArray, doors: Array[Door.Side], er
 	doors.append(side)
 	var door: Door = DOOR_SCENE.instantiate() as Door
 	door.side = side
-	door.position = Door.center_for(side, room.playable_tiles() + Vector2i(2, 2))
+	door.position = Door.center_for(side, room.frame_cells())
 	_adopt(room, "Doors", door, "Door%s" % words[1])
 
 

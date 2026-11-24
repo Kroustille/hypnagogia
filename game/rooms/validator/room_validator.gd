@@ -29,7 +29,7 @@ static func validate(scene: PackedScene) -> PackedStringArray:
 static func validate_room(room: Room, id: String) -> PackedStringArray:
 	var problems: PackedStringArray = PackedStringArray()
 	var playable: Vector2i = room.playable_tiles()
-	var frame: Vector2i = playable + Vector2i(2, 2)
+	var frame: Vector2i = room.frame_cells()
 	_check_layout(room, playable, frame, problems)
 	var doors: Array[Door] = room.doors()
 	if doors.is_empty():
@@ -104,12 +104,12 @@ static func _check_enemies(room: Room, playable: Vector2i, frame: Vector2i, door
 	var blockers: Dictionary = _blockers(room)
 	_check_wave_sizes(spawns, problems)
 	for spawn: EnemySpawn in spawns:
-		var label: String = "EnemySpawn %s (wave %d) at %s" % [spawn.name, spawn.wave, spawn.position]
+		var label: String = "EnemySpawn %s (wave %d) at %s" % [spawn.name, spawn.wave, _local_position(room, spawn)]
 		if spawn.enemy == null:
 			problems.append("%s has no enemy" % label)
-		_check_marker_cell(label, spawn.position, playable_rect, blockers, problems)
+		_check_marker_cell(label, _local_position(room, spawn), playable_rect, blockers, problems)
 		for door: Door in doors:
-			var distance: float = spawn.position.distance_to(Door.center_for(door.side, frame)) / Const.TILE_SIZE
+			var distance: float = _local_position(room, spawn).distance_to(Door.center_for(door.side, frame)) / Const.TILE_SIZE
 			if distance < MIN_SPAWN_DOOR_DISTANCE_TILES:
 				problems.append("%s is %.1f tiles from the %s door (minimum %.0f)" % [
 					label, distance, Door.Side.find_key(door.side), MIN_SPAWN_DOOR_DISTANCE_TILES])
@@ -124,7 +124,7 @@ static func _check_reinforcements(room: Room, playable: Vector2i, problems: Pack
 			var marker: ReinforcementSpawn = child as ReinforcementSpawn
 			if marker != null:
 				count += 1
-				_check_marker_cell("ReinforcementSpawn %s at %s" % [marker.name, marker.position], marker.position,
+				_check_marker_cell("ReinforcementSpawn %s at %s" % [marker.name, _local_position(room, marker)], _local_position(room, marker),
 						Rect2i(Vector2i.ONE, playable), blockers, problems)
 	var exempt: bool = REINFORCEMENT_FREE_TYPES.has(room.room_type) or room.is_nightmare
 	if count == 0 and not exempt:
@@ -215,9 +215,9 @@ static func _check_reachability(room: Room, playable: Vector2i, frame: Vector2i,
 			problems.append("the %s door is cut off from the %s door" % [
 				Door.Side.find_key(doors[i].side), Door.Side.find_key(doors[0].side)])
 	for spawn: EnemySpawn in room.enemy_spawns():
-		var spawn_cell: Vector2i = Vector2i((spawn.position / Const.TILE_SIZE).floor())
+		var spawn_cell: Vector2i = Vector2i((_local_position(room, spawn) / Const.TILE_SIZE).floor())
 		if walkable.call(spawn_cell) and not reached.has(spawn_cell): # one on a blocker is reported by _check_enemies
-			problems.append("EnemySpawn %s at %s is cut off from the doors" % [spawn.name, spawn.position])
+			problems.append("EnemySpawn %s at %s is cut off from the doors" % [spawn.name, _local_position(room, spawn)])
 	# The player's cell and the reinforcement markers too (a blocked one is reported by _check_marker_cell).
 	var player_cell: Vector2i = Vector2i((room.to_local(room.player_spawn_position()) / Const.TILE_SIZE).floor())
 	if walkable.call(player_cell) and not reached.has(player_cell):
@@ -228,9 +228,9 @@ static func _check_reachability(room: Room, playable: Vector2i, frame: Vector2i,
 			var marker: ReinforcementSpawn = child as ReinforcementSpawn
 			if marker == null:
 				continue
-			var marker_cell: Vector2i = Vector2i((marker.position / Const.TILE_SIZE).floor())
+			var marker_cell: Vector2i = Vector2i((_local_position(room, marker) / Const.TILE_SIZE).floor())
 			if walkable.call(marker_cell) and not reached.has(marker_cell):
-				problems.append("ReinforcementSpawn %s at %s is cut off from the doors" % [marker.name, marker.position])
+				problems.append("ReinforcementSpawn %s at %s is cut off from the doors" % [marker.name, _local_position(room, marker)])
 
 
 ## The playable cells right behind the wall cells of a door (frame coordinates).
@@ -266,7 +266,7 @@ static func _check_furniture(room: Room, playable: Vector2i, problems: PackedStr
 	var taken: Dictionary = {} # cell -> name of the first piece covering it
 	var reported: Dictionary = {}
 	for piece: Furniture in room.furnitures():
-		var label: String = "Furniture %s at %s" % [piece.name, piece.position]
+		var label: String = "Furniture %s at %s" % [piece.name, _local_position(room, piece)]
 		if piece.def == null:
 			problems.append("%s has no def" % label)
 			continue
@@ -276,12 +276,13 @@ static func _check_furniture(room: Room, playable: Vector2i, problems: PackedStr
 		if not (is_finite(piece.def.max_hp) and piece.def.max_hp > 0.0):
 			problems.append("%s has invalid max_hp" % label)
 		var half: float = Const.TILE_SIZE / 2.0
-		if not is_equal_approx(fposmod(piece.position.x, Const.TILE_SIZE), half) or not is_equal_approx(fposmod(piece.position.y, Const.TILE_SIZE), half):
+		var at: Vector2 = _local_position(room, piece)
+		if not is_equal_approx(fposmod(at.x, Const.TILE_SIZE), half) or not is_equal_approx(fposmod(at.y, Const.TILE_SIZE), half):
 			problems.append("%s is not on a tile center" % label)
 			continue
 		var outside: bool = false
 		var on_what: Dictionary = {}
-		for cell: Vector2i in _cells_of(piece):
+		for cell: Vector2i in _cells_of(room, piece):
 			if not playable_rect.has_point(cell):
 				outside = true
 				continue
@@ -303,20 +304,20 @@ static func _check_furniture(room: Room, playable: Vector2i, problems: PackedStr
 static func _check_triggers(room: Room, playable: Vector2i, problems: PackedStringArray) -> void:
 	var blockers: Dictionary = _blockers(room)
 	for element: Trigger in room.triggers():
-		var label: String = "Trigger %s at %s" % [element.name, element.position]
+		var label: String = "Trigger %s at %s" % [element.name, _local_position(room, element)]
 		if element.kind == &"":
 			problems.append("%s has no kind" % label)
 		elif not Trigger.KNOWN_KINDS.has(element.kind):
 			problems.append("%s has an unknown kind '%s'" % [label, element.kind])
-		_check_marker_cell(label, element.position, Rect2i(Vector2i.ONE, playable), blockers, problems)
+		_check_marker_cell(label, _local_position(room, element), Rect2i(Vector2i.ONE, playable), blockers, problems)
 
 
 ## The tiles a piece covers (frame coordinates). Empty without a def.
-static func _cells_of(piece: Furniture) -> Array[Vector2i]:
+static func _cells_of(room: Room, piece: Furniture) -> Array[Vector2i]:
 	var cells: Array[Vector2i] = []
 	if piece.def == null:
 		return cells
-	var first: Vector2i = Vector2i((piece.position / Const.TILE_SIZE).floor())
+	var first: Vector2i = Vector2i((_local_position(room, piece) / Const.TILE_SIZE).floor())
 	for y: int in piece.def.size.y:
 		for x: int in piece.def.size.x:
 			cells.append(first + Vector2i(x, y))
@@ -327,7 +328,7 @@ static func _cells_of(piece: Furniture) -> Array[Vector2i]:
 static func _furniture_cells(room: Room) -> Dictionary:
 	var cells: Dictionary = {}
 	for piece: Furniture in room.furnitures():
-		for cell: Vector2i in _cells_of(piece):
+		for cell: Vector2i in _cells_of(room, piece):
 			cells[cell] = true
 	return cells
 
@@ -341,3 +342,16 @@ static func _is_occupied(blocker: Variant, cell: Vector2i) -> bool:
 		var cells: Dictionary = blocker
 		return cells.has(cell)
 	return false
+
+
+## Where a node sits in the room's own coordinates (frame pixels), through the transforms of its ancestors up to the
+## room: a marker container moved in the editor still reads right. Works outside the tree (to_local() does not).
+static func _local_position(room: Room, node: Node2D) -> Vector2:
+	var transform: Transform2D = Transform2D.IDENTITY
+	var current: Node = node
+	while current != null and current != room:
+		var item: Node2D = current as Node2D
+		if item != null:
+			transform = item.transform * transform
+		current = current.get_parent()
+	return transform.origin
