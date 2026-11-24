@@ -82,6 +82,8 @@ const SPAWN_RING_DIRECTIONS: Array[Vector2] = [
 ## Null in the arena, which has no pits.
 var _pits: TileMapLayer
 var _player: Player
+## Navigation grid of the enemies (story 4.5), built in _ready() once the tiles and the furniture exist.
+var _nav: RoomNav
 
 @onready var _camera: Camera2D = %Camera
 @onready var _enemies: Node2D = %Enemies
@@ -185,6 +187,7 @@ func _ready() -> void:
 	_setup_player_bullets() # after the tiles: the BulletManager needs Walls to have a TileSet
 	_setup_enemy_bullets() # drawn above the player's shots
 	_setup_furniture_and_triggers() # after both BulletManagers: their hurtboxes register with them
+	_nav = RoomNav.from_room(self) # after the tiles, the doors and the furniture
 	_setup_damage_numbers() # after the bullets: drawn above them
 	_setup_lucidity_fx(frame_px)
 
@@ -224,7 +227,7 @@ func spawn_enemy(def: EnemyDef, requested: Vector2) -> Enemy:
 		Log.error("room", "scene of %s is not an Enemy" % def.id)
 		_assert_failed("EnemyDef.scene must have an Enemy root")
 		return null
-	enemy.setup(def, _player, _player.hurtbox, _enemy_bullets, danger) # before add_child()
+	enemy.setup(def, _player, _player.hurtbox, _enemy_bullets, danger, _nav) # before add_child()
 	enemy.position = position_px
 	_spawn_serial += 1
 	enemy.name = "%s_%d" % [_enemy_base_name(def), _spawn_serial] # readable and unique: never a generated "@" name
@@ -905,3 +908,33 @@ func _check_screen_layout() -> void:
 func _enemy_base_name(def: EnemyDef) -> String:
 	var base: String = String(def.id).validate_node_name()
 	return base if not base.is_empty() else "enemy"
+
+
+## The navigation grid of the enemies (null before the room is ready).
+func nav() -> RoomNav:
+	return _nav
+
+
+## Cells (room coordinates) the enemies cannot walk on: walls, obstacles, pits and door cells (a door is a wall
+## while the fight lasts and nobody crosses it before the room is cleared). Living furniture is added by RoomNav.
+func solid_cells() -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	for layer: TileMapLayer in [_walls, _high_obstacles, _low_obstacles, _pits]:
+		if layer != null:
+			cells.append_array(layer.get_used_cells())
+	for door: Door in _doors:
+		cells.append_array(door.cells())
+	return cells
+
+
+## The cells (room coordinates) covered by a piece of furniture.
+func furniture_cells(piece: Furniture) -> Array[Vector2i]:
+	var rect: Rect2 = piece.footprint_rect()
+	rect.position = to_local(rect.position)
+	var first: Vector2i = Vector2i((rect.position / Const.TILE_SIZE).round())
+	var count: Vector2i = Vector2i((rect.size / Const.TILE_SIZE).round())
+	var cells: Array[Vector2i] = []
+	for y: int in count.y:
+		for x: int in count.x:
+			cells.append(first + Vector2i(x, y))
+	return cells

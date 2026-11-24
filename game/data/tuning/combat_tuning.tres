@@ -13,3 +13,5 @@ min_spawn_distance = 3.0
 enemy_bullet_radius = 0.25
 enemy_bullet_lifetime = 10.0
 pit_damage_half_hearts = 1
+path_refresh_interval = 0.4
+max_paths_per_tick = 4

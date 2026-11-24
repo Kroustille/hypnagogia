@@ -22,3 +22,7 @@ extends Resource
 @export_range(0.5, 60.0, 0.5, "or_greater") var enemy_bullet_lifetime: float = 10.0
 ## Half-hearts lost by a fall into a pit (story 4.3): the base of the PIT_DAMAGE stat.
 @export_range(0, 48, 1, "or_greater") var pit_damage_half_hearts: int = 1
+## Seconds between two recalculations of an enemy's path (story 4.5): throttled, never every frame.
+@export_range(0.05, 5.0, 0.05, "or_greater") var path_refresh_interval: float = 0.4
+## Paths the room's grid computes per physics tick, all enemies together (story 4.5): the others keep their path.
+@export_range(1, 64, 1, "or_greater") var max_paths_per_tick: int = 4
