@@ -332,6 +332,15 @@ func _is_over_pit() -> bool:
 	return _pit_guard.should_fall(global_position, _room.is_pit_at(global_position))
 
 
+## The flight just went away: a player over a pit falls back to the last safe cell, without the fall hit (the hit that
+## took the flight was the only one). True when it fell.
+func fall_if_over_pit() -> bool:
+	if not _is_over_pit():
+		return false
+	_fall(false)
+	return true
+
+
 ## Remembers the safe position, or falls. After the movement of the tick (never from a physics callback).
 func _check_pits() -> void:
 	if _room == null or health.is_dead():
@@ -345,7 +354,7 @@ func _check_pits() -> void:
 
 ## The one way to fall: back to the last safe position (the center of its cell) first, then the hit. The hit goes
 ## through the hurtbox like any other, so an invulnerable player is returned without damage.
-func _fall() -> void:
+func _fall(deal_damage: bool = true) -> void:
 	var from: Vector2 = global_position
 	global_position = _pit_guard.last_safe
 	velocity = Vector2.ZERO
@@ -355,7 +364,7 @@ func _fall() -> void:
 		_room.snap_camera()
 	var amount: int = roundi(stats.value_of(StatBlock.Stat.PIT_DAMAGE))
 	Log.debug("combat", "player fell at %s, back to %s damage=%d" % [from, global_position, amount])
-	if amount < 1:
+	if amount < 1 or not deal_damage:
 		return
 	var info: DamageInfo = DamageInfo.new()
 	info.amount = amount
@@ -514,7 +523,14 @@ func _on_lucidity_spent(power: StringName, cost: int, tier_before: Lucidity.Tier
 
 ## Death is handled here, after player_hit, not on Health.died (emitted inside apply_damage()).
 func _on_hurtbox_damage_received(info: DamageInfo) -> void:
-	carrier.hit_incoming.emit(info) # an item may change info.amount
+	if health.is_dead() or health.is_invulnerable():
+		hurtbox.refuse_hit() # not a hit: no item may charge on it
+		return
+	if is_finite(info.amount) and roundi(info.amount) >= 1: # an invalid amount goes to Health, which reports it
+		carrier.hit_incoming.emit(info) # an item may change info.amount
+	if is_finite(info.amount) and roundi(info.amount) < 1:
+		hurtbox.refuse_hit() # an item took the hit away: refused cleanly, never an invalid amount for Health
+		return
 	var lost: int = health.apply_damage(info)
 	if lost <= 0:
 		hurtbox.refuse_hit() # no "hit applied" for a refused hit (story 2.3)
