@@ -86,3 +86,18 @@ func remaining() -> Array[Offer]:
 		if not offer.taken:
 			left.append(offer)
 	return left
+
+
+## The player can no longer gain armor (story 5.9): the armor stalls of a shop not bought yet become a heart at the price
+## of a heart. An armor drop on the floor stays: it is refused at the contact, like any pickup the player cannot take.
+## Returns how many stalls were changed.
+func apply_no_armor(tuning: EconomyTuning) -> int:
+	var changed: int = 0
+	for offer: Offer in remaining():
+		if offer.kind != Kind.ARMOR or offer.price <= 0:
+			continue
+		offer.kind = Kind.HEART
+		offer.amount = tuning.heal_half_hearts
+		offer.price = tuning.heart_price
+		changed += 1
+	return changed

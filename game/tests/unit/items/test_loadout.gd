@@ -87,3 +87,17 @@ func test_signals_follow_the_changes() -> void:
 	assert_signal_emitted(_carrier.loadout, "item_added")
 	_carrier.loadout.remove(owned)
 	assert_signal_emitted(_carrier.loadout, "item_removed")
+
+
+func test_sum_param_and_has_flag_read_the_numbers_of_the_items_held() -> void:
+	var loadout: Loadout = _carrier.loadout
+	assert_eq(loadout.sum_param(&"guaranteed_drops"), 0.0)
+	assert_false(loadout.has_flag(&"blocks_armor"))
+	var def: ItemDef = ItemDef.new()
+	def.id = &"numbers"
+	def.params = {&"guaranteed_drops": 1.0, &"blocks_armor": 1.0}
+	loadout.add(def)
+	loadout.add(def)
+	assert_eq(loadout.sum_param(&"guaranteed_drops"), 2.0, "copies add up")
+	assert_true(loadout.has_flag(&"blocks_armor"))
+	assert_false(loadout.has_flag(&"other"))

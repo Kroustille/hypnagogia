@@ -52,6 +52,20 @@ func owned_ids() -> Array[StringName]:
 	return ids
 
 
+## The sum of a number of the definitions over the copies held (0 when none holds it): how an item states a rule
+## other systems read (guaranteed drops, no armor) without knowing the item.
+func sum_param(key: StringName) -> float:
+	var total: float = 0.0
+	for owned: OwnedItem in _items:
+		total += owned.def.params.get(key, 0.0)
+	return total
+
+
+## True when a held item sets this number above 0.
+func has_flag(key: StringName) -> bool:
+	return sum_param(key) > 0.0
+
+
 ## Puts a consumable in the slot (null empties it). Returns the one that was there (null when the slot was free).
 func set_consumable(def: ConsumableDef) -> ConsumableDef:
 	var previous: ConsumableDef = consumable

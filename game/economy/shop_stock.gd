@@ -6,11 +6,13 @@ extends RefCounted
 ## depends on what the player holds, so the same seed gives the same stall before and after an item taken elsewhere.
 
 
-## The offers of the stalls, in slot order: item, item, consumable, heart, armor (an item or the consumable is missing
+## The offers of the stalls, in slot order: item, item, consumable, heart, armor (a second heart without armor) (an item or the consumable is missing
 ## when nothing is left to offer). Positions are not set: the Run puts each offer on its PickupSpot.
 ## owned_ids: Loadout.owned_ids(); max_half_hearts: Health.max_half_hearts of the player.
+## blocks_armor: the player cannot gain armor (Naked in public, story 5.9): the armor stall becomes a second heart, at the
+## price of a heart. The draws do not change.
 static func draw(pool: ItemPoolDef, consumables: Array[ConsumableDef], owned_ids: Array[StringName],
-		max_half_hearts: int, rng: RandomNumberGenerator, tuning: EconomyTuning) -> Array[RoomStock.Offer]:
+		max_half_hearts: int, rng: RandomNumberGenerator, tuning: EconomyTuning, blocks_armor: bool = false) -> Array[RoomStock.Offer]:
 	var offers: Array[RoomStock.Offer] = []
 	var candidates: Array[ItemDef] = ItemPicker.candidates_of(pool, owned_ids, max_half_hearts)
 	for _slot: int in 2:
@@ -32,7 +34,10 @@ static func draw(pool: ItemPoolDef, consumables: Array[ConsumableDef], owned_ids
 		consumable_offer.price = tuning.consumable_price
 		offers.append(consumable_offer)
 	offers.append(_drop(RoomStock.Kind.HEART, tuning.heal_half_hearts, tuning.heart_price))
-	offers.append(_drop(RoomStock.Kind.ARMOR, tuning.armor_half_hearts, tuning.armor_price))
+	if blocks_armor:
+		offers.append(_drop(RoomStock.Kind.HEART, tuning.heal_half_hearts, tuning.heart_price))
+	else:
+		offers.append(_drop(RoomStock.Kind.ARMOR, tuning.armor_half_hearts, tuning.armor_price))
 	return offers
 
 

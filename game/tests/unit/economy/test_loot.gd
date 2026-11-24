@@ -87,8 +87,21 @@ func _thousand() -> Array:
 func test_extra_drops_add_guaranteed_drops_and_none_by_default() -> void:
 	var plain: Loot.LootResult = Loot.roll(0, _rng(), Tuning.LUCIDITY, _economy(1, 1, 0.0))
 	assert_eq(plain.drops.size(), 0)
-	var boosted: Loot.LootResult = Loot.roll(0, _rng(), Tuning.LUCIDITY, _economy(1, 1, 0.0), 2)
-	assert_eq(boosted.drops.size(), 2)
+	var boosted: Loot.LootResult = Loot.roll(0, _rng(), Tuning.LUCIDITY, _economy(1, 1, 0.0), 1)
+	assert_eq(boosted.drops.size(), 1)
+	var too_many: Loot.LootResult = Loot.roll(0, _rng(), Tuning.LUCIDITY, _economy(1, 1, 0.0), 5)
+	assert_eq(too_many.drops.size(), Loot.EXTRA_SLOTS, "cut to the slots the stream pays for")
+
+
+func test_the_extra_drop_never_shifts_the_stream_nor_the_normal_sequence() -> void:
+	var without: RandomNumberGenerator = _rng(9)
+	var with_extra: RandomNumberGenerator = _rng(9)
+	var plain: Loot.LootResult = Loot.roll(2, without, Tuning.LUCIDITY, Tuning.ECONOMY, 0)
+	var boosted: Loot.LootResult = Loot.roll(2, with_extra, Tuning.LUCIDITY, Tuning.ECONOMY, 1)
+	assert_eq(with_extra.randi(), without.randi(), "same number of draws with or without the item")
+	assert_eq(boosted.shards, plain.shards)
+	assert_eq(boosted.drops.slice(0, plain.drops.size()), plain.drops, "the normal drop is the same")
+	assert_eq(boosted.drops.size(), plain.drops.size() + 1, "one more, with no chance roll")
 
 
 func test_a_consumable_drop_carries_its_raw_draw_and_picks_by_id_order() -> void:

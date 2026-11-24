@@ -74,3 +74,38 @@ func test_other_streams_are_untouched() -> void:
 	var treasure: int = rng.stream(RunRng.TREASURE).state
 	ShopStock.draw(_pool([TOOTH, LEGS]), ConsumableCatalog.all(), _none, FULL_HEARTS, rng.stream(RunRng.SHOP), Tuning.ECONOMY)
 	assert_eq(rng.stream(RunRng.TREASURE).state, treasure)
+
+
+func test_a_player_who_cannot_wear_armor_gets_a_second_heart_at_the_heart_price() -> void:
+	var offers: Array[RoomStock.Offer] = ShopStock.draw(_pool([TOOTH, LEGS]), ConsumableCatalog.all(), _none, FULL_HEARTS,
+			RunRng.new(1).stream(RunRng.SHOP), Tuning.ECONOMY, true)
+	var tuning: EconomyTuning = Tuning.ECONOMY
+	assert_eq(offers.size(), 5)
+	assert_eq(offers[3].kind, RoomStock.Kind.HEART)
+	assert_eq(offers[4].kind, RoomStock.Kind.HEART)
+	assert_eq(offers[4].price, tuning.heart_price)
+	assert_eq(offers[4].amount, tuning.heal_half_hearts)
+	for offer: RoomStock.Offer in offers:
+		assert_ne(offer.kind, RoomStock.Kind.ARMOR)
+
+
+func test_the_draws_do_not_change_without_armor() -> void:
+	var plain: RandomNumberGenerator = RunRng.new(4).stream(RunRng.SHOP)
+	var bare: RandomNumberGenerator = RunRng.new(4).stream(RunRng.SHOP)
+	var with_armor: Array[RoomStock.Offer] = ShopStock.draw(_pool([TOOTH, LEGS]), ConsumableCatalog.all(), _none, FULL_HEARTS, plain, Tuning.ECONOMY)
+	var without_armor: Array[RoomStock.Offer] = ShopStock.draw(_pool([TOOTH, LEGS]), ConsumableCatalog.all(), _none, FULL_HEARTS, bare, Tuning.ECONOMY, true)
+	assert_eq(plain.randi(), bare.randi())
+	assert_eq(_ids(with_armor).slice(0, 3), _ids(without_armor).slice(0, 3))
+
+
+func test_a_stall_seen_before_the_item_is_corrected_on_the_next_entry() -> void:
+	var stock: RoomStock = RoomStock.new()
+	for offer: RoomStock.Offer in _draw(2):
+		stock.add_offer(offer, Vector2.ZERO)
+	stock.add_drop(RoomStock.Kind.ARMOR, 1, Vector2.ZERO) # a floor drop (free): it stays
+	assert_eq(stock.apply_no_armor(Tuning.ECONOMY), 1)
+	var kinds: Array[int] = []
+	for offer: RoomStock.Offer in stock.offers:
+		kinds.append(offer.kind)
+	assert_eq(kinds.count(RoomStock.Kind.ARMOR), 1, "only the drop is left")
+	assert_eq(stock.offers[4].price, Tuning.ECONOMY.heart_price)

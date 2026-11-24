@@ -171,6 +171,8 @@ func _enter_cell(cell: Vector2i, entry_side: int) -> bool:
 	options.entry_side = entry_side
 	var first_visit: bool = not stocks.has(cell)
 	options.stock = stock_of(cell)
+	if not first_visit and _player.carrier.loadout.has_flag(&"blocks_armor"):
+		options.stock.apply_no_armor(Tuning.ECONOMY) # a shop seen before the item was taken
 	if first_visit and placement.room_type == Room.RoomType.TREASURE:
 		_stock_treasure(room, options.stock)
 	if first_visit and placement.room_type == Room.RoomType.SHOP:
@@ -216,10 +218,13 @@ func _stock_treasure(room: Room, stock: RoomStock) -> void:
 func _stock_shop(room: Room, stock: RoomStock) -> void:
 	var pool: ItemPoolDef = load(SHOP_POOL_PATH) as ItemPoolDef
 	var offers: Array[RoomStock.Offer] = ShopStock.draw(pool, ConsumableCatalog.all(), _player.carrier.loadout.owned_ids(),
-			_player.health.max_half_hearts, rng.stream(RunRng.SHOP, state.floor_index), Tuning.ECONOMY)
+			_player.health.max_half_hearts, rng.stream(RunRng.SHOP, state.floor_index), Tuning.ECONOMY,
+			_player.carrier.loadout.has_flag(&"blocks_armor"))
 	var free_spots: Array[PickupSpot] = room.pickup_spots()
 	for offer: RoomStock.Offer in offers:
 		var spot: PickupSpot = _take_spot(free_spots, _slot_of(offer.kind))
+		if spot == null and offer.kind == RoomStock.Kind.HEART:
+			spot = _take_spot(free_spots, PickupSpot.Slot.ARMOR) # the second heart of a player who cannot wear armor
 		if spot == null:
 			Log.warn("economy", "shop without a free spot for %s" % offer.id())
 			continue
@@ -387,7 +392,7 @@ func _roll_loot(room: Room, lowest_tier: int) -> void:
 	if _ended or _player.health.is_dead() or room.room_type != Room.RoomType.COMBAT:
 		return
 	var result: Loot.LootResult = Loot.roll(lowest_tier, rng.stream(RunRng.DROPS, state.floor_index), Tuning.LUCIDITY,
-			Tuning.ECONOMY)
+			Tuning.ECONOMY, roundi(_player.carrier.loadout.sum_param(&"guaranteed_drops")))
 	add_shards(result.shards)
 	for index: int in result.drops.size():
 		Drops.spawn(room, result.drops[index] as Drops.Kind, room.last_kill_position(), result.consumable_rolls[index])
