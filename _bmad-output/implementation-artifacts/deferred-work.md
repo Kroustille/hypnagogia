@@ -332,3 +332,12 @@
 - **Renfort annulé audible** : une vague sans apparition annonce le renfort (son, signe une image) avant de l'annuler. Mineur.
 - **`is_nightmare` et `RoomType.NIGHTMARE` en double** (story 4.7) : une salle COMBAT retouchée avec `is_nightmare = true` échappe au contrôle du renfort.
 - **Audio en temps réel sous `--fixed-fps 60`** : le pool d'`Audio` libère ses voix sur `finished` (temps réel) ; un futur test qui compte les sons joués serait instable.
+
+## Deferred from: story 4-3-tomber-dans-les-trous (2026-11-24)
+
+- **Résolu par la 4.3** : charge du Mouton sans fin (`SheepDef.max_charge_distance`, 45 tuiles) et poussée du joueur immobile par le Somnambule (arrêt de l'avance au contact du joueur).
+- **NON ÉVALUÉ (humain) : ressenti de la chute** : demi-cœur, retour au centre de la dernière cellule sûre, invulnérabilité de 1 s, trous du couloir et des îlots de `onset_combat_004` (lisibilité du trou sans art définitif, tolérance du bord au centre du corps) ; à juger au playtest (jalon B).
+- **NON ÉVALUÉ (humain) : Somnambule sans poussée** : le Somnambule s'arrête contre le joueur au lieu de le déloger ; le contact blesse toujours. À juger au jeu.
+- **Les ennemis ne tombent pas** (décision 4) : le Mouton qui charge au-dessus d'un trou le traverse ; la 4.5 les fera contourner par le chemin.
+- **Cause de mort « pit » dans le télémétrie** (clé de l'enum en minuscules) ; l'écran de réveil n'affiche pas la source : pas de chaîne localisée à ajouter.
+- **La salle `onset_combat_004` n'est pas équilibrée** (une vague, ennemis du pool de départ) ; à juger au jalon B.

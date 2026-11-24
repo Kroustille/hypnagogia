@@ -1,6 +1,6 @@
 # Story 4.3 : Tomber dans les trous
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -30,11 +30,11 @@ Hors périmètre : Ailes de papier et Chute sans fin (epic 5, qui poseront les m
 
 ## Tâches
 
-- [ ] `DamageInfo.Source.PIT`, `CombatTuning.pit_damage_half_hearts`, `StatBlock.Stat.PIT_DAMAGE` et `CAN_FLY_OVER_PITS` (`Player._setup_stats` donne les bases), `Events` inchangé (le coup passe par `player_hit`).
-- [ ] `PitGuard` pur ; `Room.is_pit_at(global_pos)`, `Room.is_floor_at(global_pos)` (lecture de cellule par `local_to_map`) ; `Player` : appel après `move_and_slide()` (marche), à `_on_dash_ended`, dans `_try_glide` après le déplacement.
-- [ ] Fonction de chute unique `Player._fall(position)` (dégâts, repositionnement, invulnérabilité), jamais un second chemin.
-- [ ] Mouton (`max_charge_distance`), Somnambule (pas de poussée), `onset_combat_004` via l'outil ASCII, `RoomValidator` (cellules interdites, accessibilité).
-- [ ] Tests `tests/unit/player/test_pit_guard.gd`, `tests/integration/player/test_pit_fall.gd` (marche, dash au-dessus, dash qui finit dedans, Glissement dedans, stat active, invulnérable), `tests/unit/rooms/test_room_validator.gd` (nouvelles règles) ; `.scratch` : `run_all.sh` une fois.
+- [x] `DamageInfo.Source.PIT`, `CombatTuning.pit_damage_half_hearts`, `StatBlock.Stat.PIT_DAMAGE` et `CAN_FLY_OVER_PITS` (`Player._setup_stats` donne les bases), `Events` inchangé (le coup passe par `player_hit`).
+- [x] `PitGuard` pur ; `Room.is_pit_at(global_pos)`, `Room.is_floor_at(global_pos)` (lecture de cellule par `local_to_map`) ; `Player` : appel après `move_and_slide()` (marche), à `_on_dash_ended`, dans `_try_glide` après le déplacement.
+- [x] Fonction de chute unique `Player._fall(position)` (dégâts, repositionnement, invulnérabilité), jamais un second chemin.
+- [x] Mouton (`max_charge_distance`), Somnambule (pas de poussée), `onset_combat_004` via l'outil ASCII, `RoomValidator` (cellules interdites, accessibilité).
+- [x] Tests `tests/unit/player/test_pit_guard.gd`, `tests/integration/player/test_pit_fall.gd` (marche, dash au-dessus, dash qui finit dedans, Glissement dedans, stat active, invulnérable), `tests/unit/rooms/test_room_validator.gd` (nouvelles règles) ; `.scratch` : `run_all.sh` une fois.
 
 ## État du code concerné
 
@@ -69,10 +69,35 @@ Hors périmètre : Ailes de papier et Chute sans fin (epic 5, qui poseront les m
 8. **Stat booléenne en flottant** (`CAN_FLY_OVER_PITS` > 0) : `StatBlock` ne connaît que des flottants.
 9. **Accessibilité des salles vérifiée par le validateur** : un trou ne doit jamais isoler une porte ou un ennemi.
 
+Décisions prises en développement :
+
+10. **Flood fill : les obstacles bas bloquent aussi** (la spec ne citait que les hauts) : les corps du joueur et des ennemis les heurtent, une porte « accessible » derrière un obstacle bas ne l'est pas à pied. Voisinage à 4 cellules. Le test est sauté si la salle n'a pas la bonne taille (déjà signalé).
+11. **`PitGuard.observe(position, is_safe)` reçoit le centre de la cellule** (calculé par `Room.cell_center_at`), pas la position du corps : le retour ne tombe jamais sur le bord (piège de la spec). `should_fall` exige une position sûre connue (sinon un joueur né dans un trou resterait coincé).
+12. **Test de chute après `finish_tick()`** pour couvrir marche et fin de dash dans le même appel (`not _dash.is_active()`), au lieu d'un branchement dans `_on_dash_ended` ; même tick, mêmes résultats.
+13. **Un coup de chute de montant < 1 demi-cœur (stat réduite à 0) repositionne sans coup** : `Health` refuse sous 0,5 avec une erreur.
+14. **`max_charge_distance = 0` veut dire « sans limite »** (pas d'erreur) : les `SheepDef` construits sans valeur (scènes de contrôle) restent valides.
+15. **Somnambule : `test_move()` avant d'avancer** ; s'il touche le joueur, il ne bouge pas (ni marche ni ruée) ; le contact (zone `Hitbox`) blesse toujours.
+16. **Fixtures de test** : `pit_band` (bande de trous, salle de départ sans ennemi), `pits_cut_door`, `enemy_cut_off`, `reinforcement_on_pit` (sources `.txt` à côté des `.tscn`, construits par `tools/build_room.sh`).
+
 ## Dev Agent Record
 
 ### Agent Model Used
 
+Claude Sonnet 5.5
+
 ### Completion Notes
 
+- Chute unique `Player._fall()` ; `_check_pits()` après le mouvement (marche, fin de dash) et dans `_try_glide()` (sans invulnérabilité d'arrivée si le point d'arrivée est un trou). Source `DamageInfo.Source.PIT = 4`, montant = stat `PIT_DAMAGE` (base 1), cause de mort télémétrie `pit`.
+- `Room.is_pit_at`, `is_floor_at`, `cell_center_at` ; `Room._ready` appelle `Player.enter_room(self)`, `_exit_tree` appelle `leave_room()`.
+- Mouton : `max_charge_distance = 45` tuiles dans `sheep.tres`, ligne `charge exhausted`. Somnambule : plus de poussée.
+- `onset_combat_004` (couloir de 4 colonnes et îlots) valide ; `RoomValidator` : marqueur de renfort sur un trou, portes et ennemis coupés par les trous.
+- Vérifications : GUT 83/83 (nouveaux : `test_pit_guard`, `test_pit_fall`, `test_sheep_and_sleepwalker_pits`, règles du validateur) ; `run_all.sh` en mode normal et `--quit-after 120` : voir le rapport. Le test du Somnambule échoue sans le correctif (vérifié).
+- NON ÉVALUÉ : ressenti de la chute, de l'absence de poussée, lisibilité des trous (voir `deferred-work.md`).
+
 ### File List
+
+`game/player/pit_guard.gd`, `game/player/player.gd`, `game/combat/damage_info.gd`, `game/core/{stat_block,combat_tuning}.gd`, `game/data/tuning/combat_tuning.tres`, `game/rooms/room.gd`, `game/rooms/validator/room_validator.gd`, `game/enemies/sheep/{sheep,sheep_def}.gd`, `game/data/enemies/sheep.tres`, `game/enemies/sleepwalker/sleepwalker.gd`, `game/rooms/pool/onset/onset_combat_004.tscn`, `art_source/rooms/onset_combat_004.txt`, `game/tests/**` (unit/player/test_pit_guard, integration/player/test_pit_fall, integration/rooms/test_sheep_and_sleepwalker_pits, unit/rooms/test_room_validator, fixtures/rooms/{pit_band,pits_cut_door,enemy_cut_off,reinforcement_on_pit}).
+
+### Change Log
+
+- 2026-11-24 : implémentation de la story 4.3 (trous, chute, Mouton, Somnambule, salle 004, validateur).
