@@ -43,15 +43,16 @@ func _ready() -> void:
 
 
 ## Keeps the folder bounded: deletes the oldest session files (timestamped names) beyond the cap, leaving room for the new one.
-func _prune_old_sessions() -> void:
+## directory is a parameter so the checks can prune a folder of their own, away from the sessions of parallel runs.
+func _prune_old_sessions(directory: String = DIRECTORY) -> void:
 	var names: Array[String] = []
-	for file_name: String in DirAccess.get_files_at(DIRECTORY):
+	for file_name: String in DirAccess.get_files_at(directory):
 		if file_name.ends_with(".json"):
 			names.append(file_name)
 	names.sort()
 	var excess: int = names.size() - (MAX_SESSION_FILES - 1)
 	for i: int in range(maxi(excess, 0)):
-		DirAccess.remove_absolute(DIRECTORY.path_join(names[i]))
+		DirAccess.remove_absolute(directory.path_join(names[i]))
 
 
 func session_path() -> String:
