@@ -1,6 +1,6 @@
 # Story 3.7 : Voir arriver le renfort de l'abandon
 
-Status: review
+Status: done
 
 ## Story
 
@@ -111,3 +111,16 @@ Claude Sonnet 5.5
 ### Change Log
 
 - 2026-11-24 : implémentation de la 3.7 (RunRng, renfort de l'Abandon), passage en `review`.
+- 2026-11-24 : revue de code (Opus 5.5, trois couches), aucune correction demandée, passage en `done`.
+
+## Revue de code (2026-11-24)
+
+Trois couches (Blind Hunter, Edge Case Hunter, Acceptance Auditor) sur `62eedbd..8399042`. `t_reinforcement` : 36/36 ; `--quit-after 120` propre (seed journalisée). Résultat : 0 correctif, 3 reportés (`deferred-work.md`), 14 rejetés.
+
+Points vérifiés : `RunRng` (40 bits, flux `combat` séparé de `cosmetic` par le hachage, même seed -> mêmes tirages, aucun appel au RNG global, seed fixe 1 sans `Run`) ; tri des égalités sur `StringName` alphabétique en 4.7 (vérifié par un essai, pas un ordre d'adresses) ; un seul renfort par vague, rearmé par `begin_room()`, programmé aussi au début d'une vague en Abandon ; décompte en ticks `GameClock` (pause, F4) ; file vidée à `begin_room`, `run_ended`, `_exit_tree` (relance en plein décompte sûre) ; `emptied` attend le renfort, aussi quand il échoue ; aucun renfort entre deux vagues (`_wave_active`) ; marqueurs dans les bornes, hors obstacles, à 3 tuiles ou plus des `spawn_slots`.
+
+Rejetés notables : `var sign` (aucun avertissement d'ombrage en 4.7) ; renfort déplacé hors du signe si le joueur s'y tient (décision 5, documentée) ; « tuer tout » (debug) laisse venir le renfort (conforme aux règles) ; marqueurs trouvés par nom de nœud et non par groupe (le groupe est posé comme l'AC le demande) ; signe et décompte comptés à part (au plus un tick d'écart, cosmétique).
+
+### Décisions prises sans Kroustille (à valider en fin d'epic)
+
+13. **Revue : aucun nouvel arbitrage** ; les décisions 1, 3 et 11 (40 bits, renfort par vague et non par salle, rien entre deux vagues) sont à valider avec Kroustille ; si la 1 est validée, aligner le texte de l'architecture (D8, « 64 bits ») — reporté.
