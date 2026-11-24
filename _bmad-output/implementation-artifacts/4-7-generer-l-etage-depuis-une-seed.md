@@ -1,6 +1,6 @@
 # Story 4.7 : Générer l'étage depuis une seed
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -28,11 +28,11 @@ Hors périmètre : jouer l'étage (4.8), contenu du trésor et de la boutique (e
 
 ## Tâches
 
-- [ ] `RunState`, `RunOptions` (champs `seed_value`, `seeded`, mode `FLOOR` ajouté à l'enum ; le mode n'est branché qu'en 4.8), `Run.setup`, `Room.setup(player, rng, floor_index)` : le flux `combat` de la salle utilise `floor_index` (deferred-work 3.7 « flux `combat` toujours à l'étage 0 »).
-- [ ] `FloorDef`/`onset.tres`, `FloorLayout` (cellules `Vector2i → Placement`, arêtes, `start`, `neighbors`, `door_sides(cell)`, `distance(a, b)`, `to_text()`, `signature()`), `FloorGenerator`, `RoomCatalog`, `RoomInfo.requires_unlock`.
-- [ ] Salles provisoires et `onset_combat_009..012` par l'outil ASCII ; `RoomValidator` sans changement de règle.
-- [ ] Tests : `tests/unit/generation/test_floor_generator.gd` (invariants, 10 seeds, échec propre d'un pool trop petit, retries), `test_floor_layout.gd`, `test_room_catalog.gd` (pool réel : ≥ 12 combats, ordre trié), `tests/unit/core/test_run_rng.gd` (flux), `tests/unit/test_code_rules.gd`.
-- [ ] F1 : commande « disposition » (journal) ; panneau F1 : relance avec une seed donnée arrive en 4.11.
+- [x] `RunState`, `RunOptions` (champs `seed_value`, `seeded`, mode `FLOOR` ajouté à l'enum ; le mode n'est branché qu'en 4.8), `Run.setup`, `Room.setup(player, rng, floor_index)` : le flux `combat` de la salle utilise `floor_index` (deferred-work 3.7 « flux `combat` toujours à l'étage 0 »).
+- [x] `FloorDef`/`onset.tres`, `FloorLayout` (cellules `Vector2i → Placement`, arêtes, `start`, `neighbors`, `door_sides(cell)`, `distance(a, b)`, `to_text()`, `signature()`), `FloorGenerator`, `RoomCatalog`, `RoomInfo.requires_unlock`.
+- [x] Salles provisoires et `onset_combat_009..012` par l'outil ASCII ; `RoomValidator` sans changement de règle.
+- [x] Tests : `tests/unit/generation/test_floor_generator.gd` (invariants, 10 seeds, échec propre d'un pool trop petit, retries), `test_floor_layout.gd`, `test_room_catalog.gd` (pool réel : ≥ 12 combats, ordre trié), `tests/unit/core/test_run_rng.gd` (flux), `tests/unit/test_code_rules.gd`.
+- [x] F1 : commande « disposition » (journal) ; panneau F1 : relance avec une seed donnée arrive en 4.11.
 
 ## État du code concerné
 
@@ -67,10 +67,26 @@ Hors périmètre : jouer l'étage (4.8), contenu du trésor et de la boutique (e
 8. **Cauchemar provisoire = combat renforcé** (comme l'epic), sans renfort.
 9. **La seed dans `run started` du télémétrie reste à la 4.11** ; ici seulement le journal de génération.
 
+10. **Nouvelles décisions du développement** : (a) `FloorGenerator` ne journalise pas (reste sans autoload, conforme à sa signature) : il renseigne `FloorLayout.failure` et `Run.ensure_floor()` fait le `Log.error` ; (b) croissance de l'arbre : une case libre est éligible avec 1 ou 2 voisines occupées (sinon aucune boucle ne pourrait exister), la boucle est ensuite tirée par paire à `loop_chance` ; (c) les impasses spéciales se greffent sur un départ ou un combat, dans l'ordre cauchemar, trésor, boutique ; (d) départ au centre de la grille ; (e) `is_nightmare` supprimé : `Room.is_nightmare()` dérive de `room_type` ; (f) `RoomBuilder` valide (RoomValidator) toute salle de pool écrite sans sortie explicite, pas les fixtures de test ; (g) F1 touche G (carte dans le journal) ; `Run.ensure_floor()` génère à la demande, `Mode.FLOOR` ne fait que générer (la salle jouée reste l'arène jusqu'à la 4.8) ; (h) `RunOptions.seed_value` vaut -1 par défaut, une seed négative avec `seeded` est ignorée ; (i) `onset_combat_009` à `012` ont les quatre portes pour que le pool réel (12 combats) remplisse toujours un étage.
+
 ## Dev Agent Record
 
 ### Agent Model Used
 
+Claude Sonnet 5.5
+
 ### Completion Notes
 
+- Tous les critères sont couverts. Flux nommés (`RunRng.LAYOUT`...), `RunState`, `FloorDef`/`onset.tres`, `FloorLayout`, `FloorGenerator`, `RoomCatalog`, `RoomInfo.requires_unlock`, salles provisoires, journal `gen`, touche F1 G.
+- Déterminisme : 10 seeds fixes, deux `RunRng` neufs, même `signature()` ; l'ordre du pool (permuté) ne change rien ; deux étages de référence figés par hachage de leur signature ; `tests/unit/test_code_rules.gd` interdit le RNG global dans `generation/`.
+- Sur 300 seeds, le pool factice comme le pool réel donnent un étage valide à la première tentative ; le test de relance utilise un cauchemar à 6 connexions.
+- Dettes 4.7 traitées : flux `combat` par étage (`Room.setup(player, rng, floor_index)`), valeurs de référence de `RunRng`, `is_nightmare` en double, outil ASCII (ids stables, `phase`, sortie atomique et validée, en-têtes, plage de `wave`).
+- Vérifications : `tools/run_tests.sh` vert (GUT, 27 scripts), `run_all.sh` en mode normal, `--quit-after 120` propre. NON ÉVALUÉ (humain) : forme et variété des étages (voir `deferred-work.md`).
+
+### Change Log
+
+- 2026-11-24 : implémentation de la story 4.7.
+
 ### File List
+
+`game/core/run_rng.gd`, `game/core/constants.gd`, `game/run/{run,run_options,run_state}.gd`, `game/rooms/room.gd`, `game/rooms/validator/{room_builder,room_validator}.gd`, `game/generation/{floor_def,floor_layout,floor_generator,room_catalog,room_info}.gd`, `game/data/floors/onset.tres`, `game/rooms/pool/onset/onset_{start,treasure,shop,boss}_001.tscn`, `onset_combat_009..012.tscn`, `art_source/rooms/*.txt`, `game/debug/debug_panel.gd`, `tools/build_room.sh`, tests : `tests/support/fake_pool.gd`, `tests/unit/generation/*`, `tests/unit/test_code_rules.gd`, `tests/unit/core/test_run_rng.gd`, `tests/unit/rooms/{test_room_builder,test_room_validator}.gd`, `tests/integration/run/test_run_floor.gd`.
