@@ -324,6 +324,7 @@ func _on_player_died() -> void:
 	if _ended:
 		return
 	_ended = true
+	_set_wake_time(Outcome.DEATH)
 	Log.info("run", "run ended outcome=death")
 	Events.run_ended.emit(Outcome.DEATH)
 
@@ -357,6 +358,7 @@ func _end_by_victory() -> void:
 	_victory_pending = false
 	set_physics_process(false)
 	_ended = true
+	_set_wake_time(Outcome.VICTORY)
 	Log.info("run", "run ended outcome=victory")
 	Events.run_ended.emit(Outcome.VICTORY)
 
@@ -498,3 +500,23 @@ func log_floor_map() -> bool:
 		return false
 	Log.info("gen", "floor map seed=%s\n%s" % [rng.seed_code(), layout.to_text()])
 	return true
+
+
+## Computes the wake time of the ending run, keeps it in the state and publishes it: always just before run_ended.
+func _set_wake_time(outcome: Outcome) -> void:
+	var clock: WakeClock = WakeClock.new()
+	var minute: int = clock.start_minute()
+	if floor_layout == null or not floor_layout.valid:
+		Log.info("run", "no floor plan: the wake time is the start of the night") # not a warning: the arena and single rooms have none by design
+	elif outcome == Outcome.VICTORY:
+		minute = clock.minute_after_boss(state.floor_index)
+	else:
+		var total: int = floor_layout.cells_of_type(Room.RoomType.COMBAT).size()
+		var cleared: int = 0
+		for cell: Vector2i in floor_map.cleared:
+			if floor_layout.has_cell(cell) and floor_layout.cells[cell].room_type == Room.RoomType.COMBAT:
+				cleared += 1
+		minute = clock.minute_at_death(state.floor_index, cleared, total)
+	state.wake_minute = minute
+	Log.info("run", "wake time %s" % WakeClock.format(minute))
+	Events.wake_time_set.emit(minute)

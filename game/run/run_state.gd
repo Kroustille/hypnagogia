@@ -11,6 +11,8 @@ var seeded: bool = false
 var floor_index: int = 0
 ## Shards held (story 5.4): never negative. Run keeps the bus (Events.shards_changed) in step with it.
 var shards: int = 0
+## The time of the wake-up (story 6.6), in minutes from the evening midnight (see WakeClock); -1 until the run ends.
+var wake_minute: int = -1
 
 
 func add_shards(amount: int) -> void:

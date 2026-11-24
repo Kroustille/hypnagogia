@@ -19,6 +19,11 @@ signal enemy_damaged(world_position: Vector2, amount: float)
 @warning_ignore("unused_signal")
 signal run_ended(outcome: int)
 
+## The time of the wake-up of the run that is ending, in minutes from the evening midnight (WakeClock.format makes it a
+## text). Emitted by Run just before run_ended, once per run: the listeners of run_ended read it already set.
+@warning_ignore("unused_signal")
+signal wake_time_set(minute: int)
+
 ## Something asks for a new Run (F1 panel now, menus later). mode: RunOptions.Mode as an int (0 arena, 1 room);
 ## seed_value: used when seeded is true; room_path: scene of the room in room mode. Listener: Main.
 @warning_ignore("unused_signal")
