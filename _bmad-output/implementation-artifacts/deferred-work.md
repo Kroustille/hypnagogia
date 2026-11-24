@@ -462,3 +462,9 @@
 - **[Fait en 5.4] `ConsumableCatalog.all()` / `by_id()` relisent le dossier à chaque appel** : listage disque, `load`, un effet jetable par fichier et asserts de doublon à chaque appel ; mettre en cache (comme les tirages de pool) avant tout appel en jeu.
 - **[Fait en 5.4] Ramasser le même consommable que celui porté** ( décision 15 de la 5.3) : `can_take_consumable` accepte le même id ; chaque passage sur un Café en portant un Café redonne la bannière, `consumable_changed` et une nouvelle `Offer` au sol (le stock grossit sans fin). Refuser (pickup grisé) quand `loadout.consumable.id == def.id`, ou ne rien faire.
 - **Test « jamais dans un trou »** (`game/tests/integration/items/test_consumable_slot.gd`, `test_a_dropped_consumable_never_lands_in_a_pit`) : prend la première cellule bloquée en partant de (0, 0), un mur du cadre, pas un trou de `pit_band.tscn` ; viser une cellule de trou.
+
+## Deferred from: story 5-4-gagner-des-eclats-et-des-drops-selon-son-palier (2026-11-24)
+
+- **NON ÉVALUÉ (humain) : drops et Éclats** : pickups de drop provisoires (disques rouge, gris-bleu, or), équilibre 1 à 3 Éclats × palier et 30 % de chance de drop. Playtest du jalon A.
+- **Traité en 5.4** : « Pickups superposés et réarmement » (prise dans le même tick : `_must_leave`), « Consommable déposé et pickups superposés », « Validation des objets contournée » (`Room.add_offer` et `BuildCarrier.refusal_of` vérifient `ItemCatalog.problem_of`). Pas traité : un pickup grisé qui redevient prenable sous le joueur est pris sans sortie (voulu pour les soins, AC5).
+- **Test instable** : `test_seed_flow.test_a_new_floor_does_not_wait_for_the_loads_of_the_previous_run` échoue de temps en temps en suite complète (chargements en arrière-plan déjà terminés).
