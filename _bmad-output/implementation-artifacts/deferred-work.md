@@ -487,3 +487,4 @@
 - **Bannière de lecture sans hystérésis** (epic 7, lisibilité de la boutique) : `game/items/pickup.gd:169-175`, `_read = near` sur un seul seuil ; longer le cercle de 2 tuiles réémet `banner_requested`. Réarmer seulement au-delà de `READ_DISTANCE_PX + TILE_SIZE / 2`.
 - **Doc d'architecture** (fin d'epic 5) : ligne `economy/` (`shop.tscn/.gd`, `treasure.tscn/.gd` n'existent pas ; le code a `shop_stock.gd`, `item_picker.gd`, `room_stock.gd`) ; lexique : « Boutique ; étal ; achat ; prix | shop ; stall ; purchase ; price ».
 - **Ressenti de Chute libre et des Ailes de papier : NON ÉVALUÉ** (5.6) : +5 %/s, ½ cœur de plus au coup, 3 s de suspension. Playtest du jalon A.
+- **Onde de Piqué / Chute sans fin : NON ÉVALUÉ** (5.7) : rayon 1,5 / 2,5 tuiles, 15 / 30 dégâts, anneau et sons provisoires, lisibilité de la bannière de synergie. Playtest du jalon A.

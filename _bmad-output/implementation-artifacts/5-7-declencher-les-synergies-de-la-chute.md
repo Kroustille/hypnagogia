@@ -1,6 +1,6 @@
 # Story 5.7 : Déclencher les synergies de la Chute
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -27,12 +27,12 @@ Hors périmètre : synergies des autres tags (Temps, Regard, Corps : après le M
 
 ## Tâches
 
-- [ ] `items/synergy_def.gd`, `data/synergies/fall_2.tres`, `fall_3.tres`, liste des synergies dans `ItemCatalog` (`SynergyCatalog.all()` trié par seuil).
-- [ ] `TagTracker` : seuils, `synergy_activated` / `synergy_deactivated`.
-- [ ] `items/synergy_effect.gd` (`RefCounted`, comme `ItemEffect` : `attach(carrier, def)`, `detach()`), `items/effects/dive_effect.gd` (Piqué et Chute sans fin partagent la classe : le niveau change les `params`).
-- [ ] `Room.shockwave(center_global, radius_px, damage, source)` : enemis (`enemies_within`) et meubles (`furnitures()`, test de distance au centre du meuble), renvoie le nombre de cibles touchées (journal).
-- [ ] `DamageInfo.Source.SHOCKWAVE`, `Player` : le carrier connaît la salle courante (`carrier.current_room`, posé par `Player.enter_room/leave_room`).
-- [ ] `strings.csv` (« Piqué », « Chute sans fin » et descriptions), son placeholder, tests.
+- [x] `items/synergy_def.gd`, `data/synergies/fall_2.tres`, `fall_3.tres`, liste des synergies dans `ItemCatalog` (`SynergyCatalog.all()` trié par seuil).
+- [x] `TagTracker` : seuils, `synergy_activated` / `synergy_deactivated`.
+- [x] `items/synergy_effect.gd` (`RefCounted`, comme `ItemEffect` : `attach(carrier, def)`, `detach()`), `items/effects/dive_effect.gd` (Piqué et Chute sans fin partagent la classe : le niveau change les `params`).
+- [x] `Room.shockwave(center_global, radius_px, damage, source)` : enemis (`enemies_within`) et meubles (`furnitures()`, test de distance au centre du meuble), renvoie le nombre de cibles touchées (journal).
+- [x] `DamageInfo.Source.SHOCKWAVE`, `Player` : le carrier connaît la salle courante (`carrier.current_room`, posé par `Player.enter_room/leave_room`).
+- [x] `strings.csv` (« Piqué », « Chute sans fin » et descriptions), son placeholder, tests.
 
 ## État du code concerné
 
@@ -69,3 +69,27 @@ epics.md (Story 5.7) ; GDD « Tags thématiques » et « Synergie du MVP » ; ar
 4. **Chute sans fin n'annule pas la chute** (retour au point sûr) : seul le coût en cœur disparaît.
 5. **Le son et l'anneau de l'onde sont des placeholders** (epic 7).
 6. **Touche F1 `Y`** : donne les objets Chute ; le test par scène reste la référence.
+
+7. **Le niveau qui devient actif émet `synergy_activated` à chaque fois** (retour après un retrait compris) : c'est ce qui attache l'effet. L'annonce (bannière + son) est faite **une seule fois par synergie et par porteur** par `BuildCarrier`. Un changement de niveau émet `synergy_deactivated(ancien)` puis `synergy_activated(nouveau)`.
+8. **La bannière de synergie suit celle de l'objet** (`acquire` la retient jusqu'après sa propre bannière, sinon l'objet remplacerait la synergie à l'écran).
+9. **`SynergyDef.effect_script`** ajouté aux champs de la story (même rôle que `ItemDef.effect_script`) ; `SynergyCatalog` (`all()`, `problem_of`, `make_effect`) dans son propre fichier, pas dans `ItemCatalog`.
+10. **`Room.shockwave(center, radius_px, damage, color, duration)`** crée l'anneau (`RingPulse`) elle-même et utilise toujours `SHOCKWAVE` (pas de paramètre `source`). Le son de l'onde (`sfx_shockwave.wav`) est joué par `DiveEffect`.
+11. **Le modificateur de coût de chute** vient du paramètre `pit_damage` (MULTIPLY) présent seulement dans `fall_3.tres`, source = l'effet.
+
+## Dev Agent Record
+
+### Notes de complétion
+
+- `SynergyDef`, `SynergyCatalog`, `SynergyEffect`, `DiveEffect`, `data/synergies/fall_{2,3}.tres` ; `TagTracker` calcule le niveau actif (`active_synergy`, `synergy_activated/deactivated`) ; `BuildCarrier` attache/détache les effets (cycle de vie : rattachés à `_enter_tree`, détachés à `_exit_tree`), annonce une fois, `current_room` posé par `Player.enter_room/leave_room`.
+- `Room.shockwave` : ennemis (`enemies_within`, copie) et meubles debout (centre de l'empreinte), via `Hurtbox.receive` ; `DamageInfo.Source.SHOCKWAVE = 5`. Touche F1 `Y` : les objets Chute.
+- Sons provisoires `sfx_synergy.wav`, `sfx_shockwave.wav` (générés par script, epic 7). Chaînes `SYNERGY_FALL_{2,3}_{NAME,DESC}`.
+- Les tests d'intégration chargent l'ennemi avec `load()` : un `preload` d'un `EnemyDef` dans un test GUT isolé provoque un cycle de chargement via `arena_waves` (même effet existant avec `test_sheep_and_sleepwalker_pits`, hors périmètre).
+- Checks : GUT 547/547 ; `--quit-after 120` propre ; `run_all.sh` : voir le rapport de l'agent.
+
+### Liste des fichiers
+
+`items/{synergy_def,synergy_catalog,synergy_effect,tag_tracker,build_carrier}.gd`, `items/effects/dive_effect.gd`, `data/synergies/*.tres`, `rooms/room.gd`, `combat/damage_info.gd`, `player/player.gd`, `debug/debug_panel.gd`, `localization/strings.csv`, `audio/sfx/sfx_{synergy,shockwave}.wav`, tests GUT `unit/items/test_{tag_tracker,synergy_defs}.gd`, `integration/items/test_dive_synergy.gd`.
+
+### Non évalué (humain)
+
+- Lisibilité et ressenti de l'onde (rayon, anneau, sons provisoires) et de la bannière de synergie : playtest du jalon A.
