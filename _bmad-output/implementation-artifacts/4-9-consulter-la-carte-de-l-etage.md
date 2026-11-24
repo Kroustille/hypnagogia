@@ -1,6 +1,6 @@
 # Story 4.9 : Consulter la carte de l'étage
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -62,10 +62,23 @@ Hors périmètre : carte des étages précédents (un seul étage au MVP), notes
 5. **Pas de légende des types de salle courants** (combat, départ) : seules les trois icônes spéciales ont une légende.
 6. **Marque « vidée »** ajoutée (non demandée) : elle aide à choisir où aller et ne coûte qu'un dessin.
 
+7. **Géométrie stable** : la carte se dimensionne sur l étendue de tout l étage (pas sur les salles découvertes) pour ne pas se redimensionner à chaque salle ; elle révèle donc l emprise de l étage, pas son contenu.
+8. `FloorMap.entries()` n a pas d argument : `Run` pose `FloorMap.layout`.
+
 ## Dev Agent Record
 
 ### Agent Model Used
 
+Claude Sonnet 5.5
+
 ### Completion Notes
 
+- `map` (Tab / `JOY_BUTTON_BACK`) ajoutée à `project.godot`. `FloorMap` : `layout` (posé par `Run._start_floor`), `State`, `entries()`, `discovered()`, `bounds()`. `FloorMapView` (Control plein écran, `_draw()`), insérée par `Main` à l indice 1 de `UI` (sous les menus, au-dessus du HUD), liée à `Run.floor_map` à `run_started`, déliée à `_clear_active_scene`. Visible si `map` est tenue, `layout` non nul et `not GameClock.paused` ; rafraîchie sur `room_entered`/`room_cleared`.
+- Tests : GUT `test_floor_map_entries`, `test_floor_map_view`, `test_map_hold` ; `tools/run_tests.sh` 286/286, `run_all.sh` ALL PASS, `--quit-after 120` propre.
+- NON VÉRIFIÉ par un humain : lisibilité réelle à 640×360 (pas de capture WSLg faite), icônes provisoires, Select sur une vraie manette. Voir `deferred-work.md`.
+
 ### File List
+
+- `game/project.godot`, `game/localization/strings.csv`, `game/run/floor_map.gd`, `game/run/run.gd`, `game/main/main.gd`
+- `game/ui/map/floor_map_view.gd`, `game/ui/map/floor_map_view.tscn`
+- `game/tests/unit/run/test_floor_map_entries.gd`, `game/tests/unit/ui/test_floor_map_view.gd`, `game/tests/integration/ui/test_map_hold.gd`
