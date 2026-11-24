@@ -1,6 +1,6 @@
 # Story 6.7 : Garder la trace de ses victoires
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -28,12 +28,12 @@ Hors périmètre : déblocages réels (rien n'est débloqué au MVP), couches de
 
 ## Tâches
 
-- [ ] `autoloads/save_service.gd` ; `progression/profile.gd` (`RefCounted`, `to_dict()`, `static from_dict()`, `migrate()`), `achievements.gd`, `unlocks.gd` (liste vide + `is_unlocked(id)`).
-- [ ] `ui/notice.gd` (`Control` simple, libellé qui s'efface, texte par `tr()`), ajouté par `Main` ; `strings.csv` : `UI_PROFILE_CORRUPT`.
-- [ ] `autoloads/events.gd` : `synergy_activated(synergy_id: StringName, threshold: int)` ; `items/build_carrier.gd` : l'émet dans `_on_synergy_activated` **si l'hôte est le joueur** (le reflet du Miroir n'en émet jamais).
-- [ ] `main/main.gd` : charge le profil à `_ready()`, instancie `Achievements`, lit `last_wake_minute`, `unlocks` dans `RunOptions` ; écrit le profil à `run_ended`.
-- [ ] `run/run_options.gd` : `unlocks: Array[StringName]` ; `run/run.gd` : `RoomCatalog.pool(def.pool_dir, _options.unlocks)`.
-- [ ] Tests.
+- [x] `autoloads/save_service.gd` ; `progression/profile.gd` (`RefCounted`, `to_dict()`, `static from_dict()`, `migrate()`), `achievements.gd`, `unlocks.gd` (liste vide + `is_unlocked(id)`).
+- [x] `ui/notice.gd` (`Control` simple, libellé qui s'efface, texte par `tr()`), ajouté par `Main` ; `strings.csv` : `UI_PROFILE_CORRUPT`.
+- [x] `autoloads/events.gd` : `synergy_activated(synergy_id: StringName, threshold: int)` ; `items/build_carrier.gd` : l'émet dans `_on_synergy_activated` **si l'hôte est le joueur** (le reflet du Miroir n'en émet jamais).
+- [x] `main/main.gd` : charge le profil à `_ready()`, instancie `Achievements`, lit `last_wake_minute`, `unlocks` dans `RunOptions` ; écrit le profil à `run_ended`.
+- [x] `run/run_options.gd` : `unlocks: Array[StringName]` ; `run/run.gd` : `RoomCatalog.pool(def.pool_dir, _options.unlocks)`.
+- [x] Tests.
 
 ## État du code concerné
 
@@ -77,10 +77,22 @@ epics.md (Story 6.7) ; GDD, Ce qui persiste, Déblocages, Le mystère (chaque pr
 7. **`Events.synergy_activated(id, threshold)` ajouté**, émis par `BuildCarrier` du joueur seulement. L'AC dit « une synergie à 3 objets » : seuil ≥ 3 (`fall_3`).
 8. **Message de corruption = `Notice` de quelques secondes**, pas une fenêtre modale (le jeu ne s'arrête jamais sur une erreur, architecture).
 
+9. **(dev) Les statistiques et la première victoire sont gérées par `Achievements`, pas par `Main`** : le nœud écoute déjà `run_ended`, `wake_time_set` et `boss_defeated` ; `Main` charge le profil, le donne au nœud et lit `last_wake_minute`. Une seule écriture à `run_ended`.
+10. **(dev) Première victoire enregistrée à `run_ended(VICTORY)`**, pas à `boss_defeated` (point différé 6.7) : `boss_defeated` ne fait que retenir l'id du boss ; l'heure du réveil est déjà connue (`wake_time_set` précède `run_ended`), donc une seule entrée complète.
+11. **(dev) Déterminisme : une run seedée ignore les déblocages** (`RunOptions.unlocks` vide), donc une seed partagée donne le même étage quel que soit le profil. Une run non seedée utilise le pool filtré par `profile.unlocks` ; vide au MVP, donc aucun effet. Le tirage de l'étage reste fonction de (seed, pool trié par chemin, déblocages).
+12. **(dev) `SaveService` garde `last_read_status`** (MISSING, UNREADABLE, CORRUPT, OK) pour distinguer fichier absent, verrouillé (laissé en place, profil non écrit) et illisible (quarantaine). Un `.corrupt` plus ancien est remplacé.
+13. **(dev) Tests** : `pre_run.gd` pointe `SaveService` vers un dossier temporaire pour toute la suite ; `SaveDir` isole chaque test de sauvegarde.
+
 ## Dev Agent Record
 
 ### Notes de complétion
 
+Implémenté : `SaveService`, `Profile` (migrations), `Unlocks`, `Achievements`, `Notice`, `Events.synergy_activated`, branchement `Main` et `RunOptions.unlocks` vers `RoomCatalog.pool`. Vérifié : `tools/run_tests.sh` 798 verts, `run_all.sh` normal ALL PASS, `--quit-after 120` propre. Aucun succès ni déblocage réel au MVP ; rien n'est NON ÉVALUÉ de plus qu'avant (pas de rendu humain à juger, sauf lisibilité du message de corruption).
+
 ### Liste des fichiers
 
+`game/autoloads/{save_service,events}.gd`, `game/progression/{profile,achievements,unlocks}.gd`, `game/ui/notice.gd`, `game/items/build_carrier.gd`, `game/main/main.gd`, `game/run/{run,run_options}.gd`, `game/localization/strings.csv`, tests (`unit/save`, `unit/progression`, `unit/generation/test_pool_unlocks`, `integration/progression`, `support/{save_dir,json_view,pre_run}`).
+
 ### Journal des modifications
+
+- 2026-11-24 : profil, sauvegarde atomique, succès, déblocages dans le pool ; statut `review`.
