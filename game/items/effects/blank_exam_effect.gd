@@ -7,7 +7,6 @@ extends ItemEffect
 var _room: Room
 var _seconds_left: float = 0.0
 var _running: bool = false
-var _expired: bool = false
 
 
 func required_params() -> Array[StringName]:
@@ -47,7 +46,6 @@ func tick(dt: float) -> void:
 	if _seconds_left > 0.0:
 		Events.exam_timer_changed.emit(_seconds_left)
 		return
-	_expired = true
 	_room.set_pace_mult(1.0 + param(&"pace_bonus"))
 	Log.info("items", "blank exam: time is up, enemies pace x%.2f" % _room.danger.pace_mult)
 	_stop()
@@ -69,7 +67,6 @@ static func applies_to(room: Room) -> bool:
 
 func _on_room_entered(room: Room) -> void:
 	_stop()
-	_expired = false
 	if not applies_to(room):
 		return
 	_room = room

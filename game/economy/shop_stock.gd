@@ -6,8 +6,9 @@ extends RefCounted
 ## depends on what the player holds, so the same seed gives the same stall before and after an item taken elsewhere.
 
 
-## The offers of the stalls, in slot order: item, item, consumable, heart, armor (a second heart without armor) (an item or the consumable is missing
-## when nothing is left to offer). Positions are not set: the Run puts each offer on its PickupSpot.
+## The offers of the stalls, in slot order: item, item, consumable, heart, armor (a second heart when blocks_armor); an
+## item or the consumable is missing when nothing is left to offer. Positions are not set: the Run puts each offer
+## on its PickupSpot.
 ## owned_ids: Loadout.owned_ids(); max_half_hearts: Health.max_half_hearts of the player.
 ## blocks_armor: the player cannot gain armor (Naked in public, story 5.9): the armor stall becomes a second heart, at the
 ## price of a heart. The draws do not change.
