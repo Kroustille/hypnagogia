@@ -19,7 +19,12 @@ const NIGHT_LIGHT_DEF: EnemyDef = preload("res://data/enemies/night_light.tres")
 const LULLABY_DEF: EnemyDef = preload("res://data/enemies/lullaby.tres")
 const SHEEP_DEF: EnemyDef = preload("res://data/enemies/sheep.tres")
 
+## Where the pool rooms are listed (story 4.2).
+const ROOM_POOL_DIR: String = "res://rooms/pool/onset"
+
 var _auto_fire: bool = false
+## Index of the pool room the R key plays next.
+var _pool_index: int = 0
 ## Values the L key cycles through, built from the tuning: the maximum, then just below each tier floor.
 var _lucidity_presets: PackedInt32Array = _build_lucidity_presets()
 ## Index of the preset the lucidity was last set to (0: the full gauge a run starts with).
@@ -72,6 +77,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_cycle_lucidity()
 		KEY_MINUS, KEY_KP_SUBTRACT:
 			_next_wave()
+		KEY_R:
+			_next_pool_room()
 		_:
 			handled = false
 	if handled:
@@ -161,6 +168,18 @@ func _next_wave() -> void:
 		return
 	runner.force_next_wave()
 	_log("next wave (%d)" % runner.wave_number())
+
+
+## Restarts the run in the next room of the pool (sorted by path), then loops back to the first one.
+func _next_pool_room() -> void:
+	var paths: PackedStringArray = RoomInfo.scene_paths(ROOM_POOL_DIR)
+	if paths.is_empty():
+		_log("no room in the pool")
+		return
+	var path: String = paths[_pool_index % paths.size()]
+	_pool_index = (_pool_index + 1) % paths.size()
+	Events.run_requested.emit(RunOptions.Mode.ROOM, 0, false, path)
+	_log("run in %s" % path.get_file())
 
 
 static func _build_lucidity_presets() -> PackedInt32Array:
@@ -262,6 +281,7 @@ func _refresh_text() -> void:
 		"0 kill all enemies",
 		"L lucidity cycle, a dive deepens the room until the next wave (%s)" % ", ".join(Array(_lucidity_presets).map(str)),
 		"- next wave (keypad -; ) on AZERTY)",
+		"R next room of the pool (new run)",
 	])
 	if player != null:
 		var health: Health = player.health
