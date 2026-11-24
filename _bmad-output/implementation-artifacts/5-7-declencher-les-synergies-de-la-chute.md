@@ -1,6 +1,6 @@
 # Story 5.7 : Déclencher les synergies de la Chute
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -76,6 +76,13 @@ epics.md (Story 5.7) ; GDD « Tags thématiques » et « Synergie du MVP » ; ar
 10. **`Room.shockwave(center, radius_px, damage, color, duration)`** crée l'anneau (`RingPulse`) elle-même et utilise toujours `SHOCKWAVE` (pas de paramètre `source`). Le son de l'onde (`sfx_shockwave.wav`) est joué par `DiveEffect`.
 11. **Le modificateur de coût de chute** vient du paramètre `pit_damage` (MULTIPLY) présent seulement dans `fall_3.tres`, source = l'effet.
 
+Décisions de la revue de code (2026-11-24) :
+
+12. **La bannière de synergie est mise en file, pas en remplacement** (voir patch) : avec la décision 8, la bannière de l'objet est remplacée dans la même image et n'est jamais lue (nom, bonus, **coût**) quand l'objet ramassé au sol atteint un seuil. File d'attente plutôt qu'inversion de l'ordre : l'objet reste lisible 3 s, puis la synergie 3 s. Le son de synergie reste joué au moment du seuil.
+13. **Un dash qui finit au-dessus d'un trou lance l'onde** (le piège « `dash_ended` n'est émis que sur fin normale » est faux : `finish_tick` émet avant `_check_pits`) : gardé, l'onde part au bord du trou puis le joueur tombe ; c'est un « piqué », sans coût de plus, pas de cas particulier.
+14. **L'onde ne touche ni les lampes (`Trigger`) ni les cibles d'entraînement de l'arène** : conforme au CA 4 (ennemis + meubles) ; à revoir au playtest si la lampe doit s'allumer à l'onde.
+15. **Cycle de chargement `EnemyDef` → … → `Pickup` → `Run` → `arena.tscn` → `arena_waves.tres` → `EnemyDef`** : reporté (antérieur à 5.7, sans effet quand `Main` est le point d'entrée), voir `deferred-work.md`.
+
 ## Dev Agent Record
 
 ### Notes de complétion
@@ -93,3 +100,12 @@ epics.md (Story 5.7) ; GDD « Tags thématiques » et « Synergie du MVP » ; ar
 ### Non évalué (humain)
 
 - Lisibilité et ressenti de l'onde (rayon, anneau, sons provisoires) et de la bannière de synergie : playtest du jalon A.
+
+### Review Findings
+
+Revue de code (2026-11-24, 3 couches : Blind Hunter, Edge Case Hunter, Acceptance Auditor, passes isolées), diff `83848c1..8acaa74`. Lignes à `8acaa74` (l'arbre de travail contient le travail en cours de 5.8). GUT des trois fichiers de la story : 17/17, 66 asserts. 1 patch, 1 report, 9 rejets.
+
+- [ ] [Review][Patch] La bannière de l'objet qui atteint un seuil n'est jamais lue [`game/items/build_carrier.gd:173-178`, `game/ui/hud/banner.gd:42`, `game/autoloads/events.gd:95`] — `acquire` émet la bannière de l'objet puis, dans la même image, `_announce_pending` émet celle de la synergie ; `Banner.show_banner` remplace la bannière affichée, donc le nom, le bonus et le coût de l'objet (ex. Ailes de papier) disparaissent sans être vus pour un objet gratuit (seuls les objets en vente ont la bannière d'approche). Même chose avec la touche F1 `Y` : la bannière du 4e objet efface les deux synergies. Correctif : nouveau signal `Events.banner_queued(title_key, bonus_key, cost_key)` ; `Banner` le branche sur `queue_banner()` qui affiche tout de suite si rien n'est affiché, sinon ajoute à une file (`Array` de triplets) lue par `hide_banner()` (la suivante s'affiche pour `DURATION`) ; `banner_requested` garde son comportement (remplace l'affichée, ne vide pas la file). `_announce_pending` émet `Events.banner_queued` au lieu de `banner_requested`. Test GUT (`test_dive_synergy.gd` ou un test de `Banner`) : objet qui atteint le seuil 2 → `lines()` montre l'objet, après `DURATION` s la synergie ; adapter l'assertion « bannière demandée une fois par seuil » au nouveau signal.
+- [x] [Review][Defer] Cycle de chargement quand un `EnemyDef` est le premier chargé — reporté, voir `deferred-work.md` (antérieur à 5.7).
+
+Rejetés (9) : l'onde frappe le joueur (non : seulement `enemies_within` et `furnitures()`) ; ennemi tué pendant la boucle (copie + `is_instance_valid`, `_die` libère en différé) ; meuble détruit ou détruit par l'onde (`is_destroyed()` puis filtre `_can_be_hit`, coupure physique différée) ; onde pendant une transition (`stop_motion` → `Dash.cancel()` n'émet pas `ended` ; `current_room` nul entre deux salles ; une onde dans l'ancienne salle pendant le fondu est sans conséquence) ; pause et mort (pas de `_physics_process` du joueur, donc pas de `dash_ended`) ; rayon dans les grandes salles (en tuiles, indépendant de la taille) ; `clear_source` exact (une source par instance de `DiveEffect`, nouvelle instance par niveau) ; Chute libre avec Chute sans fin (une chute à 0 ne passe pas par la hurtbox, pas de ½ cœur de plus : conforme au CA 5) ; touche `Y` libre (seule dans `debug_panel.gd`, absente de `project.godot`).
