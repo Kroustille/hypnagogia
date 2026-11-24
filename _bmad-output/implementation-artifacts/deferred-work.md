@@ -408,3 +408,9 @@
 - **Hauteur de la transition en pause** : `Transition` s'arrête avec `GameClock.paused` mais le joueur désactivé le reste jusqu'à la fin du fondu ; un `Main._freeze(false)` pendant le noir ne le réactive pas (voulu : `Run._end_travel` le fait).
 - **Sauvegarde d'entrée de salle** (`RunSnapshot`, AR18) : epic 8. Salle trésor, boutique, porte de sortie de l'étage (epic 6) : hors périmètre.
 - **Carte de l'étage (4.9), NON ÉVALUÉ** : lisibilité réelle à 640×360 (aucune capture WSLg faite), icônes provisoires (losange, disque, croix), Select sur une vraie manette (`JOY_BUTTON_BACK`, indice 4 sur le pad de test non vérifié). La carte révèle l'emprise de l'étage (géométrie stable) ; à rediscuter avec l'epic 7.
+
+## Deferred from: code review of story 4-8-passer-d-une-salle-a-l-autre (2026-11-24)
+
+- **`RoomLoader.drain()` bloque le fil principal** (`game/run/room_loader.gd:48-51`, appelé par `Run._exit_tree`) : une relance dans les premières secondes d'un étage attend la fin de tous les chargements d'arrière-plan (accroc probable, non mesuré). À régler avec la 4.11 (relance avec seed) ou une story de performance : ne collecter que les requêtes `LOADED`/`FAILED`, garder les autres pour plus tard.
+- **Avertissement de danger dans une salle calme ou déjà vidée** (`game/rooms/room.gd:771`, `:399-407`) : dépenser un pouvoir dans la salle de départ, un trésor ou une salle vidée joue le son et l'anneau de danger alors qu'aucun ennemi ne viendra (le palier de salle repart à chaque entrée depuis la 4.8). À régler avec la 4.10 ou la première story qui retouche le danger : n'avertir que si `has_fight()` et salle non vidée.
+- **NON ÉVALUÉ (humain) : bascule clavier/manette du tutoriel** (`game/ui/tutorial/controls_tutorial.gd:68`) : tout mouvement de souris repasse en aide clavier, sans seuil ; à juger avec une vraie manette (playtest du jalon A).
