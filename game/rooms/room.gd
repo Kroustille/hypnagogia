@@ -122,6 +122,9 @@ class PendingReinforcement extends RefCounted:
 var _rng: RunRng
 ## How the room is entered on a floor; null for a stand-alone room.
 var _options: RoomOptions
+## What lies in the room and the node holding its Pickups (created in _ready()).
+var _stock: RoomStock
+var _pickups: Node2D
 ## The floor of the run this room belongs to (stream key).
 var _floor_index: int = 0
 ## Enemies planned for the current wave, dead ones included (null-free): decides the type of the reinforcement.
@@ -215,6 +218,7 @@ func _ready() -> void:
 	_setup_player_bullets() # after the tiles: the BulletManager needs Walls to have a TileSet
 	_setup_enemy_bullets() # drawn above the player's shots
 	_setup_furniture_and_triggers() # after both BulletManagers: their hurtboxes register with them
+	_setup_pickups()
 	_nav = RoomNav.from_room(self) # after the tiles, the doors and the furniture
 	_setup_damage_numbers() # after the bullets: drawn above them
 	_setup_lucidity_fx(frame_px())
@@ -672,6 +676,45 @@ func enemy_spawns() -> Array[EnemySpawn]:
 			if spawn != null:
 				found.append(spawn)
 	return found
+
+
+## Lays the offers of the stock that were not taken (the stock of the floor cell, or a room of its own).
+func _setup_pickups() -> void:
+	_stock = _options.stock if _options != null and _options.stock != null else RoomStock.new()
+	_pickups = Node2D.new()
+	_pickups.name = "Pickups"
+	add_child(_pickups)
+	for offer: RoomStock.Offer in _stock.remaining():
+		_add_pickup(offer)
+
+
+## Adds an offer to the room (F1 panel, drops): it is kept in the stock of the cell and appears on the floor now.
+## requested: room coordinates. Returns the offer, null when the room is not ready.
+func add_offer(def: ItemDef, requested: Vector2, price: int = 0) -> RoomStock.Offer:
+	if not is_node_ready() or _stock == null or def == null:
+		Log.error("room", "add_offer() needs a ready room and an item")
+		return null
+	var offer: RoomStock.Offer = _stock.add_item(def, requested, price)
+	_add_pickup(offer)
+	return offer
+
+
+## The Pickups on the floor now (untaken offers).
+func pickups() -> Array[Pickup]:
+	var found: Array[Pickup] = []
+	if _pickups != null:
+		for child: Node in _pickups.get_children():
+			var pickup: Pickup = child as Pickup
+			if pickup != null and not pickup.is_queued_for_deletion():
+				found.append(pickup)
+	return found
+
+
+func _add_pickup(offer: RoomStock.Offer) -> void:
+	var pickup: Pickup = Pickup.new()
+	pickup.name = "Pickup_%s" % offer.item.id
+	pickup.setup(offer, _player)
+	_pickups.add_child(pickup)
 
 
 ## Gives every piece of furniture and every trigger its place in the BulletManagers (they exist by now).

@@ -49,6 +49,13 @@ const GRAZE_MAX_VOICES: int = 2
 const BLINK_HALF_PERIOD_TICKS: int = 6
 ## Margin against floating point rounding when comparing the arrival ticks left to zero.
 const ARRIVAL_EPSILON: float = 1e-6
+## Bounds of the stats (story 5.1). Shot speed: a shot may not cross a whole tile in one tick (BulletManager refuses it): below
+## the physics rate in tiles per second. Hurtbox: the smallest the tuning allows. Move speed and fire rate: still playable.
+const MIN_SHOT_SPEED: float = 0.5
+const MAX_SHOT_SPEED: float = 59.0
+const MIN_HURTBOX_SIZE: float = 0.0625
+const MIN_MOVE_SPEED: float = 1.0
+const MIN_FIRE_RATE: float = 0.5
 
 ## Hearts, armor and invulnerability after a hit. Created in code (setup() before add_child()).
 var health: Health
@@ -58,6 +65,8 @@ var lucidity: Lucidity
 var hurtbox: Hurtbox
 ## Damage, shot speed and hurtbox size with their modifiers (D9). Lucidity tiers write their modifiers here.
 var stats: StatBlock
+## The build: items, tags and the place effects listen to (story 5.1). Shares `stats`.
+var carrier: BuildCarrier
 
 var _motor: PlayerMotor
 ## Last safe position and fall decision (story 4.3). Replaced by enter_room().
@@ -116,6 +125,7 @@ func _ready() -> void:
 	_setup_health()
 	_setup_lucidity()
 	_setup_stats()
+	_setup_carrier()
 	Events.room_cleared.connect(_on_room_cleared)
 
 	_aim = Aim.new()
@@ -177,6 +187,7 @@ func equip_bullets(manager: BulletManager) -> void:
 	_shot_params.radius = maxf(tuning.hitbox_size, 0.0) / 2.0
 	_shot_params.lifetime = tuning.lifetime
 	_shot_params.damage = maxf(stats.value_of(StatBlock.Stat.DAMAGE), 0.0)
+	_shot_params.pierce = stats.value_of(StatBlock.Stat.PIERCE) > 0.0
 	_shot_params.appearance = manager.add_appearance(_make_shot_texture())
 
 
@@ -452,9 +463,10 @@ func on_bullet_dodged(bullet_position: Vector2) -> void:
 
 
 ## The room has no enemy left: a living player gains lucidity.
-func _on_room_cleared(_room: Node, _lowest_tier: int) -> void:
+func _on_room_cleared(room: Node, lowest_tier: int) -> void:
 	if health.is_dead():
 		return
+	carrier.room_cleared.emit(room, lowest_tier)
 	lucidity.gain(Tuning.LUCIDITY.room_cleared_gain, Lucidity.Source.ROOM_CLEARED)
 
 
@@ -491,11 +503,13 @@ func _on_lucidity_spent(power: StringName, cost: int, tier_before: Lucidity.Tier
 
 ## Death is handled here, after player_hit, not on Health.died (emitted inside apply_damage()).
 func _on_hurtbox_damage_received(info: DamageInfo) -> void:
+	carrier.hit_incoming.emit(info) # an item may change info.amount
 	var lost: int = health.apply_damage(info)
 	if lost <= 0:
 		hurtbox.refuse_hit() # no "hit applied" for a refused hit (story 2.3)
 		return
 	Events.player_hit.emit(lost, info.source)
+	carrier.hit_taken.emit(lost, info.source)
 	Audio.play_sfx(HIT_SOUND)
 	Log.debug("combat", "player hit lost=%d hearts=%d armor=%d source=%d" % [
 		lost, health.half_hearts, health.armor, info.source])
@@ -531,6 +545,7 @@ func _update_blink() -> void:
 
 func _on_dash_ended() -> void:
 	dash_ended.emit()
+	carrier.dash_ended.emit()
 
 
 ## Placeholder: a filled 4x4 disc in the color reserved for the player's shots.
@@ -566,7 +581,18 @@ func _setup_stats() -> void:
 	stats.set_base(StatBlock.Stat.HURTBOX_SIZE, Tuning.PLAYER.hitbox_size)
 	stats.set_base(StatBlock.Stat.PIT_DAMAGE, Tuning.COMBAT.pit_damage_half_hearts)
 	stats.set_base(StatBlock.Stat.CAN_FLY_OVER_PITS, 0.0)
+	stats.set_base(StatBlock.Stat.MOVE_SPEED, Tuning.PLAYER.move_speed)
+	stats.set_base(StatBlock.Stat.FIRE_RATE, Tuning.SHOT.fire_rate)
+	stats.set_base(StatBlock.Stat.PIERCE, 0.0)
+	stats.set_base(StatBlock.Stat.REAR_SHOT, 0.0)
+	# Limits no stack of items may cross (story 5.1).
+	stats.set_bounds(StatBlock.Stat.SHOT_SPEED, MIN_SHOT_SPEED, MAX_SHOT_SPEED)
+	stats.set_bounds(StatBlock.Stat.HURTBOX_SIZE, MIN_HURTBOX_SIZE, INF)
+	stats.set_bounds(StatBlock.Stat.DAMAGE, 0.0, INF)
+	stats.set_bounds(StatBlock.Stat.MOVE_SPEED, MIN_MOVE_SPEED, INF)
+	stats.set_bounds(StatBlock.Stat.FIRE_RATE, MIN_FIRE_RATE, INF)
 	stats.changed.connect(_on_stat_changed)
+	stats.base_changed.connect(_on_stat_base_changed)
 	_apply_tier_modifiers(lucidity.live_tier)
 
 
@@ -594,3 +620,35 @@ func _on_stat_changed(stat: int) -> void:
 		StatBlock.Stat.DAMAGE:
 			if _shot_params != null:
 				_shot_params.damage = maxf(stats.value_of(StatBlock.Stat.DAMAGE), 0.0)
+		StatBlock.Stat.PIERCE:
+			if _shot_params != null:
+				_shot_params.pierce = stats.value_of(StatBlock.Stat.PIERCE) > 0.0
+		StatBlock.Stat.MOVE_SPEED:
+			_motor.set_max_speed(stats.value_of(StatBlock.Stat.MOVE_SPEED))
+
+
+## The Lucid hurtbox is an absolute size: when the base changes, the shrink that gets there is computed again.
+func _on_stat_base_changed(stat: int) -> void:
+	if stat == StatBlock.Stat.HURTBOX_SIZE and lucidity != null:
+		_apply_tier_modifiers(lucidity.live_tier)
+
+
+## The build (story 5.1): created once stats exist; the items change the hearts through it.
+func _setup_carrier() -> void:
+	carrier = BuildCarrier.new()
+	carrier.name = "BuildCarrier"
+	carrier.setup(self, stats)
+	add_child(carrier)
+	carrier.loadout.item_added.connect(_on_item_added)
+	carrier.loadout.item_removed.connect(_on_item_removed)
+
+
+## A price paid in hearts: the max goes down now (the current hearts come down with it).
+func _on_item_added(owned: OwnedItem) -> void:
+	if owned.def.max_half_hearts_delta < 0:
+		health.lose_max(-owned.def.max_half_hearts_delta)
+
+
+func _on_item_removed(owned: OwnedItem) -> void:
+	if owned.def.max_half_hearts_delta < 0:
+		health.restore_max(-owned.def.max_half_hearts_delta)

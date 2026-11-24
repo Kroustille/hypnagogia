@@ -12,17 +12,26 @@ var velocity: Vector2 = Vector2.ZERO
 var _max_speed_px: float = 0.0
 var _accel_px: float = 0.0
 var _decel_px: float = 0.0
+## Ramp durations kept (bounded) so a new maximum speed keeps the same feel.
+var _acceleration_time: float = MIN_RAMP_TIME
+var _deceleration_time: float = MIN_RAMP_TIME
 
 
 func _init(tuning: PlayerTuning) -> void:
 	# The safe values are stored first: in a debug build the assert below may abort _validate_time().
-	var acceleration_time: float = maxf(tuning.acceleration_time, MIN_RAMP_TIME)
-	var deceleration_time: float = maxf(tuning.deceleration_time, MIN_RAMP_TIME)
-	_max_speed_px = tuning.move_speed * Const.TILE_SIZE
-	_accel_px = _max_speed_px / acceleration_time
-	_decel_px = _max_speed_px / deceleration_time
+	_acceleration_time = maxf(tuning.acceleration_time, MIN_RAMP_TIME)
+	_deceleration_time = maxf(tuning.deceleration_time, MIN_RAMP_TIME)
+	set_max_speed(tuning.move_speed)
 	_validate_time(tuning.acceleration_time, "acceleration_time")
 	_validate_time(tuning.deceleration_time, "deceleration_time")
+
+
+## New maximum speed in tiles per second (the MOVE_SPEED stat); the ramp durations stay the same, the velocity in
+## progress is kept.
+func set_max_speed(tiles_per_s: float) -> void:
+	_max_speed_px = maxf(tiles_per_s, 0.0) * Const.TILE_SIZE
+	_accel_px = _max_speed_px / _acceleration_time
+	_decel_px = _max_speed_px / _deceleration_time
 
 
 ## Advances the velocity by dt seconds toward the wished direction and returns it (px/s).

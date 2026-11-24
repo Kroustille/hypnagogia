@@ -28,6 +28,8 @@ var state: RunState = RunState.new()
 var floor_layout: FloorLayout
 ## Where the player has been on the floor (story 4.8); read by the map (4.9).
 var floor_map: FloorMap = FloorMap.new()
+## What lies in the rooms of the floor, by cell (story 5.1): an item left on the ground is there on the next visit.
+var stocks: Dictionary[Vector2i, RoomStock] = {}
 
 ## The room of the RoomSlot, null while one is being swapped for the next.
 var _room: Room
@@ -84,6 +86,13 @@ func _exit_tree() -> void:
 ## What this run really plays: the options it was given, or the arena options when its room could not be played.
 func played_options() -> RunOptions:
 	return _options
+
+
+## The stock of a cell of the floor, made on the first request.
+func stock_of(cell: Vector2i) -> RoomStock:
+	if not stocks.has(cell):
+		stocks[cell] = RoomStock.new()
+	return stocks[cell]
 
 
 ## The room that is active now, null between two rooms.
@@ -154,6 +163,7 @@ func _enter_cell(cell: Vector2i, entry_side: int) -> bool:
 	options.link_sides = floor_layout.door_sides(cell)
 	options.already_cleared = floor_map.is_cleared(cell)
 	options.entry_side = entry_side
+	options.stock = stock_of(cell)
 	room.setup(_player, rng, state.floor_index, options) # before add_child()
 	_place_player(room)
 	if state.floor_index == 0 and placement.room_type == Room.RoomType.START:

@@ -83,3 +83,13 @@ signal room_entered(room_id: StringName, cell_x: int, cell_y: int)
 ## Listeners: telemetry.
 @warning_ignore("unused_signal")
 signal run_seeded(seed_code: String, seeded: bool)
+
+## The player took an item (story 5.1). item_id: ItemDef.id; copies: how many copies of it the player holds now.
+## Listeners: telemetry, effects of later stories.
+@warning_ignore("unused_signal")
+signal item_acquired(item_id: StringName, copies: int)
+
+## The HUD shows a banner for a few seconds: title, bonus and cost lines, as translation keys (story 5.1; the synergy
+## banner of story 5.7 reuses it). cost_key may be empty. A new request replaces the banner on screen.
+@warning_ignore("unused_signal")
+signal banner_requested(title_key: StringName, bonus_key: StringName, cost_key: StringName)

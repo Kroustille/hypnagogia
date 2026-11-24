@@ -48,3 +48,9 @@ UI_SEED_PROMPT,Entre une seed de 8 caractères
 UI_SEED_INVALID,Seed invalide : 8 caractères (chiffres et lettres sans U)
 UI_SEED_CONFIRM,Lancer
 UI_SEED_CANCEL,Annuler
+ITEM_FALLING_TOOTH_NAME,Dent qui tombe
+ITEM_FALLING_TOOTH_BONUS,+30 % de dégâts
+ITEM_FALLING_TOOTH_COST,−1 cœur maximum
+ITEM_LEAD_LEGS_NAME,Jambes de plomb
+ITEM_LEAD_LEGS_BONUS,Tirs traversants
+ITEM_LEAD_LEGS_COST,−20 % de vitesse de déplacement
