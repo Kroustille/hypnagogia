@@ -1,0 +1,91 @@
+# Story 6.8 : Sauvegarder, quitter et reprendre
+
+Status: ready-for-dev
+
+## Story
+
+En tant que joueur,
+je veux quitter en pleine run et reprendre au début de la salle,
+afin de ne pas perdre une nuit entamée.
+
+Exigences : FR64, AR18 (`run.json`), P3 (epics.md, Story 6.8). Architecture : P3 « Reprise en début de salle » (`RunSnapshot`, `SaveService.write_run`), D12 (`run.json` écrit à l'entrée de chaque salle, effacé à la reprise et en fin de run), règle « tout état qui survit à une salle implémente `to_dict()` / `from_dict()` ; les objets sont référencés par leur `id` ». GDD : reprise au début de la salle en cours, sauvegarde effacée dès la reprise ; en cas de crash, début de la dernière salle entrée.
+
+**Dépend de : 6.7** (`SaveService.write_json/read_json`, quarantaine, `Notice`, `RunOptions.unlocks`), **6.6** (`wake_minute`), 6.5 (`Main` démarre dans la chambre : l'invite de reprise passe avant), 6.4 (fin de run : effacement), 4.7 (`RunRng`, déterminisme), 5.x (objets, consommable, actif, stocks de salle).
+
+Hors périmètre : sauvegarde en cours de salle (jamais), plusieurs emplacements, sauvegarde dans le nuage.
+
+## Critères d'acceptation
+
+1. **Instantané à l'entrée de salle** : à chaque entrée dans une salle de l'étage (départ compris), **avant** les tirages de la salle (trésor, boutique) et avant l'apparition des ennemis, `Run` construit un `RunSnapshot` : version, seed (40 bits) et `seeded`, `unlocks`, étage, cellule d'entrée et côté d'entrée, carte (cellules visitées et vidées), heure du réveil, état du joueur (demi-cœurs, max, armure, perte de maximum pour les objets, lucidité), Éclats, objets (ids dans l'ordre, `max_half_hearts_paid`, charge de l'actif), consommable, **stocks des salles visitées** (offres : type, id, position, prix, prise, armée, quantité, charge — les décisions de 5.x en dépendent), **états de tous les flux RNG** créés jusque-là. `SaveService.write_run(snapshot)` l'écrit dans `user://run.json` de façon atomique. Aucun instantané hors mode `FLOOR` (arène, salle de débogage).
+2. **Référence par `id`** : aucun objet, ennemi ou nœud n'est sérialisé ; `to_dict()` / `from_dict()` existent sur chaque morceau d'état (`RunSnapshot`, `RunState`, `FloorMap`, `RoomStock`, `Health` pour son état, `RunRng` pour ses flux). Les ids inconnus à la relecture (objet retiré d'une version) sont ignorés avec un `Log.warn`, la reprise se fait quand même.
+3. **« Sauvegarder et quitter »** : en run (mode `FLOOR`), le bouton du menu pause porte ce nom (`UI_PAUSE_SAVE_QUIT`) et ferme le jeu, `run.json` conservé (c'est l'instantané de la dernière entrée de salle, à jour). Hors run (chambre, arène, débogage) le bouton reste « Quitter » (`UI_PAUSE_QUIT`) et ne laisse rien. Un arrêt brutal (crash, fermeture forcée) laisse le dernier instantané : même reprise.
+4. **Invite de reprise au lancement** : si `run.json` existe, `Main` lit et valide le fichier **avant** la chambre : lisible → fenêtre « Reprendre la nuit ? » (`Reprendre` focalisé / `Nouvelle nuit`) ; **Reprendre** reconstruit la run, **efface `run.json`** et rejoue la salle depuis son début ; **Nouvelle nuit** efface `run.json` et ouvre la chambre. Illisible (JSON invalide, version future, seed hors bornes, cellule hors du plan) : renommé `run.json.corrupt`, `Notice` localisée, chambre.
+5. **Reprise à l'identique** : la run reconstruite a le même plan d'étage (même seed, mêmes `unlocks` : `to_text()` égal), la même carte, le même joueur, les mêmes flux RNG ; la salle repart de son début avec les mêmes ennemis (mêmes vagues, mêmes marqueurs), les mêmes renforts/reflets et les mêmes tirages de trésor/boutique/butin que lors de la première entrée. L'entrée se fait par le même côté, au même point.
+6. **Fin de run** : une mort ou une victoire efface `run.json` (dans `Run`, avant `run_ended`) ; une nouvelle run (relance, seed saisie, chambre) efface aussi un `run.json` d'une nuit abandonnée avant d'écrire le sien.
+7. **Test d'intégration de reprise** : sauvegarde à l'entrée d'une salle, puis reprise : l'état du joueur et **les états des flux RNG sont identiques** (comparés champ par champ et après un aller-retour JSON). Le même test vérifie les 64 bits : un état de flux au-delà de 2^53 survit.
+8. **Échec d'écriture** : l'écriture de `run.json` qui échoue est journalisée (`Log.error`), la run continue ; aucune interruption du jeu (architecture, gestion des erreurs).
+
+## Tâches
+
+- [ ] `run/run_snapshot.gd` (`RefCounted`, `to_dict()`, `static from_dict()`, `validate() -> String`, `schema_version`) ; `SaveService.write_run/read_run/delete_run/has_run` (s'appuie sur `write_json/read_json` de 6.7), `run.json.corrupt` ; migration par version (table vide).
+- [ ] `core/run_rng.gd` : `export_states() -> Dictionary` (clé `"nom:étage"` → état en **chaîne décimale**) et `restore_states(d)` ; `run/run_state.gd`, `run/floor_map.gd`, `economy/room_stock.gd` : `to_dict/from_dict` (cellules en `[x, y]`).
+- [ ] `combat/health.gd` : `export_state()` / `restore_state(d)` (demi-cœurs, max, armure, maximum perdu) ; `player/lucidity.gd` : `set_value()` existe, y ajouter la restauration du tier de salle (`begin_room()` se charge du reste).
+- [ ] `run/run.gd` : `_write_snapshot(cell, entry_side)` appelée en tête de `_enter_cell` (avant `stock_of`/`_stock_treasure`/`_stock_shop`/`mark_entered`) ; `_start_floor_from(snapshot)` (voir État du code) ; effacement aux deux fins de run ; `RunOptions.resume: RunSnapshot`.
+- [ ] `main/main.gd` : `_boot()` (invite → reprise ou chambre), `_on_pause_menu_quit_requested()`, effacement dans `_start_run()` pour toute run **non reprise**. `ui/menus/resume_prompt.tscn/.gd` ; `pause_menu` : libellé selon `Main` (`open(seed, focus, in_run)`).
+- [ ] `strings.csv` : `UI_PAUSE_SAVE_QUIT`, `UI_RESUME_TITLE`, `UI_RESUME_YES`, `UI_RESUME_NO`, `UI_RESUME_CORRUPT`.
+- [ ] Tests.
+
+## État du code concerné
+
+- `Run._start_floor()` : `ensure_floor()` → `floor_map.layout` → `RoomLoader` (départ immédiat, autres en arrière-plan) → `_enter_cell(layout.start, -1)`. `_enter_cell` : charge la scène, construit `RoomOptions`, **`stock_of(cell)` tire le stock** (trésor/boutique par `_stock_treasure`/`_stock_shop` sur les flux `treasure`/`shop`), `room.setup`, place le joueur, `mark_entered`. `_swap_room` (sous le noir d'une transition) appelle `_enter_cell` puis `_announce_room` ; l'écriture du fichier s'y fait donc sous le fondu (léger, quelques ko).
+- `Run.rng` (`RunRng`) : flux créés **paresseusement** par `stream(nom, étage)` (`_streams` : clé `"nom:étage"`). Un flux jamais créé n'a pas d'état à sauver : il repart de `(seed, nom, étage)`, donc identique.
+- Le plan dépend de la seed et du pool filtré par `unlocks` seulement (`ensure_floor`, flux `layout`/`rooms`) ; **il consomme ces flux** : à la reprise, générer d'abord, **puis** `restore_states` (les états sauvés sont postérieurs à la génération).
+- `Player._on_item_added` (`player.gd:714`) applique le **coût en maximum** d'un objet (`health.lose_max`, `OwnedItem.max_half_hearts_paid`) quand on l'ajoute au `Loadout` : rejouer les objets **réapplique** ces coûts. Restaurer la santé **après** les objets avec `Health.restore_state` (qui écrase maximum, demi-cœurs, armure, maximum perdu), et réécrire `max_half_hearts_paid` par objet.
+- Objets : `ItemCatalog.by_id`, `ConsumableCatalog.by_id`, `BuildCarrier.acquire(def, charge)` (émet `item_acquired` + bannière : à éviter ; utiliser `Loadout.add(def, charge)` / `set_active(def, charge)` / `set_consumable(def)` qui ne les émettent pas). Les états de pouvoir en cours (café, recharges, ralentis) **ne sont pas** sauvés : une salle rejouée repart propre.
+- `RoomStock.Offer` : `kind`, `item`/`consumable`, `position`, `taken`, `price`, `armed`, `amount`, `charge` ; `Run.stocks` est indexé par cellule seule (un seul étage au MVP).
+- `Main._on_pause_menu_quit_requested()` appelle `_release_for_quit()` puis `get_tree().quit()` ; la fermeture de fenêtre (`NOTIFICATION_WM_CLOSE_REQUEST`) ne touche pas aux fichiers.
+- `Telemetry` ignore les sauvegardes.
+
+## Pièges
+
+- **Précision JSON** : `RandomNumberGenerator.state` est un entier 64 bits ; `JSON.stringify` l'écrit comme un nombre flottant et perd les bits au-delà de 2^53 : **stocker les états en chaînes décimales** (`str(state)` / `String.to_int()`), jamais en `int` JSON. Même précaution pour tout entier susceptible d'être grand (la seed de 40 bits passe, mais l'écrire en chaîne aussi).
+- Ordre de reprise : générer le plan → `restore_states` → restaurer carte, stocks, joueur → `_enter_cell`. Restaurer avant de générer fausse les flux `layout`/`rooms` et change le plan.
+- L'instantané est construit **avant** `stock_of()` : sinon l'état du flux trésor/boutique et l'absence de stock ne correspondent plus (la salle ne retirerait pas la même offre). Pour une salle déjà visitée, le stock existe et est sauvé tel quel.
+- Un `Dictionary[Vector2i, ...]` typé se sérialise cellule par cellule (`[x, y]`) ; à la lecture, valider `Array` de 2 entiers, rejeter le reste (fichier modifié à la main).
+- `Health.restore_state` n'émet pas `died` ; il émet `changed` pour que le HUD se mette à jour (`Events.player_health_changed`). Ordre : joueur prêt (`Run._ready` après ses enfants), HUD déjà branché.
+- La reprise passe par `run_started` (HUD, télémétrie, carte) : ne pas la court-circuiter ; `run_seeded` porte la seed d'origine, `seeded` conservé.
+- Un `run.json` pointant une cellule qui n'est pas dans le plan régénéré (pool changé entre deux versions) : `validate()` le détecte (`failure`), quarantaine, pas de crash.
+- Pause menu : « Sauvegarder et quitter » ne **réécrit** rien (l'instantané d'entrée est déjà le bon, c'est le sens du GDD : reprise au début de la salle). Écrire de nouveau l'état au moment de quitter serait une triche (sauvegarder en pleine salle).
+- Les tests ne doivent jamais toucher le vrai `user://` : `SaveService.set_directory()` (6.7).
+
+## Tests (GUT)
+
+- `unit/run/test_run_snapshot` : aller-retour `to_dict` → JSON texte → `from_dict` égal ; `validate()` refuse seed invalide, cellule hors plan, version future ; id d'objet inconnu ignoré ; états RNG au-delà de 2^53 conservés ; `RunRng.restore_states` reprend la même séquence qu'un flux non interrompu.
+- `unit/save/test_run_file` : `write_run`/`read_run`/`delete_run`/`has_run`, quarantaine `run.json.corrupt`, écriture atomique.
+- `integration/run/test_resume` : plan réel, quelques salles traversées avec objets, consommable, actif chargé à moitié, cœurs perdus, Dent (coût en maximum), armure, Éclats ; instantané à l'entrée d'une salle ; **nouvelle `Run` reprise** : joueur, carte, stocks, plan (`to_text()`) et états RNG égaux ; mêmes types d'ennemis et mêmes positions de vague ; le tirage du Miroir de la salle est identique à la première entrée ; `run.json` effacé après la reprise puis réécrit à l'entrée.
+- `integration/run/test_save_quit` : `run.json` existe après le départ ; effacé à la mort et à la victoire ; effacé par une nouvelle run ; absent en mode arène.
+- `integration/ui/test_resume_prompt` : invite si le fichier existe, `Nouvelle nuit` l'efface, fichier cassé : `Notice` et chambre ; libellé « Sauvegarder et quitter » en run, « Quitter » dans la chambre.
+
+## Sources
+
+epics.md (Story 6.8) ; GDD, Quitter en pleine run (limite acceptée : save-scum) ; architecture P3, D12, « Persistance des données » ; deferred-work : stocks de salle à la reprise, `Run.stocks`/carte au changement d'étage (non traités, voir décision 6), seed dans `run started`.
+
+### Décisions prises sans Kroustille (à valider en fin d'epic)
+
+1. **Les stocks des salles visitées sont sérialisés** (ligne ajoutée à l'architecture D12 : `run.json` contient les `RoomStock`). Sans eux, un objet laissé au sol ou une boutique à moitié achetée reviendraient différents (deferred « Stocks des salles à la reprise »).
+2. **Instantané pris en tête de `_enter_cell`**, avant tout tirage de la salle, pour que la salle rejouée refasse les mêmes tirages.
+3. **« Sauvegarder et quitter » ne réécrit rien** et ne diffère de « Quitter » que par le libellé et l'intention (le dernier instantané suffit, comme après un crash).
+4. **Invite de reprise avant la chambre** ; refuser efface la sauvegarde (la GDD ne propose qu'une nuit en cours).
+5. **Les états de pouvoir en cours (café, ralentis, minuteries) ne sont pas sauvés** : une salle rejouée repart de zéro.
+6. **`Run.stocks` et la carte restent indexés par cellule seule** (pas d'étage dans l'index) : le MVP n'a qu'un étage ; `floor_index` est sauvé pour que l'acte 1 fasse évoluer le format par migration. Voir deferred-work.
+7. **États RNG, seed et grands entiers en chaînes décimales** dans le JSON.
+8. **Une run seedée se sauvegarde et se reprend comme une autre** (`seeded` conservé : elle n'écrira toujours rien dans le profil).
+9. **Un `run.json` d'une version de format plus récente est quarantainé**, jamais lu à moitié.
+
+## Dev Agent Record
+
+### Notes de complétion
+
+### Liste des fichiers
+
+### Journal des modifications
