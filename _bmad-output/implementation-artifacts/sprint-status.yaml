@@ -83,7 +83,7 @@ development_status:
   # Epic 4: Explorer un étage né d'une seed
   epic-4: in-progress
   4-1-tester-la-logique-du-jeu-sans-le-lancer: done
-  4-2-jouer-une-salle-predessinee: ready-for-dev
+  4-2-jouer-une-salle-predessinee: review
   4-3-tomber-dans-les-trous: ready-for-dev
   4-4-jouer-avec-la-salle-meubles-et-elements-declenchables: ready-for-dev
   4-5-des-ennemis-qui-contournent-les-obstacles: ready-for-dev

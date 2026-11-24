@@ -293,7 +293,7 @@
 
 - **Flux `combat` toujours à l'étage 0** (epic 6, étages) : `Arena` appelle `_rng.stream(COMBAT_STREAM)` sans indice d'étage, donc toute la run partage `combat:0`. Quand les étages existent, passer l'étage courant (par `Arena.setup()` ou la `Run`) pour que D8 « (seed, flux, étage) » tienne.
 - **Architecture D8 : « seed de run 64 bits »** (fin d'epic 3, si la décision 1 de la 3.7 est validée) : le code tire 40 bits affichés en 8 caractères Crockford ; mettre le texte de `game-architecture.md` à jour, ou passer à 64 bits avec un code plus long.
-- **Renfort pendant la pause si aucun ennemi de la vague n'a pu paraître** (cas dégénéré, epic 4 avec les salles peintes) : `WaveRunner._start_next_wave()` passe en `WAITING` quand `spawned == 0`, mais un renfort annoncé par `begin_room()` (vague qui commence en Abandon) reste en file, paraît pendant la pause et survit dans la vague suivante. Correction : dans `Arena`, vider la file (`_clear_pending()`, `_wave_active = false`) quand la vague n'a fait paraître personne, par exemple via un appel de `WaveRunner` dans cette branche.
+- ~~**Renfort pendant la pause si aucun ennemi de la vague n'a pu paraître**~~ : traité en 4.2 (`Room.cancel_pending_reinforcements()` appelé par `WaveRunner` quand une vague n'a fait paraître personne).
 
 ## Deferred from: story 3-8 (2026-11-24)
 
@@ -313,3 +313,9 @@
 - **`game/tests/integration/` absent du dépôt** (story 4.2) : un dossier vide n'est pas versionné, donc GUT affiche « The path [res://tests/integration/] does not exist » et compte `Errors 1` à chaque lancement. La 4.2 le crée avec ses tests d'intégration ; sinon y mettre un `.gdkeep`.
 - **Export : exclure le framework de test** (story 1.8) : aucun `export_presets.cfg` n'existe encore. Mettre `addons/gut/*, tests/*, .gutconfig.json` dans le filtre d'exclusion de chaque préréglage (les polices et images de GUT ont leurs `.import` et partiraient sinon dans le build), et vérifier que le build ne contient aucune classe `Gut*`.
 - **Valeurs de référence de `RunRng`** (story 4.7) : les tests vérifient le déterminisme dans un même processus et l'aller-retour code/seed, pas une valeur figée. Un défaut cohérent des deux côtés (ordre des caractères inversé) ou un changement de dérivation des flux (`sha256` de `"seed:flux:étage"`) passerait inaperçu, alors que les codes se partagent entre versions. Ajouter `seed_code()` d'une seed connue et les premiers tirages d'un flux, avec les seeds de référence du générateur.
+
+## Deferred from: story 4-2-jouer-une-salle-predessinee (2026-11-24)
+
+- **NON ÉVALUÉ (humain) : les trois salles du pool** : `onset_combat_001` à `003` sont posées par un agent depuis un texte ASCII ; lisibilité, plaisir, équilibre des vagues à juger au playtest (jalon B).
+- **Dépôt non importable au commit `4dee128`** : `door.gd` y précède `RoomTuning` (commit `0049fd0`) ; sans conséquence au-delà (historique déjà poussé).
+- **Une salle ne peut pas surcharger `first_wave_delay` / `wave_pause`** : valeurs globales de `RoomTuning`, suffisant pour le pool de départ.
