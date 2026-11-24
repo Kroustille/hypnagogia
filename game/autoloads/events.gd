@@ -106,3 +106,8 @@ signal shards_changed(total: int)
 ## The player picked up shards from the floor (story 5.4). amount: shards to add. Listener: Run, which owns the count.
 @warning_ignore("unused_signal")
 signal shards_collected(amount: int)
+
+## The player bought something in a shop (story 5.5). item_id: id of the article (an item, a consumable, "heart", "armor").
+## Listener: telemetry.
+@warning_ignore("unused_signal")
+signal shop_purchased(item_id: StringName, price: int)

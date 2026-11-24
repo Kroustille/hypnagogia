@@ -24,6 +24,11 @@ const ARMING_SETTLE_TICKS: int = 3
 ## A disarmed pickup the player never touched arms only when the player is farther than this (a deposit moved to a free
 ## cell does not overlap the player yet, who may land on it).
 const ARM_DISTANCE_PX: float = RADIUS_PX + Const.TILE_SIZE
+## A shop item shows its banner when the player is closer than this (still without buying).
+const READ_DISTANCE_PX: float = 2.0 * Const.TILE_SIZE
+const REFUSED_SOUND: AudioStream = preload("res://audio/sfx/sfx_power_refused.wav")
+const PRICE_LABEL_SIZE: Vector2 = Vector2(48, 10)
+const PRICE_FONT_SIZE: int = 8
 
 ## The player took a consumable and was already carrying one: the old one goes back on the floor (the room lays it).
 signal consumable_replaced(def: ConsumableDef, global_position: Vector2)
@@ -36,6 +41,8 @@ var _armed: bool = true
 var _alive_ticks: int = 0
 ## Set when another pickup was taken from under the player in the same breath: this one waits until the player steps off.
 var _must_leave: bool = false
+## The player is within READ_DISTANCE_PX of a stall (the banner was shown once for this approach).
+var _read: bool = false
 
 
 ## Dependency injection: call before add_child().
@@ -58,6 +65,8 @@ func _ready() -> void:
 	add_child(shape_node)
 	position = offer.position
 	z_index = Z_INDEX
+	if offer.price > 0:
+		_add_price_label()
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
 	_refresh_look()
@@ -70,18 +79,111 @@ func _physics_process(_delta: float) -> void:
 	if not _armed:
 		_update_arming()
 		_refresh_look()
+		if offer.price > 0:
+			_update_reading()
 		return
 	if not _touching:
 		# A player already there when the pickup appeared never entered: look at the overlaps.
 		_touching = get_overlapping_bodies().has(_player)
 	_refresh_look()
+	if offer.price > 0:
+		_update_reading()
+		if _touching and not _must_leave:
+			try_purchase()
+		return
 	if _touching and not _must_leave and _can_take():
 		_collect()
 
 
 ## True when the player could take this item now.
 func is_available() -> bool:
-	return not _collected and _armed and _player != null and _can_take()
+	return not _collected and _armed and _player != null and _can_take() and _affordable()
+
+
+## True when the player holds the price (always for a free pickup).
+func _affordable() -> bool:
+	if offer.price <= 0:
+		return true
+	var run: Run = _run()
+	return run != null and run.state.shards >= offer.price
+
+
+func _run() -> Run:
+	return get_tree().get_first_node_in_group(Const.GROUP_RUN) as Run
+
+
+## Buys the stall: checks that the purchase can be made and paid before spending anything, then pays and gives it. A
+## refusal (not enough shards, nothing to gain, item not takable) plays the refusal sound once and disarms the stall: the
+## player must step off it before trying again. Called from the physics tick, never from a physics callback.
+func try_purchase() -> bool:
+	if _collected or not _armed or _player == null or _player.health.is_dead():
+		return false
+	var run: Run = _run()
+	if run == null or not _can_take() or not _affordable():
+		_refuse()
+		return false
+	if not run.spend_shards(offer.price):
+		_refuse()
+		return false
+	if not _give():
+		run.add_shards(offer.price) # cannot happen after the checks: nothing is lost
+		Log.error("economy", "purchase of %s failed after payment: shards refunded" % offer.id())
+		_refuse()
+		return false
+	_collected = true
+	set_physics_process(false)
+	offer.taken = true
+	Events.shop_purchased.emit(offer.id(), offer.price)
+	Log.info("economy", "bought %s for %d" % [offer.id(), offer.price])
+	_hold_stacked_pickups()
+	queue_free()
+	return true
+
+
+## Applies what was bought, as the pickup of the same kind would. False when it did not apply.
+func _give() -> bool:
+	match offer.kind:
+		RoomStock.Kind.ITEM:
+			return _player.carrier.acquire(offer.item) != null
+		RoomStock.Kind.CONSUMABLE:
+			var previous: ConsumableDef = _player.carrier.acquire_consumable(offer.consumable)
+			if previous != null:
+				consumable_replaced.emit(previous, _player.global_position)
+			return true
+		RoomStock.Kind.HEART:
+			return _player.health.heal(offer.amount)
+		RoomStock.Kind.ARMOR:
+			return _player.health.add_armor(offer.amount)
+	return false
+
+
+func _refuse() -> void:
+	Audio.play_sfx(REFUSED_SOUND, 1)
+	_armed = false
+	_touching = false
+	_alive_ticks = 0
+
+
+## The banner of an item or consumable on sale opens when the player comes within reach, once per approach.
+func _update_reading() -> void:
+	var near: bool = _player.global_position.distance_to(global_position) < READ_DISTANCE_PX
+	if near and not _read:
+		if offer.kind == RoomStock.Kind.ITEM:
+			Events.banner_requested.emit(offer.item.name_key, offer.item.bonus_key, offer.item.cost_key)
+		elif offer.kind == RoomStock.Kind.CONSUMABLE:
+			Events.banner_requested.emit(offer.consumable.name_key, offer.consumable.bonus_key, offer.consumable.cost_key)
+	_read = near
+
+
+func _add_price_label() -> void:
+	var label: Label = Label.new()
+	label.name = "Price"
+	label.text = tr("UI_SHOP_PRICE") % offer.price
+	label.size = PRICE_LABEL_SIZE
+	label.position = Vector2(-PRICE_LABEL_SIZE.x / 2.0, RADIUS_PX + 2.0)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", PRICE_FONT_SIZE)
+	add_child(label)
 
 
 func _collect() -> void:

@@ -61,3 +61,4 @@ CONSUMABLE_COFFEE_NAME,Café
 CONSUMABLE_COFFEE_BONUS,+30 % de vitesse et de cadence pendant 10 s
 CONSUMABLE_COFFEE_COST,puis −20 % de vitesse pendant 5 s
 UI_TUTORIAL_CONSUMABLE,Consommable
+UI_SHOP_PRICE,%d Éclats

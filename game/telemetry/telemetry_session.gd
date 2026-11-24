@@ -89,6 +89,13 @@ func spent(power: String, tier: int) -> void:
 	_count_spend(_run_spends, power, tier_name)
 
 
+## Something was bought in a shop (ignored outside a run): one "purchase" event.
+func purchase(at: float, item_id: String, price: int) -> void:
+	if _tier == -1:
+		return
+	_add("purchase", at, {"id": item_id, "price": price})
+
+
 ## The shards held changed (ignored outside a run).
 func shards_changed(total: int) -> void:
 	if _tier == -1:

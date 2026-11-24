@@ -16,6 +16,8 @@ const TUTORIAL_SCENE: PackedScene = preload("res://ui/tutorial/controls_tutorial
 
 ## The items a treasure room may offer (story 5.2).
 const TREASURE_POOL_PATH: String = "res://data/pools/treasure_pool.tres"
+## The items a shop may offer (story 5.5).
+const SHOP_POOL_PATH: String = "res://data/pools/shop_pool.tres"
 const FLOOR_DEF_PATH: String = "res://data/floors/onset.tres"
 
 ## The floor definition played (a variable so that a check can point it at a missing file).
@@ -171,6 +173,8 @@ func _enter_cell(cell: Vector2i, entry_side: int) -> bool:
 	options.stock = stock_of(cell)
 	if first_visit and placement.room_type == Room.RoomType.TREASURE:
 		_stock_treasure(room, options.stock)
+	if first_visit and placement.room_type == Room.RoomType.SHOP:
+		_stock_shop(room, options.stock)
 	room.setup(_player, rng, state.floor_index, options) # before add_child()
 	_place_player(room)
 	if state.floor_index == 0 and placement.room_type == Room.RoomType.START:
@@ -205,6 +209,42 @@ func _stock_treasure(room: Room, stock: RoomStock) -> void:
 		return
 	stock.add_item(def, spot.position)
 	Log.info("economy", "treasure item %s" % def.id)
+
+
+## The stalls of a shop, drawn once on the first entry on the shop stream of this floor and kept in the stock of the cell:
+## a later visit shows what was not bought. Each offer goes on the first free PickupSpot of its slot.
+func _stock_shop(room: Room, stock: RoomStock) -> void:
+	var pool: ItemPoolDef = load(SHOP_POOL_PATH) as ItemPoolDef
+	var offers: Array[RoomStock.Offer] = ShopStock.draw(pool, ConsumableCatalog.all(), _player.carrier.loadout.owned_ids(),
+			_player.health.max_half_hearts, rng.stream(RunRng.SHOP, state.floor_index), Tuning.ECONOMY)
+	var free_spots: Array[PickupSpot] = room.pickup_spots()
+	for offer: RoomStock.Offer in offers:
+		var spot: PickupSpot = _take_spot(free_spots, _slot_of(offer.kind))
+		if spot == null:
+			Log.warn("economy", "shop without a free spot for %s" % offer.id())
+			continue
+		stock.add_offer(offer, spot.position)
+	Log.info("economy", "shop stalls %s" % [offers.map(func(offer: RoomStock.Offer) -> StringName: return offer.id())])
+
+
+static func _slot_of(kind: RoomStock.Kind) -> PickupSpot.Slot:
+	match kind:
+		RoomStock.Kind.CONSUMABLE:
+			return PickupSpot.Slot.CONSUMABLE
+		RoomStock.Kind.HEART:
+			return PickupSpot.Slot.HEART
+		RoomStock.Kind.ARMOR:
+			return PickupSpot.Slot.ARMOR
+	return PickupSpot.Slot.ITEM
+
+
+## Removes and returns the first spot of the slot, null when none is left.
+static func _take_spot(spots: Array[PickupSpot], slot: PickupSpot.Slot) -> PickupSpot:
+	for spot: PickupSpot in spots:
+		if spot.slot == slot:
+			spots.erase(spot)
+			return spot
+	return null
 
 
 ## Tells the journal and the bus that the player came into the active room of the floor.
