@@ -1,6 +1,6 @@
 # Story 6.6 : Lire l'heure du réveil
 
-Status: in-progress
+Status: done
 
 ## Story
 
@@ -77,10 +77,12 @@ epics.md (Story 6.6) ; GDD, Conditions de victoire (l'heure du réveil, exemple 
 
 ### Review Findings
 
-- [ ] [Review][Patch] L'heure lit `floor_layout`, qui peut être un plan jamais joué : F1 G (`log_floor_map()` → `ensure_floor()`) en run d'arène ou de salle seule le génère, et les vagues de l'arène marquent `Vector2i.ZERO` vidée ⇒ l'heure d'une mort (ou d'une victoire, 00:18) dépend du journal de la carte [game/run/run.gd:509-517] — lire le plan joué : `var layout: FloorLayout = floor_map.layout`, `if layout == null or not layout.valid:` (branche 23:00), puis `layout.cells_of_type(...)`, `layout.has_cell(cell)`, `layout.cells[cell]` ; `floor_map.layout` n'est posé que par `_start_floor` et remis à null à chaque repli.
-- [ ] [Review][Patch] `WakeTuning.is_valid()` n'est appelé qu'en test : une marge ≥ phase (permise par `@export_range … "or_greater"`) donne une mort avant le début de l'étage, voire une minute négative (heure masquée, `Log.error`) [game/run/wake_clock.gd:23] — `var cap: int = maxi(_floor_start(floor_index), _floor_start(floor_index) + _tuning.phase_minutes - _tuning.death_cap_margin_minutes)`.
-- [ ] [Review][Patch] Division entière sans annotation, contrairement à la convention du projet (`game/ui/hud/hud.gd:45`) [game/run/wake_clock.gd:56] — ajouter `@warning_ignore("integer_division")` sur la ligne au-dessus du `return pattern % [wrapped / 60, wrapped % 60]`.
-- [ ] [Review][Patch] Le commentaire de `_on_events_run_ended` (« Only a defeat is a death… ») documente maintenant `_on_events_wake_time_set`, inséré entre lui et sa fonction [game/telemetry/telemetry.gd:134-139] — déplacer `_on_events_wake_time_set` et sa ligne de doc au-dessus du bloc « Only a defeat is a death… ».
+- [x] [Review][Patch] L'heure lit `floor_layout`, qui peut être un plan jamais joué : F1 G (`log_floor_map()` → `ensure_floor()`) en run d'arène ou de salle seule le génère, et les vagues de l'arène marquent `Vector2i.ZERO` vidée ⇒ l'heure d'une mort (ou d'une victoire, 00:18) dépend du journal de la carte [game/run/run.gd:509-517] — lire le plan joué : `var layout: FloorLayout = floor_map.layout`, `if layout == null or not layout.valid:` (branche 23:00), puis `layout.cells_of_type(...)`, `layout.has_cell(cell)`, `layout.cells[cell]` ; `floor_map.layout` n'est posé que par `_start_floor` et remis à null à chaque repli.
+- [x] [Review][Patch] `WakeTuning.is_valid()` n'est appelé qu'en test : une marge ≥ phase (permise par `@export_range … "or_greater"`) donne une mort avant le début de l'étage, voire une minute négative (heure masquée, `Log.error`) [game/run/wake_clock.gd:23] — `var cap: int = maxi(_floor_start(floor_index), _floor_start(floor_index) + _tuning.phase_minutes - _tuning.death_cap_margin_minutes)`.
+- [x] [Review][Patch] Division entière sans annotation, contrairement à la convention du projet (`game/ui/hud/hud.gd:45`) [game/run/wake_clock.gd:56] — ajouter `@warning_ignore("integer_division")` sur la ligne au-dessus du `return pattern % [wrapped / 60, wrapped % 60]`.
+- [x] [Review][Patch] Le commentaire de `_on_events_run_ended` (« Only a defeat is a death… ») documente maintenant `_on_events_wake_time_set`, inséré entre lui et sa fonction [game/telemetry/telemetry.gd:134-139] — déplacer `_on_events_wake_time_set` et sa ligne de doc au-dessus du bloc « Only a defeat is a death… ».
+
+Correctifs de revue appliqués et vérifiés (GUT complet vert, commit `fix(run): apply story 6.6 code review patches`).
 
 ## Dev Agent Record
 
