@@ -38,6 +38,11 @@ func _ready() -> void:
 	Events.player_hit.connect(_on_events_player_hit)
 	Events.run_started.connect(_on_events_run_started)
 	Events.run_seeded.connect(_on_events_run_seeded)
+	Events.floor_ready.connect(_on_events_floor_ready)
+	Events.boss_engaged.connect(_on_events_boss_engaged)
+	Events.boss_health_changed.connect(_on_events_boss_health_changed)
+	Events.boss_phase_changed.connect(_on_events_boss_phase_changed)
+	Events.boss_defeated.connect(_on_events_boss_defeated)
 	Events.wake_time_set.connect(_on_events_wake_time_set)
 	Events.run_ended.connect(_on_events_run_ended)
 	Events.room_entered.connect(_on_events_room_entered)
@@ -63,6 +68,11 @@ func _prune_old_sessions(directory: String = DIRECTORY) -> void:
 		DirAccess.remove_absolute(directory.path_join(names[i]))
 
 
+## The session in memory (checks): what the file holds, without reading the disk.
+func session() -> TelemetrySession:
+	return _session
+
+
 func session_path() -> String:
 	return _path
 
@@ -85,6 +95,13 @@ func _exit_tree() -> void:
 	end_session()
 
 
+## Play time of the runs: counted in frames (not the wall clock), and never while the game is paused or frozen behind the
+## wake screen, so a pause of ten minutes is not part of a run (story 6.9).
+func _process(delta: float) -> void:
+	if not GameClock.paused:
+		_session.advance_play(delta)
+
+
 func _now() -> float:
 	return (Time.get_ticks_msec() - _start_msec) / 1000.0
 
@@ -101,6 +118,28 @@ func _on_events_run_started() -> void:
 
 func _on_events_run_seeded(seed_code: String, seeded: bool) -> void:
 	_session.run_seeded(seed_code, seeded)
+	_write()
+
+
+func _on_events_floor_ready(startup_ms: int, load_ms: int) -> void:
+	_session.floor_ready(startup_ms, load_ms)
+	_write()
+
+
+func _on_events_boss_engaged(boss_id: StringName, _name_key: StringName, _max_hp: float) -> void:
+	_session.boss_engaged(_now(), String(boss_id))
+
+
+func _on_events_boss_health_changed(hp: float, max_hp: float) -> void:
+	_session.boss_health(hp, max_hp)
+
+
+func _on_events_boss_phase_changed(_boss_id: StringName, phase_index: int) -> void:
+	_session.boss_phase(phase_index)
+
+
+func _on_events_boss_defeated(_boss_id: StringName) -> void:
+	_session.boss_defeated(_now())
 	_write()
 
 
