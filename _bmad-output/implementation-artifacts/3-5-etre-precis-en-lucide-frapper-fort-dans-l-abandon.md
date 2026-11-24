@@ -1,6 +1,6 @@
 # Story 3.5 : Être précis en Lucide, frapper fort dans l'abandon
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -74,10 +74,30 @@ Hors périmètre : loot ×1,25 / ×1,5 / ×2 (epic 5, à lire sur `room_tier`), 
 6. **`HURTBOX_SIZE` est une `Stat` du `StatBlock`** — Raison : Éveil, objets (Jambes de plomb, etc.) et le reflet pourront la modifier sans nouvelle API.
 7. **Pas d'affichage des bonus dans le HUD** — Raison : la jauge et le nom du palier suffisent au jalon A ; à juger.
 
+8. **Les contacts ennemis passent de 0,75 à 0,875 tuile (`contact_size` des quatre ennemis)** — Raison : le corps du joueur reste 6x6 px, donc un ennemi (corps 10 px) s'arrête à 8 px de centre ; avec une hurtbox de 4 px et une zone de contact de 12 px, les rectangles ne font que se toucher et le contact n'infligerait plus jamais de dégâts à un joueur Lucide. À 14 px, le recouvrement de 1 px d'avant est conservé. Test `t_sleepwalker` ajusté (valeur du `.tres`, zone témoin 14x14).
+9. **Valeur de 13,5 comparée à la tolérance** — Raison : `1 + 0,35` n'est pas exact en flottant ; `StatBlock` calcule en double précision (classe `Modifier`, pas de `Vector2` qui tronque en float32), les tests comparent à 1e-12.
+
 ## Dev Agent Record
 
 ### Agent Model Used
 
+Claude Sonnet 5.5
+
 ### Completion Notes
 
+- `StatBlock` (`core/stat_block.gd`) : base + modificateurs par source (`set_modifier`, `clear_source`, `clear_modifier`), `changed(stat)` seulement sur variation réelle.
+- `Player.stats` créé après la jauge ; `_apply_tier_modifiers` à la création et avant le relais du bus sur `tier_changed` ; la forme de la hurtbox est redimensionnée en place, `_shot_params` mis à jour (les balles en vol gardent leurs valeurs).
+- `LucidityTuning` : `tier_damage_bonus`, `lucid_shot_speed_bonus`, `lucid_hurtbox_size`. Ligne F3 : dégâts, vitesse de tir, taille de hurtbox.
+- Vérifs : `t_stat_block` (14), `t_tier_bonus` (49) ; suite complète voir rapport. NON ÉVALUÉ : ressenti de la précision (+30 % de vitesse de balle, hurtbox 4 px) et des dégâts, à juger en jouant.
+
 ### File List
+
+- game/core/stat_block.gd (nouveau)
+- game/core/lucidity_tuning.gd, game/data/tuning/lucidity_tuning.tres
+- game/player/player.gd, game/debug/perf_overlay.gd
+- game/data/enemies/{sleepwalker,sheep,night_light,lullaby}.tres (contact_size)
+- game/.scratch/t_stat_block.*, t_tier_bonus.*, t_sleepwalker.gd, run_all.sh (non versionnés)
+
+### Change Log
+
+- 2026-11-24 : implémentation de la story 3.5 (StatBlock, bonus de palier, hurtbox de Lucide).
