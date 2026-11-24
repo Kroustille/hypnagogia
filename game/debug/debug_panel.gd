@@ -260,7 +260,7 @@ func _refresh_text() -> void:
 		"8 spawn lullaby",
 		"9 spawn sheep",
 		"0 kill all enemies",
-		"L lucidity cycle (%s)" % ", ".join(Array(_lucidity_presets).map(str)),
+		"L lucidity cycle, a dive deepens the room until the next wave (%s)" % ", ".join(Array(_lucidity_presets).map(str)),
 		"- next wave (keypad -; ) on AZERTY)",
 	])
 	if player != null:

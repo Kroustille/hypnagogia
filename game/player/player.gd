@@ -334,6 +334,7 @@ func _setup_lucidity() -> void:
 	lucidity.value_changed.connect(_on_lucidity_value_changed)
 	lucidity.tier_changed.connect(_on_lucidity_tier_changed)
 	lucidity.spent.connect(_on_lucidity_spent)
+	lucidity.room_danger_raised.connect(_on_lucidity_room_danger_raised)
 	_announced_tier = lucidity.live_tier
 	_on_lucidity_value_changed(lucidity.value) # initial state for the HUD
 
@@ -358,8 +359,8 @@ func on_bullet_dodged(bullet_position: Vector2) -> void:
 	Log.debug("lucidity", "perfect dash +%d value=%d" % [gained, lucidity.value])
 
 
-## The room has no enemy left: a living player gains lucidity. Extra arguments of the signal (story 3.6) are not read.
-func _on_room_cleared(_room: Node) -> void:
+## The room has no enemy left: a living player gains lucidity.
+func _on_room_cleared(_room: Node, _lowest_tier: int) -> void:
 	if health.is_dead():
 		return
 	lucidity.gain(Tuning.LUCIDITY.room_cleared_gain, Lucidity.Source.ROOM_CLEARED)
@@ -382,6 +383,12 @@ func _on_lucidity_tier_changed(tier: Lucidity.Tier) -> void:
 	Events.lucidity_tier_changed.emit(tier, previous)
 	Audio.play_sfx(TIER_DOWN_SOUND if tier > previous else TIER_UP_SOUND)
 	Log.info("lucidity", "tier %d -> %d value=%d" % [previous, tier, lucidity.value])
+
+
+## Relays the room's aggravation on the bus (the room listens to the gauge itself).
+func _on_lucidity_room_danger_raised(tier: Lucidity.Tier, previous: Lucidity.Tier) -> void:
+	Events.room_danger_raised.emit(tier, previous)
+	Log.info("lucidity", "room tier %d -> %d" % [previous, tier])
 
 
 ## Relays a spend on the bus (telemetry) and in the log.

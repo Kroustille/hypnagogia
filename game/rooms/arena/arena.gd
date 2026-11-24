@@ -42,6 +42,11 @@ const AWAKENING_RING_DURATION: float = 0.35
 const GLIDE_RING_RADIUS_TILES: float = 1.0
 const GLIDE_RING_COLOR: Color = Color(0.6, 0.95, 0.85)
 const GLIDE_RING_DURATION: float = 0.25
+## Danger raised signal (story 3.6), placeholder until epic 7: low sound, red ring around the player, no flash.
+const DANGER_RAISED_SOUND: AudioStream = preload("res://audio/sfx/sfx_danger_raised.wav")
+const DANGER_RING_COLOR: Color = Color(0.9, 0.15, 0.2)
+const DANGER_RING_RADIUS_TILES: float = 2.0
+const DANGER_RING_DURATION: float = 0.5
 ## Centers closer than this (px²) have no usable direction: the push goes to the right.
 const KNOCKBACK_MIN_OFFSET_SQ: float = 1e-6
 
@@ -73,6 +78,8 @@ var _alive: int = 0
 ## Spawns of this room so far: names the next enemy <id>_<n>, never reused (a refused spawn may lose a number).
 var _spawn_serial: int = 0
 var _wave_runner: WaveRunner
+## What the room tier does to the enemies (story 3.6): one object, mutated in place, given to every enemy.
+var danger: DangerProfile = DangerProfile.new()
 
 
 ## Dependency injection: call before add_child().
@@ -134,7 +141,7 @@ func spawn_enemy(def: EnemyDef, requested: Vector2) -> Enemy:
 		Log.error("room", "scene of %s is not an Enemy" % def.id)
 		_assert_failed("EnemyDef.scene must have an Enemy root")
 		return null
-	enemy.setup(def, _player, _player.hurtbox, _enemy_bullets) # before add_child()
+	enemy.setup(def, _player, _player.hurtbox, _enemy_bullets, danger) # before add_child()
 	enemy.position = position_px
 	_spawn_serial += 1
 	enemy.name = "%s_%d" % [_enemy_base_name(def), _spawn_serial] # readable and unique: never a generated "@" name
@@ -171,10 +178,27 @@ func kill_all_enemies() -> int:
 	return killed
 
 
-## Start of a wave (called by WaveRunner before the apparitions): per-wave counters of the player start again.
+## Start of a wave (called by WaveRunner before the apparitions): per-wave counters of the player start again and the
+## room danger follows the room tier, which is the live tier of this moment.
 func begin_room() -> void:
 	if _player != null and _player.lucidity != null:
 		_player.lucidity.begin_room()
+		danger.apply_tier(_player.lucidity.room_tier, Tuning.LUCIDITY)
+
+
+## The room tier (Lucidity.Tier as an int): the deepest tier reached since the wave began. Lucid without a player.
+func room_tier() -> int:
+	if _player == null or _player.lucidity == null:
+		return Lucidity.Tier.LUCID
+	return _player.lucidity.room_tier
+
+
+## The gauge pulled the live tier below the room tier: the danger follows at once, with a sound and a red ring.
+func _on_room_danger_raised(tier: Lucidity.Tier, _previous: Lucidity.Tier) -> void:
+	danger.apply_tier(tier, Tuning.LUCIDITY)
+	Audio.play_sfx(DANGER_RAISED_SOUND, 1)
+	_add_ring(_player.global_position, DANGER_RING_RADIUS_TILES * Const.TILE_SIZE, DANGER_RING_COLOR, DANGER_RING_DURATION)
+	Log.debug("combat", "room danger raised tier=%d bullet x%.2f telegraph x%.2f" % [tier, danger.enemy_bullet_speed_mult, danger.telegraph_mult])
 
 
 ## The wave runner, or null when waves are disabled (verification tools).
@@ -233,6 +257,7 @@ func _setup_enemy_bullets() -> void:
 		bullets.enable_graze(_player.hurtbox, Tuning.LUCIDITY.graze_radius)
 		bullets.grazed.connect(_player.on_bullet_grazed)
 		bullets.dodged.connect(_player.on_bullet_dodged)
+		_player.lucidity.room_danger_raised.connect(_on_room_danger_raised)
 		_player.awakening_used.connect(_on_awakening_used)
 		_player.glided.connect(_on_player_glided)
 

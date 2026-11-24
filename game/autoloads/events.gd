@@ -19,10 +19,15 @@ signal enemy_damaged(world_position: Vector2, amount: float)
 signal run_ended(outcome: int)
 
 ## The last enemy of a wave died: the room has no enemy left. room: the room (Node: autoloads/ depends on no
-## feature folder). The room's lowest lucidity tier joins it with the lucidity rules (epic 3).
-## Listeners: loot and item effects (epic 5), telemetry (story 2.8).
+## feature folder). lowest_tier: the room tier, the deepest Lucidity.Tier (int) reached during the wave.
+## Listeners: player (lucidity), loot and item effects (epic 5).
 @warning_ignore("unused_signal")
-signal room_cleared(room: Node)
+signal room_cleared(room: Node, lowest_tier: int)
+
+## The room tier went deeper during a wave (story 3.6). tier and previous_tier: Lucidity.Tier as ints.
+## Listeners: telemetry and effects (later stories); the room itself listens to the gauge, not to this.
+@warning_ignore("unused_signal")
+signal room_danger_raised(tier: int, previous: int)
 
 ## The player's health changed (hit, heal, armor) or a fresh player came in (initial state of a run), in half-hearts.
 ## Listeners: HUD (story 2.7).

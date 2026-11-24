@@ -97,7 +97,7 @@ func _on_room_emptied() -> void:
 	Log.debug("room", "wave %d cleared" % _wave_number)
 	# state first: a listener that re-enters or tears the room down must see WAITING (or IDLE)
 	_wait(_list.pause_duration)
-	Events.room_cleared.emit(_room)
+	Events.room_cleared.emit(_room, _room.room_tier())
 
 
 ## Spawns the next valid wave. Nothing could appear: the wave is skipped and the pause starts (never a stuck room).
