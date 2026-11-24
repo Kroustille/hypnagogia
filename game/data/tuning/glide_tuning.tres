@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="GlideTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/glide_tuning.gd" id="1_tuning"]
+
+[resource]
+script = ExtResource("1_tuning")
+cost = 20
+cooldown = 1.0
+max_distance = 6.0
+min_stick_distance = 2.0
+arrival_invulnerability = 0.1
+min_travel = 0.5
