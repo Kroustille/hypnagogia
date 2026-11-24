@@ -1,6 +1,6 @@
 # Story 4.5 : Des ennemis qui contournent les obstacles
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -27,12 +27,12 @@ Hors périmètre : lignes de vue des tireuses (elles tirent toujours à toute di
 
 ## Tâches
 
-- [ ] `RoomNav` pur (construit à partir d'une taille et d'une liste de cellules bloquées, + une fabrique `from_room(room)`), compteurs et budget par tick.
-- [ ] `Enemy.setup(..., nav: RoomNav = null)` (6e paramètre optionnel, après `room_danger`) ; `Room.spawn_enemy` le donne ; `Enemy._chase()`, état de chemin (`PackedVector2Array`, index, tick du prochain calcul) ; remplacer les 4 appels directs du Somnambule (poursuite) et de la Berceuse.
-- [ ] `CombatTuning.path_refresh_interval`, `max_paths_per_tick` ; `Sheep.STUNNING_LAYERS` ; lien meuble détruit → `set_blocked`.
-- [ ] Salle 006 (ASCII) ; validateur : rien de nouveau (l'accessibilité est celle de la 4.3).
-- [ ] F2 (`CollisionDrawer`) : tracer le chemin de l'ennemi sélectionné n'est pas exigé ; un `Log.debug` par recalcul suffit.
-- [ ] Tests GUT : `tests/unit/rooms/test_room_nav.gd` (contournement, pas de coin coupé, murs/trous/meubles bloqués, mise à jour d'une cellule, inatteignable, départ bloqué, ligne directe avec demi-largeur), `tests/integration/enemies/test_enemy_pathing.gd` (un Somnambule derrière le mur central atteint le joueur en un nombre de ticks borné ; le nombre de calculs sur 120 ticks avec 8 ennemis reste ≤ budget × ticks ; la Berceuse contourne ; la cible disparue arrête l'ennemi), `test_sheep_stun.gd` (haut : étourdi ; bas : repos sans étourdissement).
+- [x] `RoomNav` pur (construit à partir d'une taille et d'une liste de cellules bloquées, + une fabrique `from_room(room)`), compteurs et budget par tick.
+- [x] `Enemy.setup(..., nav: RoomNav = null)` (6e paramètre optionnel, après `room_danger`) ; `Room.spawn_enemy` le donne ; `Enemy._chase()`, état de chemin (`PackedVector2Array`, index, tick du prochain calcul) ; remplacer les 4 appels directs du Somnambule (poursuite) et de la Berceuse.
+- [x] `CombatTuning.path_refresh_interval`, `max_paths_per_tick` ; `Sheep.STUNNING_LAYERS` ; lien meuble détruit → `set_blocked`.
+- [x] Salle 006 (ASCII) ; validateur : rien de nouveau (l'accessibilité est celle de la 4.3).
+- [x] F2 (`CollisionDrawer`) : tracer le chemin de l'ennemi sélectionné n'est pas exigé ; un `Log.debug` par recalcul suffit.
+- [x] Tests GUT : `tests/unit/rooms/test_room_nav.gd` (contournement, pas de coin coupé, murs/trous/meubles bloqués, mise à jour d'une cellule, inatteignable, départ bloqué, ligne directe avec demi-largeur), `tests/integration/enemies/test_enemy_pathing.gd` (un Somnambule derrière le mur central atteint le joueur en un nombre de ticks borné ; le nombre de calculs sur 120 ticks avec 8 ennemis reste ≤ budget × ticks ; la Berceuse contourne ; la cible disparue arrête l'ennemi), `test_sheep_stun.gd` (haut : étourdi ; bas : repos sans étourdissement).
 
 ## État du code concerné
 
@@ -63,12 +63,35 @@ Hors périmètre : lignes de vue des tireuses (elles tirent toujours à toute di
 4. **Les trous sont des cellules bloquées pour les ennemis** (ils les évitent) alors qu'ils n'y tombent pas.
 5. **Budget de 4 calculs par tick et 0,4 s d'intervalle** (réglables dans `CombatTuning`) : valeurs de départ, aucune mesure de performance faite.
 6. **Pas de ligne de vue pour les tireuses** : hors périmètre, NON ÉVALUÉ au jeu.
-7. **Pas de contournement des ennemis entre eux** : ils se bloquent par la physique comme depuis la 2.3.
+8. **Cellules de portes toujours bloquées** dans la grille (une porte est un mur pendant le combat, personne ne la franchit avant la fin) ; évite d avoir à écouter l état des portes.
+9. **Le test de ligne directe est planifié comme le chemin** (toutes les 0,4 s, sous le budget) : coût borné, au prix d un frottement d au plus 0,4 s contre un coin si la cible bouge.
+10. **La garde « ne pas avancer dans la cible » devient la règle de `_move_toward`** (Somnambule, Berceuse, recul du Mouton) ; la charge du Mouton et la poussée de `knock_back` n en dépendent pas.
+11. **Retour de chute sur un ennemi (deferred 4.3)** : non traité, ce n est pas une tâche de la story et touche `PitGuard`/le joueur ; reste dans `deferred-work.md`.
 
 ## Dev Agent Record
 
 ### Agent Model Used
 
+Claude Sonnet 5.5
+
 ### Completion Notes
 
+- `RoomNav` (`rooms/room_nav.gd`) : `AStarGrid2D` d une tuile par cellule, cadre complet ; `from_room()` bloque murs, obstacles hauts et bas, trous, cellules de portes et meubles vivants (le signal `destroyed` libère les cellules). `path()`, `nearest_free_cell()`, `is_line_clear()`, `take_path_slot()` (budget par tick via `Engine.get_physics_frames()`), `path_requests`.
+- `Enemy._chase()` : ligne directe testée puis chemin, planifiés au plus toutes les 0,4 s ; première planification immédiate, les suivantes décalées par le numéro d apparition (`RoomNav.next_stagger()`). Le test de ligne directe est lui aussi compté dans la planification (jamais à chaque tick).
+- Gardes factorisées dans `Enemy` : `_move_toward` et `_move_in_direction(..., spare_target)` n avancent jamais dans le corps de la cible touchée (ancien `_advance` du Somnambule, désormais aussi la poursuite pathée, la Berceuse et le recul du Mouton : deferred 4.3).
+- `Sheep.STUNNING_LAYERS` gagne les obstacles hauts ; un obstacle bas ou un meuble termine la charge sans étourdissement.
+- Salle `onset_combat_006` (mur central à deux ouvertures dont une avec un trou et un passage d une tuile, U d obstacles hauts, 2 vagues). Validateur inchangé : 6 salles valides.
+- Tests : GUT `test_room_nav` (12), `test_enemy_pathing` (7), `test_sheep_stun` (3) ; `test_room_validator` compte 6 salles. GUT 155 verts, scratch FAST ok (seul `t_shooters` son échoue en FAST, attendu).
+- NON ÉVALUÉ (humain) : fluidité des contournements et de la poursuite à plusieurs au jeu ; charge `F5` (`Bullets 400 | refused 0`) non rejouée (fenêtre requise), le code des balles n est pas touché.
+- Non traité (hors tâches de la story) : retour de chute sur un corps ennemi (`PitGuard`), laissé dans `deferred-work.md`.
+
 ### File List
+
+- `game/rooms/room_nav.gd` (+ `.uid`), `game/rooms/room.gd`, `game/enemies/enemy.gd`, `game/enemies/sleepwalker/sleepwalker.gd`, `game/enemies/lullaby/lullaby.gd`, `game/enemies/sheep/sheep.gd`
+- `game/core/combat_tuning.gd`, `game/data/tuning/combat_tuning.tres`
+- `art_source/rooms/onset_combat_006.txt`, `game/rooms/pool/onset/onset_combat_006.tscn`
+- `game/tests/unit/rooms/test_room_nav.gd`, `game/tests/integration/enemies/test_enemy_pathing.gd`, `game/tests/integration/enemies/test_sheep_stun.gd`, `game/tests/fixtures/rooms/nav_wall.*`, `sheep_blocks.*`, `game/tests/unit/rooms/test_room_validator.gd`
+
+### Change Log
+
+- 2026-11-24 : implémentation de la story 4.5.
