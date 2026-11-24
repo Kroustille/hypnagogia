@@ -22,6 +22,8 @@ var _armed: bool = false
 var _answered: bool = false
 var _victory: bool = false
 
+@onready var _time_label: Label = %TimeLabel
+
 @onready var _title: Label = %Title
 @onready var _seed_label: Label = %SeedLabel
 @onready var _restart_button: Button = %RestartButton
@@ -48,11 +50,13 @@ func _ready() -> void:
 
 
 ## Shows the screen with the inputs guarded and the seed of the run that just ended; the restart button takes the focus.
-## outcome: Run.Outcome. Anything but VICTORY is a defeat.
-func open(seed_code: String, outcome: int = Run.Outcome.DEATH) -> void:
+## outcome: Run.Outcome. Anything but VICTORY is a defeat. wake_minute: the time of the wake-up (WakeClock), -1 for none.
+func open(seed_code: String, outcome: int = Run.Outcome.DEATH, wake_minute: int = -1) -> void:
 	_victory = outcome == Run.Outcome.VICTORY
 	_title.text = tr(&"UI_WAKE_TITLE_VICTORY" if _victory else &"UI_WAKE_TITLE")
 	_seed_label.text = tr(&"UI_WAKE_SEED") % seed_code
+	_time_label.visible = wake_minute >= 0
+	_time_label.text = tr(&"UI_WAKE_TIME") % WakeClock.format(wake_minute) if wake_minute >= 0 else ""
 	show()
 	_guard_ticks_left = INPUT_GUARD_SECONDS * Engine.physics_ticks_per_second
 	_armed = false

@@ -2,8 +2,8 @@ class_name Bedroom
 extends Node2D
 ## The hub (story 6.5, D14): a one-screen room where every night starts and where the wake screen can bring the player
 ## back. The player walks (BedroomWalker), the bed starts the run, the desk opens the seed window. The bedroom only
-## asks: Main replaces it by a Run (or freezes it for the seed window). The alarm clock is an empty placeholder
-## that story 6.6 fills with the time.
+## asks: Main replaces it by a Run (or freezes it for the seed window). The alarm clock shows the time of
+## the last run (story 6.6).
 
 ## The player stands at the bed: interact puts them to sleep.
 signal sleep_requested
@@ -29,12 +29,18 @@ func _ready() -> void:
 	var frame_px: Vector2 = Vector2(FRAME_TILES * Const.TILE_SIZE)
 	# A fixed camera: the player position given is the center of the frame, so the view is centered whatever happens.
 	_camera.position = Vector2(RoomCamera.target(frame_px / 2.0, frame_px, Vector2(Const.VIEWPORT), 0.0))
-	_alarm_clock.visible = false # filled and shown by story 6.6
+	set_clock_minute(-1)
 	_bed_zone.body_entered.connect(_on_bed_zone_body_entered)
 	_bed_zone.body_exited.connect(_on_bed_zone_body_exited)
 	_desk_zone.body_entered.connect(_on_desk_zone_body_entered)
 	_desk_zone.body_exited.connect(_on_desk_zone_body_exited)
 	_refresh_prompt()
+
+
+## The alarm clock shows the time of the last run (story 6.6); -1 (no run yet) shows the start of the night.
+func set_clock_minute(minute: int) -> void:
+	_alarm_clock.text = WakeClock.format(minute if minute >= 0 else Tuning.WAKE.start_minute_of_day)
+	_alarm_clock.visible = true
 
 
 func walker() -> BedroomWalker:

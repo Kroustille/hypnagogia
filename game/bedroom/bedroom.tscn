@@ -91,7 +91,6 @@ color = Color(0.4, 0.3, 0.2, 1)
 
 [node name="AlarmClock" type="Label" parent="."]
 unique_name_in_owner = true
-visible = false
 offset_left = 120.0
 offset_top = 32.0
 offset_right = 184.0

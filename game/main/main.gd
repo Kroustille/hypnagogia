@@ -35,6 +35,8 @@ var _load_test_active: bool = false
 ## True while the wake screen is open (the run is over, the game is frozen behind it).
 var _run_over: bool = false
 var _run_ended_msec: int = 0
+## Wake time of the last run (story 6.6), -1 before any run: the bedroom alarm clock shows it. Kept in memory only (6.7 persists it).
+var _last_wake_minute: int = -1
 var _run_options: RunOptions
 var _wake_screen: WakeScreen
 var _pause_menu: PauseMenu
@@ -73,6 +75,7 @@ func _ready() -> void:
 		if panel_scene != null:
 			_ui.add_child(panel_scene.instantiate())
 	_setup_menus()
+	Events.wake_time_set.connect(_on_events_wake_time_set) # before run_ended: the time is set when the screen opens
 	Events.run_ended.connect(_on_events_run_ended)
 	Events.run_requested.connect(_on_run_requested)
 	Events.run_started.connect(_on_events_run_started)
@@ -216,6 +219,7 @@ func _enter_bedroom() -> void:
 	bedroom.sleep_requested.connect(_on_bedroom_sleep_requested)
 	bedroom.seed_entry_requested.connect(_on_bedroom_seed_entry_requested)
 	_active_scene.add_child(bedroom)
+	bedroom.set_clock_minute(_last_wake_minute)
 	_load_test_active = false
 	Log.info("run", "entered the bedroom")
 
@@ -289,6 +293,11 @@ func _on_events_run_started() -> void:
 	_map_view.bind(run.floor_map if run != null else null)
 
 
+## The wake time of the run that is ending (published by Run just before run_ended).
+func _on_events_wake_time_set(minute: int) -> void:
+	_last_wake_minute = minute
+
+
 ## The run ended (death or victory): freeze the game and show the wake screen of that outcome. Synchronous, in the tick
 ## of the lethal hit (or the last tick of the victory delay). An outcome Run does not know is a defeat.
 func _on_events_run_ended(outcome: int) -> void:
@@ -300,7 +309,7 @@ func _on_events_run_ended(outcome: int) -> void:
 	if outcome != Run.Outcome.DEATH and outcome != Run.Outcome.VICTORY:
 		Log.warn("run", "unknown run outcome %d: treated as a defeat" % outcome)
 		outcome = Run.Outcome.DEATH
-	_wake_screen.open(_seed_code(), outcome)
+	_wake_screen.open(_seed_code(), outcome, _last_wake_minute)
 
 
 ## "Back to the bedroom" on the wake screen: the signal of a button, so the dead Run is removed after run_ended.
