@@ -42,6 +42,7 @@ func _ready() -> void:
 	if _player == null:
 		Log.error("fx", "lucidity fx added without setup()")
 		assert(false, "LucidityFx.setup() must be called before add_child()")
+		set_physics_process(false)
 		return
 	_material = ShaderMaterial.new() # one per instance: the screen copy is not shared
 	_material.shader = SHADER
@@ -116,7 +117,7 @@ func _apply() -> void:
 	_material.set_shader_parameter(&"wave_amount", _wave)
 	_material.set_shader_parameter(&"aberration", _aberration)
 	_material.set_shader_parameter(&"time", _seconds)
-	_postfx.visible = _wave > 0.0 or _aberration > 0.0 # no screen copy at all while Lucid
+	_postfx.visible = _wave >= 0.5 or _aberration >= 0.5 # no screen copy while nothing would be drawn (the shader rounds below 0.5 px to 0)
 	Audio.set_music_muffle(exp(_log_cutoff))
 
 

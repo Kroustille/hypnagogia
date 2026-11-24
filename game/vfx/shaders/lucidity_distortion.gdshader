@@ -14,7 +14,8 @@ const float WAVE_SPEED = 2.0;
 
 void fragment() {
 	float row = floor(FRAGCOORD.y);
-	float wave_px = floor(sin(row * ROW_FREQUENCY + time * WAVE_SPEED) * wave_amount + 0.5);
+	float w = sin(row * ROW_FREQUENCY + time * WAVE_SPEED) * wave_amount;
+	float wave_px = sign(w) * floor(abs(w) + 0.5);
 	float aberration_px = floor(aberration + 0.5);
 	vec2 base = SCREEN_UV + vec2(wave_px, 0.0) * SCREEN_PIXEL_SIZE;
 	vec2 split = vec2(aberration_px, 0.0) * SCREEN_PIXEL_SIZE;

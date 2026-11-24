@@ -61,11 +61,10 @@ func _exit_tree() -> void:
 ## EXIT_FLUSH_MSEC: a playback still held at exit leaks. Called at exit only.
 func _wait_for_mixer() -> void:
 	var passes: int = 0
-	var waited: int = 0
+	var deadline: int = Time.get_ticks_msec() + EXIT_FLUSH_MSEC
 	var last: float = AudioServer.get_time_since_last_mix()
-	while passes < EXIT_FLUSH_PASSES and waited < EXIT_FLUSH_MSEC:
+	while passes < EXIT_FLUSH_PASSES and Time.get_ticks_msec() < deadline:
 		OS.delay_msec(EXIT_POLL_MSEC)
-		waited += EXIT_POLL_MSEC
 		var now: float = AudioServer.get_time_since_last_mix()
 		if now < last:
 			passes += 1 # the clock went back to 0: a mix pass happened

@@ -297,7 +297,7 @@
 
 ## Deferred from: story 3-8 (2026-11-24)
 
-- **NON ÉVALUÉ (humain) : effets de l'abandon** : onde et aberration du décor (0 / 0,5 / 1 / 1,5 / 2 px), passe-bas de la musique (20 500 / 8 000 / 4 000 / 2 000 / 1 000 Hz), tremblement d'Éveil (1 à 2 px, 0,15 s), boucle musicale provisoire (`music_placeholder.wav`, générée), valeurs de tuning provisoires. À juger fenêtré au playtest du jalon A : l'aspect à chaque palier, la lisibilité des balles et des télégraphes en Abandon total, le coût de `hint_screen_texture` (60 fps en F3), le mode photosensibilité. Les captures WSLg n'ont pas été prises.
+- **NON ÉVALUÉ (humain) : effets de l'abandon** : onde et aberration du décor (onde 0 / 0,75 / 1,25 / 1,75 / 2,25 px, aberration 0 / 1 / 2 / 3 / 4 px, plafond photosensible 1 px), passe-bas de la musique (20 500 / 8 000 / 4 000 / 2 000 / 1 000 Hz), tremblement d'Éveil (1 à 2 px, 0,15 s), boucle musicale provisoire (`music_placeholder.wav`, générée), valeurs de tuning provisoires. À juger fenêtré au playtest du jalon A : l'aspect à chaque palier, la lisibilité des balles et des télégraphes en Abandon total, le coût de `hint_screen_texture` (60 fps en F3), le mode photosensibilité. Les captures WSLg n'ont pas été prises.
 - **Le tremblement n'a qu'un consommateur** (Éveil) : coup subi, mort, gros ennemis pourront appeler `Arena.shake()` ; le réglage et la photosensibilité sont déjà respectés.
 - **Réglages d'accessibilité dans le menu Réglages seulement** : le menu d'accessibilité complet reste à faire (epic 7).
 

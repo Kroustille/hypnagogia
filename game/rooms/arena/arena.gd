@@ -619,9 +619,10 @@ func _setup_lucidity_fx(frame_px: Vector2) -> void:
 ## shake setting; nothing happens when the setting is 0, in photosensitivity mode, or when the result rounds to 0 px.
 ## The offsets come from the cosmetic stream of the run and the camera comes back exactly to zero.
 func shake(pixels: int, duration: float) -> void:
-	_shake_amplitude = roundi(pixels * Settings.shake_intensity)
-	if Settings.photosensitive or _shake_amplitude <= 0 or duration <= 0.0:
+	var amplitude: int = roundi(pixels * Settings.shake_intensity)
+	if Settings.photosensitive or amplitude <= 0 or duration <= 0.0:
 		return
+	_shake_amplitude = amplitude
 	_shake_ticks_left = duration * Engine.physics_ticks_per_second
 	_shake_next_draw = 0.0
 
@@ -633,6 +634,10 @@ func shake_offset() -> Vector2:
 
 func _process_shake() -> void:
 	if _shake_ticks_left <= 0.0:
+		return
+	if Settings.photosensitive or Settings.shake_intensity <= 0.0:
+		_shake_ticks_left = 0.0 # setting changed during a frozen shake
+		_camera.offset = Vector2.ZERO
 		return
 	var step: float = GameClock.scale(GameClock.Group.FX)
 	if step <= 0.0:

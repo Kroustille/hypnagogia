@@ -44,15 +44,15 @@ extends Resource
 ## Screen effects of the live tier (story 3.8), per tier in the order of Lucidity.Tier (Lucid, Floating, Drift, Abandon,
 ## Total abandon). Placeholders to judge in a window. They never touch gameplay.
 ## Wave amplitude of the decor, in pixels (0 when Lucid, strictly increasing).
-@export var fx_wave: PackedFloat32Array = PackedFloat32Array([0.0, 0.5, 1.0, 1.5, 2.0])
+@export var fx_wave: PackedFloat32Array = PackedFloat32Array([0.0, 0.75, 1.25, 1.75, 2.25])
 ## Chromatic aberration of the decor, in pixels (0 when Lucid, strictly increasing).
-@export var fx_aberration: PackedFloat32Array = PackedFloat32Array([0.0, 0.5, 1.0, 1.5, 2.0])
+@export var fx_aberration: PackedFloat32Array = PackedFloat32Array([0.0, 1.0, 2.0, 3.0, 4.0])
 ## Cutoff of the low-pass filter on the Music bus, in Hz (20500 = open, strictly decreasing).
 @export var fx_music_cutoff_hz: PackedFloat32Array = PackedFloat32Array([20500.0, 8000.0, 4000.0, 2000.0, 1000.0])
 ## Seconds an effect takes to reach a new target: never a jump.
 @export_range(0.05, 5.0, 0.05, "or_greater") var fx_transition: float = 0.5
 ## Photosensitivity mode: highest distortion in pixels, for the wave and for the aberration.
-@export_range(0.0, 5.0, 0.05, "or_greater") var fx_photosensitive_cap: float = 0.5
+@export_range(0.0, 5.0, 0.05, "or_greater") var fx_photosensitive_cap: float = 1.0
 ## Awakening screen shake (the only consumer): largest offset per axis in pixels (before the setting) and duration.
 @export_range(0, 8, 1, "or_greater") var shake_pixels: int = 2
 @export_range(0.05, 2.0, 0.05, "or_greater") var shake_duration: float = 0.15
