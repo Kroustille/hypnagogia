@@ -1,6 +1,6 @@
 # Story 3.3 : Dépenser sa lucidité : Éveil
 
-Status: in-progress
+Status: done
 
 ## Story
 
@@ -39,12 +39,14 @@ Hors périmètre : bonus de palier (3.5), danger (3.6), distorsions et trembleme
 
 ### Review Findings
 
-- [ ] [Review][Patch] Recul dans l'ordre des enfants : un ennemi proche est bloqué par un ennemi plus loin qui n'a pas encore bougé (distance qui dépend de l'ordre d'apparition) [game/rooms/arena/arena.gd:231] — Correctif : collecter d'abord les ennemis vivants du rayon avec leur distance, les trier par distance décroissante (`sort_custom`, le plus loin d'abord), puis appeler `knock_back` ; ne compter `pushed` que si `knock_back` renvoie > 0.
-- [ ] [Review][Patch] La Veilleuse (tourelle « qui ne bouge jamais », FR28) est repoussée par l'Éveil et reste déplacée (décision 9) [game/enemies/night_light/night_light.gd:43] — Correctif : surcharger dans `NightLight` `func knock_back(_direction: Vector2, _distance_px: float) -> float: return 0.0` (commentaire : tourelle fixe, jamais poussée) ; ajouter un cas dans `t_awakening` (Veilleuse à 2 tuiles : position inchangée).
-- [ ] [Review][Patch] Écriture disque synchrone à chaque dépense, dans le tick physique du joueur (JSON complet + renommage), alors que `tier_changed` n'écrit pas [game/telemetry/telemetry.gd:99] — Correctif : retirer `_write()` de `_on_events_lucidity_spent` ; les dépenses partent avec `run_end` / `session_end` comme le temps par palier (`t_awakening` lit la session, pas le fichier).
+- [x] [Review][Patch] Recul dans l'ordre des enfants : un ennemi proche est bloqué par un ennemi plus loin qui n'a pas encore bougé (distance qui dépend de l'ordre d'apparition) [game/rooms/arena/arena.gd:231] — Correctif : collecter d'abord les ennemis vivants du rayon avec leur distance, les trier par distance décroissante (`sort_custom`, le plus loin d'abord), puis appeler `knock_back` ; ne compter `pushed` que si `knock_back` renvoie > 0.
+- [x] [Review][Patch] La Veilleuse (tourelle « qui ne bouge jamais », FR28) est repoussée par l'Éveil et reste déplacée (décision 9) [game/enemies/night_light/night_light.gd:43] — Correctif : surcharger dans `NightLight` `func knock_back(_direction: Vector2, _distance_px: float) -> float: return 0.0` (commentaire : tourelle fixe, jamais poussée) ; ajouter un cas dans `t_awakening` (Veilleuse à 2 tuiles : position inchangée).
+- [x] [Review][Patch] Écriture disque synchrone à chaque dépense, dans le tick physique du joueur (JSON complet + renommage), alors que `tier_changed` n'écrit pas [game/telemetry/telemetry.gd:99] — Correctif : retirer `_write()` de `_on_events_lucidity_spent` ; les dépenses partent avec `run_end` / `session_end` comme le temps par palier (`t_awakening` lit la session, pas le fichier).
 - [x] [Review][Defer] Pas de base `power.gd` ni de `awaken.gd` (architecture : glossaire `Awaken`, arbre `player/powers/power.gd`) ; la logique d'Éveil est dans `Player` et `Arena`, et la dépense part même si rien n'écoute `awakening_used` [game/player/player.gd:185] — reporté : écart spec/architecture, à trancher avant que 3.4 recopie le motif (rétro d'epic 3).
 - [x] [Review][Defer] `clear_all()` n'est pas protégé contre un appel pendant la boucle du manager et laisse les listes de touches / grazes en attente [game/combat/bullets/bullet_manager.gd:410] — reporté : latent, aucun appelant aujourd'hui hors du tick du joueur.
 - [x] [Review][Defer] LT sans hystérésis : une gâchette tenue autour de 0,5 peut redéclencher l'Éveil (30 de lucidité) ou le son de refus [game/project.godot:138] — reporté : manette réelle, NON VÉRIFIÉ.
+
+Correctifs (3 patchs) appliqués et vérifiés : `run_all.sh` ALL PASS ; recul du plus loin au plus proche (avec exception de collision envers les ennemis déjà poussés, le serveur physique ne voit leur nouvelle position qu'au pas suivant), Veilleuse jamais repoussée, dépense non écrite sur disque.
 
 ## État du code concerné
 
