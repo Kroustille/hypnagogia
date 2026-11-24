@@ -1,6 +1,6 @@
 # Story 5.10 : Affronter son reflet : le Miroir
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -28,12 +28,12 @@ Hors périmètre : Toi (acte 1), cohabitation reflet + présence d'On te regarde
 
 ## Tâches
 
-- [ ] `combat/shot_pattern.gd` ; `Player._fire()` boucle sur le motif ; `Player._on_stat_changed` ignore `REAR_SHOT` (lu au tir).
-- [ ] `BuildCarrier` utilisable sans `Player` : `setup(stats)` et `host: Node` (le `Player` ou le reflet) ; `ItemEffect.supports_non_player()` (faux par défaut) ; `Loadout.copy_defs()`, `Loadout.add_def_for_copy()`.
-- [ ] `enemies/reflection/*`, `data/enemies/reflection.tres`, `ReflectionDef`, `FloorDef.hp_factor` (+ `onset.tres`), `RoomOptions.hp_factor`, `Room.spawn_enemy(def, requested, prepare: Callable = Callable())` : `prepare` est appelé entre `enemy.setup()` et `add_child()` (donne la copie d'objets et le facteur).
-- [ ] `Room` : à `fight_started`, tirage `combat` et apparition (écouteur différé : `call_deferred`, pas dans la boucle de `begin_room`).
-- [ ] Télégraphe : réutiliser `Enemy._start_telegraph_of` ; son placeholder de télégraphe propre au reflet est autorisé.
-- [ ] `strings.csv`, F1, tests.
+- [x] `combat/shot_pattern.gd` ; `Player._fire()` boucle sur le motif ; `Player._on_stat_changed` ignore `REAR_SHOT` (lu au tir).
+- [x] `BuildCarrier` utilisable sans `Player` : `setup(stats)` et `host: Node` (le `Player` ou le reflet) ; `ItemEffect.supports_non_player()` (faux par défaut) ; `Loadout.copy_defs()`, `Loadout.add_def_for_copy()`.
+- [x] `enemies/reflection/*`, `data/enemies/reflection.tres`, `ReflectionDef`, `FloorDef.hp_factor` (+ `onset.tres`), `RoomOptions.hp_factor`, `Room.spawn_enemy(def, requested, prepare: Callable = Callable())` : `prepare` est appelé entre `enemy.setup()` et `add_child()` (donne la copie d'objets et le facteur).
+- [x] `Room` : à `fight_started`, tirage `combat` et apparition (écouteur différé : `call_deferred`, pas dans la boucle de `begin_room`).
+- [x] Télégraphe : réutiliser `Enemy._start_telegraph_of` ; son placeholder de télégraphe propre au reflet est autorisé.
+- [x] `strings.csv`, F1, tests.
 
 ## État du code concerné
 
@@ -73,3 +73,27 @@ epics.md (Story 5.10) ; GDD ligne Miroir et note de design ; architecture P5 («
 5. **Tirage 1 sur 4 à `fight_started`** (apparition au début du combat, pas à l'entrée), un seul tirage `combat` par salle éligible.
 6. **Comportement de déplacement par `enum` de données** (`STILL`, `KEEP_DISTANCE`, `MIRROR_PLAYER`) pour le playtest.
 7. **`spawn_enemy` reçoit un `prepare: Callable` facultatif** pour garder `setup()` avant `add_child()` (architecture).
+8. **`BuildCarrier.setup_host(host, stats)` en plus de `setup(player, stats)`** (au lieu de changer la signature de `setup`, utilisée par les tests et le joueur) : le porteur d'un reflet n'a ni joueur, ni `TagTracker` (donc ni synergie ni bannière), et son `_physics_process` compte en temps `ENEMIES`.
+9. **`Loadout.add_def_for_copy` ne garde l'effet que s'il `supports_non_player()`** (sinon l'instance est jetée) ; aucun effet existant ne le déclare. Le Miroir n'a pas de script : ses modificateurs suffisent.
+10. **La salle attend le reflet pour passer à la vague suivante** : le `WaveRunner` ne voit la salle vidée (`emptied`) qu'à `_alive == 0`, reflet compris. Voulu par l'AC 7, noté pour le playtest.
+11. **Position d'apparition = point opposé au joueur par rapport au centre de la salle** (aucun tirage de position : un seul tirage `combat` par salle) ; `spawn_enemy` corrige la distance.
+12. **Le tirage vit dans `ReflectionSpawner`** (`rooms/reflection_spawner.gd`, écoute `Room.fight_started`) plutôt que dans `room.gd` ; `Room.spawn_reflection()` sert à F1 (touche `M`). Pas de salle « Miroir » à construire : l'histoire n'en demande pas (`validate_rooms.sh` : 34 salles valides).
+13. **Tag du Miroir : `gaze`** (Regard, comme Être nu en public). Réglages du `.tres` (à tester en jeu) : `KEEP_DISTANCE`, 5 tuiles, vitesse 2, cadence 2 s, télégraphe 0,5 s.
+
+## Dev Agent Record
+
+### Notes de complétion
+
+- `ShotPattern.directions` partagé ; `Player._fire` boucle sur le motif (recul et son suivent la balle avant seule). `REAR_SHOT` existait déjà dans `StatBlock`.
+- `Reflection` (`ShooterEnemy`, hook `_volley_directions`), `ReflectionDef`, `FloorDef.hp_factor` -> `RoomOptions.hp_factor` -> `Enemy.hp_factor` ; `Room.spawn_enemy(..., prepare)`.
+- Tests GUT : `unit/combat/test_shot_pattern`, `unit/items/test_loadout_copy`, `unit/enemies/test_reflection_def`, `integration/items/test_mirror_reflection`, `unit/ui/test_item_strings`.
+- NON ÉVALUÉ (humain) : sensation du reflet (distance, cadence, lisibilité du placeholder violet), équilibre 60 PV, 1 salle sur 4.
+- Observation : `test_loot_flow::test_blank_exam_adds_one_drop_laid_beside_the_first` échoue par intermittence (seed de run aléatoire), sans lien avec 5.10.
+
+### Liste des fichiers
+
+`combat/shot_pattern.gd`, `player/player.gd`, `items/{build_carrier,loadout,item_effect}.gd`, `data/items/mirror.tres`, `data/pools/*.tres`, `enemies/{enemy,shooter_enemy}.gd`, `enemies/reflection/*`, `data/enemies/reflection.tres`, `rooms/{room,room_options,reflection_spawner}.gd`, `generation/floor_def.gd`, `data/floors/onset.tres`, `run/run.gd`, `debug/debug_panel.gd`, `localization/strings.csv`, tests ci-dessus.
+
+### Journal des modifications
+
+- 2026-11-24 : implémentation de la story 5.10.
