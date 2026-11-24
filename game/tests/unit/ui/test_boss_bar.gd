@@ -58,3 +58,12 @@ func test_the_title_is_written_letter_by_letter_then_goes() -> void:
 	assert_eq(_title.written(), tr(&"BOSS_PROFESSOR_PHASE_1"))
 	_title._process(ChalkTitle.HOLD_SECONDS + 0.1)
 	assert_false(_title.visible)
+
+
+func test_the_title_is_wiped_when_the_boss_falls() -> void:
+	Events.boss_announced.emit(&"professor", &"BOSS_PROFESSOR_EXTRA")
+	_title._process(0.3)
+	assert_gt(_title.written().length(), 0)
+	Events.boss_defeated.emit(&"professor")
+	assert_eq(_title.written(), "")
+	assert_false(_title.visible)

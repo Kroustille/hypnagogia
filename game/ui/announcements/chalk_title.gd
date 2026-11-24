@@ -34,6 +34,7 @@ func _ready() -> void:
 	Events.boss_announced.connect(_on_boss_announced)
 	Events.run_started.connect(hide_title)
 	Events.run_ended.connect(_on_run_ended)
+	Events.boss_defeated.connect(_on_boss_defeated)
 
 
 func _process(delta: float) -> void:
@@ -63,4 +64,9 @@ func _on_boss_announced(_boss_id: StringName, text_key: StringName) -> void:
 
 
 func _on_run_ended(_outcome: int) -> void:
+	hide_title()
+
+
+## The board is wiped as soon as the boss falls: no title during the victory wait (story 6.4, AC 1).
+func _on_boss_defeated(_boss_id: StringName) -> void:
 	hide_title()
