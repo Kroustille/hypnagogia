@@ -213,6 +213,8 @@ func _on_consumable_changed(def: ConsumableDef) -> void:
 ## A synergy level is active: its effect listens, and the first time the synergy is reached it is announced.
 func _on_synergy_activated(def: SynergyDef) -> void:
 	_attach_synergy(def)
+	if player != null:
+		Events.synergy_activated.emit(def.id, def.threshold) # the build of a reflection has no synergies, but never reports one
 	if _announced.has(def.id):
 		return
 	_announced[def.id] = true

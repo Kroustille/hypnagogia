@@ -152,3 +152,8 @@ signal boss_announced(boss_id: StringName, text_key: StringName)
 ## The boss entered phase phase_index (0 = the first, also emitted at the start of the fight). Listeners: telemetry.
 @warning_ignore("unused_signal")
 signal boss_phase_changed(boss_id: StringName, phase_index: int)
+
+## A synergy level became active on the player's build (story 6.7): its id and the number of distinct items it asks for.
+## Never emitted for the build of the Mirror's reflection. Listener: the achievements.
+@warning_ignore("unused_signal")
+signal synergy_activated(synergy_id: StringName, threshold: int)
