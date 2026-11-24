@@ -84,3 +84,8 @@ func test_a_plain_hitbox_is_not_heavy() -> void:
 	assert_gte(_received.size(), 1)
 	assert_false(_received[0].is_heavy)
 	hitbox.queue_free()
+
+
+func test_the_telemetry_cause_of_the_ruler_is_ruler() -> void:
+	assert_eq(str(DamageInfo.Source.find_key(DamageInfo.Source.RULER)).to_lower(), "ruler")
+	assert_eq(DamageInfo.Source.RULER, 6)

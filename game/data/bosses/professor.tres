@@ -47,8 +47,8 @@ script = ExtResource("4_attack")
 kind = 3
 interval = 7.0
 telegraph = 0.8
-thickness_tiles = 1.0
-sweep_speed = 8.0
+thickness_tiles = 0.75
+sweep_speed = 12.0
 
 [sub_resource type="Resource" id="Resource_dictee"]
 script = ExtResource("2_phase")

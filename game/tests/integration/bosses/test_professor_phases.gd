@@ -2,6 +2,7 @@ extends GutTest
 ## The three trials of The Professor (story 6.2): thresholds, announces, alternation, the ruler, the bullet capacity.
 
 const BOSS_ROOM: String = "res://rooms/pool/onset/onset_boss_001.tscn"
+const PROFESSOR: BossDef = preload("res://data/bosses/professor.tres")
 const APPEAR_TICKS: int = 120
 const ANNOUNCE_TICKS: int = 90
 
@@ -22,6 +23,7 @@ func after_each() -> void:
 	Events.boss_phase_changed.disconnect(_on_phase_changed)
 	Events.boss_announced.disconnect(_on_announced)
 	Input.action_release(&"move_left")
+	Input.action_release(&"move_down")
 	Input.action_release(&"dash")
 	_harness.release()
 
@@ -184,13 +186,13 @@ func test_the_ruler_is_announced_at_least_0_4_seconds_before_it_can_hit() -> voi
 	assert_eq(signs[1].shape(), AttackSign.Shape.LINE_ARROW, "and the way")
 	var arena: Rect2 = boss.arena_px()
 	assert_eq(signs[0].band().size.y, arena.size.y, "the whole height")
-	assert_eq(signs[0].band().size.x, float(Const.TILE_SIZE), "one tile thick")
+	assert_eq(signs[0].band().size.x, (PROFESSOR.phases[2].extras[0] as BossAttack).thickness_tiles * Const.TILE_SIZE, "the thickness of the data")
 	await _harness.until(func() -> bool: return runner.current_ruler() != null, 100)
 	assert_gte(_harness.tick_count - signed_at, 24, "never under 0.4 s")
 	assert_eq(_rulers().size(), 1)
 
 
-func test_the_ruler_sweeps_the_room_in_four_and_a_half_seconds_then_is_freed() -> void:
+func test_the_ruler_sweeps_the_room_then_is_freed() -> void:
 	var boss: Boss = await _fighting_boss()
 	boss.debug_set_hp_fraction(0.2)
 	await _harness.until(func() -> bool: return _has_runner(boss, RulerRunner), ANNOUNCE_TICKS + 10)
@@ -198,7 +200,7 @@ func test_the_ruler_sweeps_the_room_in_four_and_a_half_seconds_then_is_freed() -
 	var ruler: Ruler = _rulers()[0]
 	var x0: float = ruler.position.x
 	await _harness.ticks(60)
-	assert_almost_eq(absf(ruler.position.x - x0), 8.0 * Const.TILE_SIZE, 2.0, "8 tiles per second")
+	assert_almost_eq(absf(ruler.position.x - x0), (PROFESSOR.phases[2].extras[0] as BossAttack).sweep_speed * Const.TILE_SIZE, 2.0, "the sweep speed of the data per second")
 	await _harness.until(func() -> bool: return _rulers().is_empty(), 400)
 	assert_true(_rulers().is_empty(), "freed at the opposite edge")
 
@@ -215,7 +217,8 @@ func test_a_phase_change_stops_the_pending_ruler_and_the_death_of_the_boss_too()
 func _release_ruler(boss: Boss, left_to_right: bool) -> Ruler:
 	boss._halt() # no chalk in the way of this check
 	var ruler: Ruler = Ruler.new()
-	ruler.launch(boss, boss.arena_px(), left_to_right, 1.0, 8.0)
+	var data: BossAttack = PROFESSOR.phases[2].extras[0]
+	ruler.launch(boss, boss.arena_px(), left_to_right, data.thickness_tiles, data.sweep_speed)
 	return ruler
 
 
@@ -256,9 +259,34 @@ func test_a_dash_through_the_ruler_cancels_the_hit() -> void:
 	await _harness.ticks(2)
 	Input.action_release(&"dash")
 	Input.action_release(&"move_left")
+	Input.action_release(&"move_down")
 	await _harness.until(func() -> bool: return _rulers().is_empty(), 400)
 	Events.player_hit.disconnect(_on_player_hit)
 	assert_eq(_hits.size(), 0, "the i-frames of the dash cancel the heavy hit")
+
+
+func test_a_dash_in_place_through_the_ruler_cancels_the_hit() -> void:
+	var boss: Boss = await _fighting_boss()
+	_hits.clear()
+	Events.player_hit.connect(_on_player_hit)
+	_harness.player.health.set_forced_invulnerability(false)
+	var arena: Rect2 = boss.arena_px()
+	var player_x: float = arena.position.x + 8.0 * Const.TILE_SIZE
+	_harness.player.global_position = _harness.room.to_global(Vector2(player_x, arena.position.y + 4.0 * Const.TILE_SIZE))
+	_harness.player.velocity = Vector2.ZERO
+	var data: BossAttack = PROFESSOR.phases[2].extras[0]
+	_release_ruler(boss, true)
+	var contact: int = ceili((8.0 * Const.TILE_SIZE - 3.0) / (data.sweep_speed * Const.TILE_SIZE / 60.0)) # 3 px: half the body
+	await _harness.ticks(contact - 3)
+	Input.action_press(&"move_down") # a dash across the bar: the player stays in its path
+	Input.action_press(&"dash")
+	await _harness.ticks(1)
+	Input.action_release(&"dash")
+	await _harness.ticks(11)
+	Input.action_release(&"move_down")
+	await _harness.ticks(40)
+	Events.player_hit.disconnect(_on_player_hit)
+	assert_eq(_hits.size(), 0, "the i-frames of an in-place dash outlast the pass of the bar")
 
 
 func test_sixty_seconds_of_examen_final_in_abandon_never_fill_the_bullet_pool() -> void:

@@ -49,8 +49,8 @@ func test_the_examen_final_alternates_the_dictee_and_the_calcul_mental_and_adds_
 	assert_eq(ruler.kind, BossAttack.Kind.RULER)
 	assert_eq(ruler.interval, 7.0)
 	assert_eq(ruler.telegraph, 0.8)
-	assert_eq(ruler.thickness_tiles, 1.0)
-	assert_eq(ruler.sweep_speed, 8.0)
+	assert_eq(ruler.thickness_tiles, 0.75)
+	assert_eq(ruler.sweep_speed, 12.0)
 	assert_eq(PROFESSOR.phases[0].extras.size(), 0)
 	assert_eq(PROFESSOR.phases[1].extras.size(), 0, "no ruler before the Examen final")
 
