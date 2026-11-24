@@ -1,6 +1,6 @@
 # Story 3.4 : Dépenser sa lucidité : Glissement
 
-Status: in-progress
+Status: done
 
 ## Story
 
@@ -94,9 +94,11 @@ Hors périmètre : trous (epic 4, « un trou est une destination valide » viend
 
 ### Review Findings
 
-- [ ] [Review][Patch] L'obstacle haut en (27,13) coupe la ligne de tir entre l'emplacement (34,17) et le départ du joueur (304,168) : c'est l'emplacement de la première Veilleuse de la vague 2 (curseur d'emplacements 3), tourelle fixe dont les tirs vers le départ meurent sur le bloc ; la story l'interdit (« Pièges ») [game/rooms/arena/arena.gd:21] — Correctif : `HIGH_OBSTACLE_CELLS = [Vector2i(11, 3), Vector2i(24, 15)]` (bloc 384-416 x 240-272 px : aucune ligne emplacement -> départ ne le croise, marge de balle 4 px comprise ; 6,7 tuiles du départ ; loin de tout emplacement). Adapter `t_glide` aux coordonnées du bloc déplacé (tirs vers le bloc haut, joueur et ennemi arrêtés par lui, Glissement arrêté devant lui). Ajouter à `t_glide` : pour chaque `spawn_slot`, le segment emplacement -> départ ne croise aucune cellule de `HighObstacles`.
+- [x] [Review][Patch] L'obstacle haut en (27,13) coupe la ligne de tir entre l'emplacement (34,17) et le départ du joueur (304,168) : c'est l'emplacement de la première Veilleuse de la vague 2 (curseur d'emplacements 3), tourelle fixe dont les tirs vers le départ meurent sur le bloc ; la story l'interdit (« Pièges ») [game/rooms/arena/arena.gd:21] — Correctif : `HIGH_OBSTACLE_CELLS = [Vector2i(11, 3), Vector2i(24, 15)]` (bloc 384-416 x 240-272 px : aucune ligne emplacement -> départ ne le croise, marge de balle 4 px comprise ; 6,7 tuiles du départ ; loin de tout emplacement). Adapter `t_glide` aux coordonnées du bloc déplacé (tirs vers le bloc haut, joueur et ennemi arrêtés par lui, Glissement arrêté devant lui). Ajouter à `t_glide` : pour chaque `spawn_slot`, le segment emplacement -> départ ne croise aucune cellule de `HighObstacles`.
 - [x] [Review][Defer] Le Mouton qui charge dans un obstacle haut finit sa charge sans étourdissement (`STUNNING_LAYERS` = murs seuls) alors que l'arène a désormais des obstacles hauts [game/enemies/sheep/sheep.gd:16] — reporté : prévu par le code pour la 4.5.
 - [x] [Review][Defer] Maj sur Windows : cinq appuis rapides ouvrent la boîte « Touches rémanentes » ; un joueur qui martèle Maj pendant la recharge peut la déclencher [game/project.godot:141] — reporté : NON VÉRIFIÉ (Windows natif), playtest du jalon A.
+
+Correctif appliqué et vérifié : `HIGH_OBSTACLE_CELLS` = `[(11, 3), (24, 15)]`, `t_glide` adaptée (49 ok, dont le nouveau contrôle emplacement -> départ avec marge de 4 px), `t_awakening`, `t_enemy_main`, `t_sheep` (obstacles hauts vidés pour la charge diagonale), `t_waves`, `t_waves_main` : PASS en `--fixed-fps 60`.
 
 Vérifié sans écart : destination (mur collé, coin, angle rasant de 5°, coin d'obstacle haut frôlé par le rayon, obstacle bas traversé, arrivée dans un obstacle bas reculée devant, ennemi sur la ligne), trajet refusé avant la dépense, invulnérabilité d'arrivée (6 ticks, hors `_is_evading()` : ni graze ni dash parfait, et une balle traversée pendant ces ticks ne paie pas de graze ensuite), contact du Mouton/Veilleuse filtré par `Hurtbox.is_hittable()`, pause et mort, couches (haut bloque les tirs, bas non ; joueur et ennemis bloqués par les deux ; `knock_back` respecte les obstacles), `_is_valid_spawn`, F5 (`t_enemy_main` passe), `power_2` (bouton 9 = LB, aucun autre usage de Maj ni du bouton 9). `t_glide`, `t_enemy_main`, `t_sheep` : PASS.
 
