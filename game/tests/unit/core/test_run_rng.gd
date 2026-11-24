@@ -83,3 +83,37 @@ func test_invalid_codes_are_refused() -> void:
 	assert_eq(RunRng.code_to_seed("ABCDEFGHJ"), -1, "too long")
 	assert_eq(RunRng.code_to_seed("ABCDEFG!"), -1, "foreign character")
 	assert_eq(RunRng.code_to_seed("UUUUUUUU"), -1, "U is not in the alphabet")
+
+
+func test_the_stream_names_are_constants() -> void:
+	var names: Array[StringName] = [
+		RunRng.LAYOUT, RunRng.ROOMS, RunRng.TREASURE, RunRng.SHOP, RunRng.DROPS, RunRng.COMBAT, RunRng.COSMETIC,
+	]
+	var firsts: Dictionary = {}
+	for stream_name: StringName in names:
+		firsts[RunRng.new(2026).stream(stream_name).randi()] = true
+	assert_eq(firsts.size(), names.size(), "seven streams, seven different sequences")
+	assert_eq(RunRng.LAYOUT, &"layout")
+	assert_eq(RunRng.COMBAT, &"combat")
+
+
+func test_streams_are_hashed_from_seed_name_and_floor() -> void:
+	var digest: PackedByteArray = "12345:layout:2".sha256_buffer()
+	var expected: RandomNumberGenerator = RandomNumberGenerator.new()
+	expected.seed = digest.decode_s64(0)
+	assert_eq(RunRng.new(12345).stream(RunRng.LAYOUT, 2).randi(), expected.randi())
+
+
+func test_reference_values_of_a_known_seed() -> void:
+	# Seed codes are shared between players and versions: these values must never change.
+	assert_eq(RunRng.new(0).seed_code(), "00000000")
+	assert_eq(RunRng.new(1).seed_code(), "00000001")
+	assert_eq(RunRng.new(31).seed_code(), "0000000Z")
+	assert_eq(RunRng.new(32).seed_code(), "00000010")
+	assert_eq(RunRng.new(12345).seed_code(), "00000C1S")
+	assert_eq(RunRng.new((1 << RunRng.SEED_BITS) - 1).seed_code(), "ZZZZZZZZ")
+	assert_eq(RunRng.code_to_seed("00000C1S"), 12345)
+	var layout: RandomNumberGenerator = RunRng.new(12345).stream(RunRng.LAYOUT)
+	assert_eq([layout.randi_range(0, 99), layout.randi_range(0, 99), layout.randi_range(0, 99)], [98, 37, 44])
+	var combat: RandomNumberGenerator = RunRng.new(12345).stream(RunRng.COMBAT, 1)
+	assert_eq([combat.randi_range(0, 99), combat.randi_range(0, 99), combat.randi_range(0, 99)], [72, 38, 13])

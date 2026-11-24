@@ -12,6 +12,15 @@ const BITS_PER_CHAR: int = 5
 ## Crockford base32 alphabet: no I, L, O or U.
 const ALPHABET: String = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 
+## Names of the streams (architecture D8): one per use, so that one never disturbs another.
+const LAYOUT: StringName = &"layout"
+const ROOMS: StringName = &"rooms"
+const TREASURE: StringName = &"treasure"
+const SHOP: StringName = &"shop"
+const DROPS: StringName = &"drops"
+const COMBAT: StringName = &"combat"
+const COSMETIC: StringName = &"cosmetic"
+
 var run_seed: int = 0
 var _streams: Dictionary = {}
 
