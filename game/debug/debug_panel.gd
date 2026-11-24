@@ -22,6 +22,9 @@ const SHEEP_DEF: EnemyDef = preload("res://data/enemies/sheep.tres")
 ## Distance from the player at which the I key lays an item, in pixels.
 const ITEM_DROP_DISTANCE: float = 28.0
 
+## Shares of hit points the H key puts the boss at, in turn (phase thresholds of the epic 6 bosses).
+const BOSS_HP_SHARES: Array[float] = [0.9, 0.66, 0.33, 0.1, 1.0]
+
 ## Where the pool rooms are listed (story 4.2).
 const ROOM_POOL_DIR: String = "res://rooms/pool/onset"
 
@@ -30,6 +33,8 @@ var _auto_fire: bool = false
 var _pool_index: int = 0
 ## Index of the catalog item the I key drops next.
 var _item_index: int = 0
+## Index of the share the H key puts the boss at next.
+var _boss_hp_index: int = 0
 ## Index of the catalog consumable the K key drops next.
 var _consumable_index: int = 0
 ## Values the L key cycles through, built from the tuning: the maximum, then just below each tier floor.
@@ -106,6 +111,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_recharge_active_item()
 		KEY_N:
 			_spawn_reflection()
+		KEY_H:
+			_cycle_boss_hp()
 		_:
 			handled = false
 	if handled:
@@ -185,6 +192,24 @@ func _spawn_reflection() -> void:
 		return
 	var enemy: Enemy = room.spawn_reflection()
 	_log("reflection spawned at %s" % enemy.global_position if enemy != null else "reflection refused")
+
+
+## Puts the boss of the active room at the next share of BOSS_HP_SHARES (story 6.1): phase changes without the long fight.
+func _cycle_boss_hp() -> void:
+	var room: Room = get_tree().get_first_node_in_group(Const.GROUP_ROOM) as Room
+	if room == null:
+		_last_message = "no room"
+		return
+	var holder: Node = room.get_node_or_null("%Enemies")
+	for child: Node in holder.get_children() if holder != null else []:
+		var boss: Boss = child as Boss
+		if boss != null:
+			var share: float = BOSS_HP_SHARES[_boss_hp_index % BOSS_HP_SHARES.size()]
+			_boss_hp_index += 1
+			boss.debug_set_hp_fraction(share)
+			_log("boss at %d%% of its hit points" % roundi(share * 100.0))
+			return
+	_last_message = "no boss in the room"
 
 
 ## Kills every living enemy of the active room. During a wave the runner then clears the room (Events.room_cleared), as for player kills.
@@ -437,6 +462,7 @@ func _refresh_text() -> void:
 		"Y give the four Fall items (synergy thresholds)",
 		"U recharge the active item",
 		"N spawn the hostile reflection (Mirror, no draw)",
+		"H boss hit points to the next share (%s)" % ", ".join(BOSS_HP_SHARES.map(str)),
 	])
 	if player != null:
 		var health: Health = player.health
