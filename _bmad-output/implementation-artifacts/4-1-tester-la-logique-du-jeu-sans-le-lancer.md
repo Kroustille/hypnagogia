@@ -1,6 +1,6 @@
 # Story 4.1 : Tester la logique du jeu sans le lancer
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -27,13 +27,13 @@ Hors périmètre : réécrire les scènes jetables de `game/.scratch` (elles res
 
 ## Tâches
 
-- [ ] **Spike d'abord** (15 min) : GUT installé, un test trivial, lancé en ligne de commande. Le brief du pipeline indique que `--script` ne résout pas les autoloads : essayer `godot --headless --path game -s addons/gut/gut_cmdln.gd -gexit`. Si `Log` ou `Events` ne se résolvent pas dans les classes testées, lancer GUT depuis une scène (`game/tests/runner.tscn` qui instancie le lanceur de GUT, `--scene res://tests/runner.tscn`), comme les scènes `.scratch`. Garder la voie qui marche, noter l'autre dans « Pièges rencontrés ».
-- [ ] Récupérer GUT (archive de release, dans un dossier vide hors du dépôt, décompresser, copier seulement `addons/gut/`). Ne pas activer le plugin dans `project.godot` si la ligne de commande n'en a pas besoin (moins de diff dans la config du projet).
-- [ ] `game/.gutconfig.json`, `tools/run_tests.sh` (bash, `set -u`, code de sortie propagé, filtre optionnel `-gselect=`), lisible depuis la racine du dépôt (`cd "$(dirname "$0")/.."`).
-- [ ] `tests/support/` : rien d'obligatoire ici ; ne créer l'aide `room_harness.gd` (instancie `Run`, attend des ticks physiques) qu'avec la 4.2, qui en a besoin.
-- [ ] Écrire les trois fichiers de test (critères 4 à 6). Lire `player/lucidity.gd`, `core/stat_block.gd`, `core/run_rng.gd` et `core/lucidity_tuning.gd` pour viser les vraies bornes ; construire `Lucidity.new(Tuning.LUCIDITY)` ou une `LucidityTuning` locale (jamais de valeur du GDD recopiée en dur : lire le tuning).
-- [ ] Relier au code : `.gitignore` n'ignore pas `game/addons/` ni `game/tests/` ; `CLAUDE.md` n'est pas modifié (le fichier est à la racine, hors périmètre de la story).
-- [ ] Documenter dans la story (Pièges rencontrés) la commande exacte, le temps de la suite, et quels contrôles de `.scratch` couvrent encore ce que les tests ne couvrent pas.
+- [x] **Spike d'abord** (15 min) : GUT installé, un test trivial, lancé en ligne de commande. Le brief du pipeline indique que `--script` ne résout pas les autoloads : essayer `godot --headless --path game -s addons/gut/gut_cmdln.gd -gexit`. Si `Log` ou `Events` ne se résolvent pas dans les classes testées, lancer GUT depuis une scène (`game/tests/runner.tscn` qui instancie le lanceur de GUT, `--scene res://tests/runner.tscn`), comme les scènes `.scratch`. Garder la voie qui marche, noter l'autre dans « Pièges rencontrés ».
+- [x] Récupérer GUT (archive de release, dans un dossier vide hors du dépôt, décompresser, copier seulement `addons/gut/`). Ne pas activer le plugin dans `project.godot` si la ligne de commande n'en a pas besoin (moins de diff dans la config du projet).
+- [x] `game/.gutconfig.json`, `tools/run_tests.sh` (bash, `set -u`, code de sortie propagé, filtre optionnel `-gselect=`), lisible depuis la racine du dépôt (`cd "$(dirname "$0")/.."`).
+- [x] `tests/support/` : rien d'obligatoire ici ; ne créer l'aide `room_harness.gd` (instancie `Run`, attend des ticks physiques) qu'avec la 4.2, qui en a besoin.
+- [x] Écrire les trois fichiers de test (critères 4 à 6). Lire `player/lucidity.gd`, `core/stat_block.gd`, `core/run_rng.gd` et `core/lucidity_tuning.gd` pour viser les vraies bornes ; construire `Lucidity.new(Tuning.LUCIDITY)` ou une `LucidityTuning` locale (jamais de valeur du GDD recopiée en dur : lire le tuning).
+- [x] Relier au code : `.gitignore` n'ignore pas `game/addons/` ni `game/tests/` ; `CLAUDE.md` n'est pas modifié (le fichier est à la racine, hors périmètre de la story).
+- [x] Documenter dans la story (Pièges rencontrés) la commande exacte, le temps de la suite, et quels contrôles de `.scratch` couvrent encore ce que les tests ne couvrent pas.
 
 ## Rapport entre `.scratch` et le framework
 
@@ -77,4 +77,31 @@ Hors périmètre : réécrire les scènes jetables de `game/.scratch` (elles res
 
 ### Completion Notes
 
+- **Choix (résultat de `gds-test-framework`)** : GUT **9.7.1** (tag `v9.7.1`, 2026-07-10, MIT), dépôt officiel `https://github.com/bitwes/Gut` (archive du tag `https://github.com/bitwes/Gut/archive/refs/tags/v9.7.1.tar.gz`, téléchargée hors du dépôt, `plugin.cfg` et `LICENSE.md` vérifiés, seul `addons/gut/` copié dans `game/addons/gut/`, licence incluse). Note : la consigne d'orchestration citait `bitwarden/Gut`, qui n'existe pas (404) ; le dépôt officiel est `bitwes/Gut`, comme dans la story. GdUnit4 non nécessaire.
+- **Spike** : la ligne de commande de GUT (`godot --headless --path game -s addons/gut/gut_cmdln.gd ...`) **résout bien les autoloads** (`Events`, `Log`) sur 4.7.2 : le repli par scène (`runner.tscn`) n'a pas été écrit. Le plugin n'est pas activé dans `project.godot`.
+- **Commande** : `tools/run_tests.sh [filtre]` (le filtre est un sous-chaîne du nom de script, ex. `test_lucidity`, passé à `-gselect`). Importe d'abord le projet, lance la suite, rend non nul sur échec, `SCRIPT ERROR`, `Parse Error`, filtre sans correspondance ou aucun test exécuté. Suite complète : 35 tests, 192 assertions, ~0,5 s de test (~3,5 s avec l'import).
+- **Tests** : `test_lucidity` (16), `test_stat_block` (9), `test_run_rng` (10). Seuils lus dans `LucidityTuning`. Contrôle à la main : échec volontaire -> code 1 ; erreur de parse -> code 1 ; mutation « les % se composent » casse `test_stat_block` ; mutation « `begin_room` ne rouvre pas le plafond de graze » casse `test_lucidity`.
+- `game/.scratch/run_all.sh` : seule retouche, le scan des « constructions interdites » (et `logs_in_physics`) exclut désormais `addons/` et `tests/` (le code de GUT contient `print(`, les tests ont le droit d'utiliser `RandomNumberGenerator`). Fichier non versionné. `run_all.sh` : ALL PASS ; `--quit-after 120` propre.
+
+### Pièges rencontrés
+
+- `-gselect=` attend un nom de script (sous-chaîne), pas un chemin complet avec `game/`.
+- Le scan de `run_all.sh` ramassait `addons/gut` : voir ci-dessus.
+- GUT n'a pas besoin du plugin activé ; `exclude_addons` reste actif (aucune erreur de typage venant de GUT).
+- Les contrôles `.scratch` couvrent encore ce que les tests unitaires ne couvrent pas : toutes les scènes (ennemis, vagues, HUD, télémétrie, effets), les règles de lisibilité du code.
+
+### Décisions prises sans Kroustille — ajouts
+
+5. **Dépôt GUT : `bitwes/Gut`** (officiel) et non `bitwarden/Gut` (inexistant), version 9.7.1 épinglée sur le tag.
+6. **Pas de `runner.tscn`** : la ligne de commande suffit (spike concluant).
+
 ### File List
+
+- `game/addons/gut/**` (GUT 9.7.1, nouveau)
+- `game/.gutconfig.json`, `tools/run_tests.sh`
+- `game/tests/unit/player/test_lucidity.gd`, `game/tests/unit/core/test_stat_block.gd`, `game/tests/unit/core/test_run_rng.gd` (+ `.uid`)
+- Story et `sprint-status.yaml`
+
+### Change Log
+
+- 2026-11-24 : framework GUT 9.7.1 et tests de `Lucidity`, `StatBlock`, `RunRng`.
