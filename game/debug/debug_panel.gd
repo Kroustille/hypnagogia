@@ -19,12 +19,17 @@ const NIGHT_LIGHT_DEF: EnemyDef = preload("res://data/enemies/night_light.tres")
 const LULLABY_DEF: EnemyDef = preload("res://data/enemies/lullaby.tres")
 const SHEEP_DEF: EnemyDef = preload("res://data/enemies/sheep.tres")
 
+## Distance from the player at which the I key lays an item, in pixels.
+const ITEM_DROP_DISTANCE: float = 28.0
+
 ## Where the pool rooms are listed (story 4.2).
 const ROOM_POOL_DIR: String = "res://rooms/pool/onset"
 
 var _auto_fire: bool = false
 ## Index of the pool room the R key plays next.
 var _pool_index: int = 0
+## Index of the catalog item the I key drops next.
+var _item_index: int = 0
 ## Values the L key cycles through, built from the tuning: the maximum, then just below each tier floor.
 var _lucidity_presets: PackedInt32Array = _build_lucidity_presets()
 ## Index of the preset the lucidity was last set to (0: the full gauge a run starts with).
@@ -89,6 +94,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			replay_current_seed()
 		KEY_V:
 			replay_seed_code(DisplayServer.clipboard_get())
+		KEY_I:
+			_drop_next_item()
 		_:
 			handled = false
 	if handled:
@@ -219,6 +226,28 @@ func replay_seed_code(code: String) -> bool:
 	_log("new floor on seed %s" % RunRng.new(seed_value).seed_code())
 	return true
 
+## Lays the next item of the catalog on the floor, beside the player (story 5.1). The room keeps it in the stock of its cell.
+func _drop_next_item() -> void:
+	var player: Player = _find_player()
+	var room: Room = get_tree().get_first_node_in_group(Const.GROUP_ROOM) as Room
+	var items: Array[ItemDef] = ItemCatalog.all()
+	if player == null or room == null or items.is_empty():
+		_log("no item dropped (player, room or catalog missing)")
+		return
+	var def: ItemDef = items[_item_index % items.size()]
+	_item_index = (_item_index + 1) % items.size()
+	var spot: Vector2 = player.global_position
+	for offset: Vector2 in [Vector2.RIGHT, Vector2.LEFT, Vector2.DOWN, Vector2.UP]:
+		var candidate: Vector2 = player.global_position + offset * ITEM_DROP_DISTANCE
+		if room.is_floor_at(candidate) and not room.is_pit_at(candidate):
+			spot = candidate
+			break
+	if room.add_offer(def, room.to_local(spot)) == null:
+		_log("item refused")
+	else:
+		_log("item %s dropped" % def.id)
+
+
 ## Restarts the run in the next room of the pool (sorted by path), then loops back to the first one.
 func _next_pool_room() -> void:
 	var paths: PackedStringArray = RoomInfo.scene_paths(ROOM_POOL_DIR)
@@ -338,6 +367,7 @@ func _refresh_text() -> void:
 		"F new run on a floor (rooms joined by doors)",
 		"C new floor on the current seed",
 		"V new floor on the seed code of the clipboard",
+		"I drop the next catalog item next to the player",
 	])
 	if player != null:
 		var health: Health = player.health
