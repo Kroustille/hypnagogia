@@ -1,6 +1,6 @@
 # Story 6.7 : Garder la trace de ses victoires
 
-Status: in-progress
+Status: done
 
 ## Story
 
@@ -88,10 +88,12 @@ epics.md (Story 6.7) ; GDD, Ce qui persiste, Déblocages, Le mystère (chaque pr
 
 ### Review Findings
 
-- [ ] [Review][Patch] La seed d'une entrée est perdue à la relecture : `_clean_entry` convertit `"seed"` (un code `String`, `RunRng.seed_code()`) en entier ⇒ `-1` dès le lancement suivant, réécrit ensuite pour de bon (vérifié : `"WXYZ"` → `-1` via `save` + `load_file`) [game/progression/profile.gd:148] — ne convertir que `["duration", "wake_minute"]` ; dans `test_profile.gd:15`, une seed texte (`"WXYZ"`) et `assert_eq(JsonView.s(entry["seed"]), "WXYZ")`.
-- [ ] [Review][Patch] Quarantaine ratée = fichier écrasé plus tard : `quarantine()` supprime l'ancien `.corrupt` avant un renommage dont le résultat est ignoré ; si le renommage échoue, le fichier illisible (ou d'une version future) reste en place avec `CORRUPT` et `writable = true`, puis la fin de run l'écrase (vérifié : dossier en lecture seule ⇒ `writable=true`, fichier toujours là) ; AC 2 « jamais écrasée en silence » [game/autoloads/save_service.gd:66-67,76-77 ; game/progression/profile.gd:108] — retirer `DirAccess.remove_absolute(corrupt_path)` (`rename_absolute` remplace la cible, comme `Settings._save`) ; `read_json` : `last_read_status = Status.CORRUPT if quarantine(path) else Status.UNREADABLE` ; `load_file` : `status = SaveService.Status.CORRUPT if SaveService.quarantine(path) else SaveService.Status.UNREADABLE` ; `quarantine` : `Log.error` quand `err != OK`.
-- [ ] [Review][Patch] Écriture tronquée renommée sur le bon profil : le retour de `store_string` (bool en 4.7) n'est pas lu ; disque plein ⇒ `.tmp` partiel renommé sur `profile.json`, mis en quarantaine au lancement suivant [game/autoloads/save_service.gd:38] — `if not file.store_string(JSON.stringify(data, "\t")):` → `file.close()`, `DirAccess.remove_absolute(tmp_path)`, `Log.error("save", "cannot write %s (error %d)" % [tmp_path.get_file(), file.get_error()])`, `return false`.
-- [ ] [Review][Patch] Test dépendant de l'ordre : « 23:00 avant toute run » lit le dossier de sauvegarde partagé de la suite, où les tests précédents qui construisent `Main` écrivent `profile.json` (il passe parce qu'une mort sans salle vidée donne aussi 23:00) [game/tests/integration/run/test_wake_time_flow.gd:12-26] — `var _dir: SaveDir` ; `_dir = SaveDir.new()` dans `before_each`, `_dir.restore()` dans `after_each`.
+- [x] [Review][Patch] La seed d'une entrée est perdue à la relecture : `_clean_entry` convertit `"seed"` (un code `String`, `RunRng.seed_code()`) en entier ⇒ `-1` dès le lancement suivant, réécrit ensuite pour de bon (vérifié : `"WXYZ"` → `-1` via `save` + `load_file`) [game/progression/profile.gd:148] — ne convertir que `["duration", "wake_minute"]` ; dans `test_profile.gd:15`, une seed texte (`"WXYZ"`) et `assert_eq(JsonView.s(entry["seed"]), "WXYZ")`.
+- [x] [Review][Patch] Quarantaine ratée = fichier écrasé plus tard : `quarantine()` supprime l'ancien `.corrupt` avant un renommage dont le résultat est ignoré ; si le renommage échoue, le fichier illisible (ou d'une version future) reste en place avec `CORRUPT` et `writable = true`, puis la fin de run l'écrase (vérifié : dossier en lecture seule ⇒ `writable=true`, fichier toujours là) ; AC 2 « jamais écrasée en silence » [game/autoloads/save_service.gd:66-67,76-77 ; game/progression/profile.gd:108] — retirer `DirAccess.remove_absolute(corrupt_path)` (`rename_absolute` remplace la cible, comme `Settings._save`) ; `read_json` : `last_read_status = Status.CORRUPT if quarantine(path) else Status.UNREADABLE` ; `load_file` : `status = SaveService.Status.CORRUPT if SaveService.quarantine(path) else SaveService.Status.UNREADABLE` ; `quarantine` : `Log.error` quand `err != OK`.
+- [x] [Review][Patch] Écriture tronquée renommée sur le bon profil : le retour de `store_string` (bool en 4.7) n'est pas lu ; disque plein ⇒ `.tmp` partiel renommé sur `profile.json`, mis en quarantaine au lancement suivant [game/autoloads/save_service.gd:38] — `if not file.store_string(JSON.stringify(data, "\t")):` → `file.close()`, `DirAccess.remove_absolute(tmp_path)`, `Log.error("save", "cannot write %s (error %d)" % [tmp_path.get_file(), file.get_error()])`, `return false`.
+- [x] [Review][Patch] Test dépendant de l'ordre : « 23:00 avant toute run » lit le dossier de sauvegarde partagé de la suite, où les tests précédents qui construisent `Main` écrivent `profile.json` (il passe parce qu'une mort sans salle vidée donne aussi 23:00) [game/tests/integration/run/test_wake_time_flow.gd:12-26] — `var _dir: SaveDir` ; `_dir = SaveDir.new()` dans `before_each`, `_dir.restore()` dans `after_each`.
+
+Correctifs de la revue appliqués et vérifiés (2026-11-24) : les 4 patchs, chacun avec son test GUT, sauf l'écriture tronquée (retour de `store_string`), impossible à provoquer sans disque plein ; `tools/run_tests.sh` vert.
 
 ## Dev Agent Record
 
