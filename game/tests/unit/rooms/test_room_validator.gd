@@ -84,7 +84,23 @@ func test_room_info_reads_a_scene_and_scene_paths_are_sorted() -> void:
 	assert_eq(info.size_kind, Room.SizeKind.SCREEN)
 	assert_eq(info.doors, [Door.Side.N, Door.Side.E, Door.Side.S, Door.Side.W] as Array[int])
 	var paths: PackedStringArray = RoomInfo.scene_paths("res://rooms/pool")
-	assert_eq(paths.size(), 3)
+	assert_eq(paths.size(), 4)
 	var sorted: PackedStringArray = paths.duplicate()
 	sorted.sort()
 	assert_eq(paths, sorted)
+
+
+func test_a_pit_wall_cutting_a_door_off_is_reported() -> void:
+	_assert_single_problem("pits_cut_door", "the E door is cut off from the N door")
+
+
+func test_an_enemy_marker_enclosed_by_pits_is_reported() -> void:
+	_assert_single_problem("enemy_cut_off", "is cut off from the doors")
+
+
+func test_a_reinforcement_marker_on_a_pit_is_reported() -> void:
+	_assert_single_problem("reinforcement_on_pit", "ReinforcementSpawn")
+
+
+func test_the_pit_test_room_is_valid() -> void:
+	assert_eq(RoomValidator.validate(load("res://rooms/pool/onset/onset_combat_004.tscn") as PackedScene), PackedStringArray())
