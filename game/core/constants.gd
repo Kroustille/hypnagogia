@@ -87,3 +87,6 @@ const PHYSICS_PRIORITY_HITBOXES: int = 50
 const GROUP_ROOM: StringName = &"room"
 ## Spawn markers of reinforcements (story 3.7), children of the arena's ReinforcementSpawns node.
 const GROUP_REINFORCEMENT_SPAWN: StringName = &"reinforcement_spawn"
+
+## Node group of the fade between two rooms (story 4.8): the Transition of Main, found by the Run without a node path.
+const GROUP_TRANSITION: StringName = &"transition"

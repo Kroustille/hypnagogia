@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://main/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://debug/perf_overlay.tscn" id="2_perf"]
+[ext_resource type="Script" path="res://main/transition.gd" id="3_transition"]
 
 [node name="Main" type="Node"]
 script = ExtResource("1_main")
@@ -15,5 +16,6 @@ unique_name_in_owner = true
 [node name="Transition" type="CanvasLayer" parent="."]
 unique_name_in_owner = true
 layer = 2
+script = ExtResource("3_transition")
 
 [node name="PerfOverlay" parent="UI" instance=ExtResource("2_perf")]
