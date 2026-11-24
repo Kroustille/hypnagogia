@@ -1,5 +1,5 @@
 extends GutTest
-## Events.run_requested restarts the Run on the asked room; the default stays the arena (story 4.2, AC 9).
+## Events.run_requested restarts the Run on the asked room; the default plays the floor, the arena stays one request away (stories 4.2 and 4.8).
 
 const MAIN_SCENE: PackedScene = preload("res://main/main.tscn")
 const ROOM_002: String = "res://rooms/pool/onset/onset_combat_002.tscn"
@@ -22,7 +22,11 @@ func _current_room() -> Room:
 	return get_tree().get_first_node_in_group(Const.GROUP_ROOM) as Room
 
 
-func test_the_default_run_plays_the_arena() -> void:
+func test_the_default_run_plays_the_floor_and_the_arena_is_one_request_away() -> void:
+	assert_false(_current_room() is Arena)
+	assert_eq(_current_room().room_type, Room.RoomType.START)
+	Events.run_requested.emit(RunOptions.Mode.ARENA, 0, false, "")
+	await get_tree().process_frame
 	assert_true(_current_room() is Arena)
 
 

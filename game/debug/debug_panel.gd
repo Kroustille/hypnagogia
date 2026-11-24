@@ -81,6 +81,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			_next_pool_room()
 		KEY_G:
 			_log_floor_map()
+		KEY_A:
+			_new_run(RunOptions.Mode.ARENA, "arena (milestone A)")
+		KEY_F:
+			_new_run(RunOptions.Mode.FLOOR, "floor")
 		_:
 			handled = false
 	if handled:
@@ -180,6 +184,12 @@ func _log_floor_map() -> void:
 		return
 	run.log_floor_map()
 	_log("floor map of seed %s in the journal" % run.rng.seed_code())
+
+
+## Starts a new run in the arena of milestone A or on a generated floor (story 4.8).
+func _new_run(mode: RunOptions.Mode, label: String) -> void:
+	Events.run_requested.emit(mode, 0, false, "")
+	_log("new run: %s" % label)
 
 
 ## Restarts the run in the next room of the pool (sorted by path), then loops back to the first one.
@@ -297,6 +307,8 @@ func _refresh_text() -> void:
 		"- next wave (keypad -; ) on AZERTY)",
 		"R next room of the pool (new run)",
 		"G floor map of the seed (journal)",
+		"A new run in the arena (milestone A)",
+		"F new run on a floor (rooms joined by doors)",
 	])
 	if player != null:
 		var health: Health = player.health

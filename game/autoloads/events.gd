@@ -72,3 +72,8 @@ signal lucidity_tier_changed(tier: int, previous_tier: int)
 ## Lucidity.Tier (int) the player was in before paying. Listeners: telemetry.
 @warning_ignore("unused_signal")
 signal lucidity_spent(power: StringName, cost: int, tier: int)
+
+## The player came into a room of the floor (story 4.8), the first one included. room_id: the id of the room scene
+## (a StringName like "onset_combat_003"); cell_x, cell_y: its cell of the floor. Listeners: telemetry, the map (4.9).
+@warning_ignore("unused_signal")
+signal room_entered(room_id: StringName, cell_x: int, cell_y: int)

@@ -4,7 +4,7 @@ extends RefCounted
 ## The default is the arena of milestone A with a fresh random seed.
 
 ## ARENA: the training arena. ROOM: one pre-drawn room (room_path), for the F1 panel and the checks. FLOOR: a generated
-## floor (story 4.7 generates it; playing it arrives with story 4.8). Values are appended: they travel as ints.
+## floor, played room by room (stories 4.7 and 4.8). Values are appended: they travel as ints.
 enum Mode { ARENA, ROOM, FLOOR }
 
 var mode: Mode = Mode.ARENA

@@ -199,6 +199,12 @@ func leave_room(room: Room) -> void:
 		_shot_params = null
 
 
+## Turns the character toward a direction (the room entered by a door: face the inside).
+func face(direction: Vector2) -> void:
+	if direction != Vector2.ZERO:
+		_facing = direction.normalized()
+
+
 ## Stops the walk and a dash in flight (the player is placed somewhere else: a room entered by a door).
 func stop_motion() -> void:
 	_dash.cancel()

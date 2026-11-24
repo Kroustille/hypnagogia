@@ -38,6 +38,21 @@ func start(room_path: String) -> void:
 	player.health.set_forced_invulnerability(true)
 
 
+## Starts a Run in FLOOR mode with a seed: the start room is played, the others load in the background. The player cannot
+## be hit. `room` follows the active room of the run: read current_room() after a trip.
+func start_floor(seed_value: int) -> void:
+	var options: RunOptions = RunOptions.new()
+	options.mode = RunOptions.Mode.FLOOR
+	options.seeded = true
+	options.seed_value = seed_value
+	run = RUN_SCENE.instantiate() as Run
+	run.setup(options) # before add_child()
+	add_child(run)
+	room = run.current_room()
+	player = run.get_node("Player") as Player
+	player.health.set_forced_invulnerability(true)
+
+
 ## Takes the run out of the tree at once (its groups stop counting) and frees it at the end of the frame.
 func release() -> void:
 	if get_parent() != null:

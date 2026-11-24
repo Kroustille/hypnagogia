@@ -16,13 +16,17 @@ const PAUSE_MENU_SCENE: PackedScene = preload("res://ui/menus/pause_menu.tscn")
 const SETTINGS_MENU_SCENE: PackedScene = preload("res://ui/menus/settings_menu.tscn")
 const HUD_SCENE: PackedScene = preload("res://ui/hud/hud.tscn")
 
+## What a new game plays: the generated floor (story 4.8). Checks that rely on the arena of milestone A set it back
+## to ARENA before creating Main. Not a setting: nothing in the game writes it.
+static var default_mode: RunOptions.Mode = RunOptions.Mode.FLOOR
+
 var _last_scale_factor: int = -1
 var _last_window_size: Vector2i = Vector2i.ZERO
 var _load_test_active: bool = false
 ## True while the wake screen is open (the run is over, the game is frozen behind it).
 var _run_over: bool = false
 var _run_ended_msec: int = 0
-var _run_options: RunOptions = RunOptions.new()
+var _run_options: RunOptions
 var _wake_screen: WakeScreen
 var _pause_menu: PauseMenu
 var _settings_menu: SettingsMenu
@@ -32,6 +36,8 @@ var _settings_menu: SettingsMenu
 
 
 func _ready() -> void:
+	_run_options = RunOptions.new()
+	_run_options.mode = default_mode
 	get_window().min_size = Const.VIEWPORT
 	var hud: Hud = HUD_SCENE.instantiate() as Hud
 	_ui.add_child(hud)
@@ -141,7 +147,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 ## Starts a new run: the old Run (if any) is destroyed, a fresh one is instantiated (AR20). Without options the run
-## repeats the last ones (restart, F5 back from the load test): the arena unless a room was asked for.
+## repeats the last ones (restart, F5 back from the load test): the floor unless something else was asked for.
 func _start_run(options: RunOptions = null) -> void:
 	if options != null:
 		_run_options = options
