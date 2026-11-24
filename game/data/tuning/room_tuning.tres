@@ -6,3 +6,5 @@
 script = ExtResource("1_tuning")
 door_width_tiles = 2
 player_entry_distance = 3.0
+first_wave_delay = 1.0
+wave_pause = 2.0

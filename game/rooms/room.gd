@@ -189,6 +189,7 @@ func _ready() -> void:
 
 	if _waves_wanted():
 		_setup_waves() # last: spawns need the bullets and the player
+		_close_doors() # a fight starts on entry: begin_room() shuts them again (no effect)
 
 	Log.info("room", "%s ready playable=%s tiles" % [_log_name(), playable_tiles()])
 
@@ -441,6 +442,16 @@ func pending_reinforcement_count() -> int:
 	return _pending.size()
 
 
+## The player's BulletManager (checks).
+func player_bullets() -> BulletManager:
+	return _player_bullets
+
+
+## The enemy BulletManager (checks).
+func enemy_bullets() -> BulletManager:
+	return _enemy_bullets
+
+
 ## The wave runner, or null when waves are disabled (verification tools).
 func wave_runner() -> WaveRunner:
 	return _wave_runner
@@ -464,14 +475,14 @@ func _build_decor(_frame_cells: Vector2i) -> void:
 
 ## Hook: true when the room runs waves on entry. A pre-drawn room does when it has enemy markers.
 func _waves_wanted() -> bool:
-	return not _enemy_spawns().is_empty()
+	return not enemy_spawns().is_empty()
 
 
 ## Hook: the waves of this room. The pre-drawn rooms read their EnemySpawn markers, in tree order: a wave is the
 ## markers sharing a `wave` value (waves in increasing order) and its slots are those markers, in tiles. The list does
 ## not loop: the fight ends after the last wave.
 func _make_wave_list() -> WaveList:
-	var spawns: Array[EnemySpawn] = _enemy_spawns()
+	var spawns: Array[EnemySpawn] = enemy_spawns()
 	var by_wave: Dictionary = {}
 	for spawn: EnemySpawn in spawns:
 		var members: Array = by_wave.get_or_add(spawn.wave, [])
@@ -480,6 +491,8 @@ func _make_wave_list() -> WaveList:
 	wave_numbers.sort()
 	var list: WaveList = WaveList.new()
 	list.loop = false
+	list.start_delay = Tuning.ROOM.first_wave_delay
+	list.pause_duration = Tuning.ROOM.wave_pause
 	for wave_number: int in wave_numbers:
 		var wave: WaveDef = WaveDef.new()
 		for member: EnemySpawn in by_wave[wave_number]:
@@ -497,8 +510,8 @@ func _register_static_hurtboxes(_bullets: BulletManager) -> void:
 	pass
 
 
-## The EnemySpawn markers, in tree order.
-func _enemy_spawns() -> Array[EnemySpawn]:
+## The EnemySpawn markers, in tree order (an arena has none).
+func enemy_spawns() -> Array[EnemySpawn]:
 	var found: Array[EnemySpawn] = []
 	var container: Node = get_node_or_null("EnemySpawns")
 	if container != null:
