@@ -716,8 +716,8 @@ Ces patterns garantissent que tous les agents écrivent du code compatible.
 
 **Flux :**
 1. `Room.enter()` appelle `lucidity.begin_room()` : `room_tier = live_tier`, le compteur de graze repart à 0.
-2. Une dépense fait baisser `live_tier`. S'il passe sous `room_tier`, `room_tier` suit, et `room_danger_raised` est émis.
-3. `Room` recalcule son `DangerProfile`, joue le son et l'effet d'aggravation, puis, si le palier atteint Abandon pour la première fois, programme le renfort (annoncé 0,6 s avant, sur un `ReinforcementSpawn`, copie du type le plus présent, tirage dans le flux `combat`).
+2. Une dépense fait baisser `live_tier`. S'il passe sous `room_tier`, `room_tier` suit, et `room_danger_raised(tier, previous)` est émis.
+3. `Room` met à jour son `DangerProfile` sur place (`danger.apply_tier(tier, Tuning.LUCIDITY)`, qui renvoie vrai si un champ a changé ; jamais `from_tier`, qui ferait garder l'ancien profil aux ennemis vivants). Le son et l'effet d'aggravation ne sont joués que si le profil a changé (Lucide -> Flottant : rien). Puis, si le palier atteint Abandon pour la première fois, programme le renfort (annoncé 0,6 s avant, sur un `ReinforcementSpawn`, copie du type le plus présent, tirage dans le flux `combat`).
 4. Les ennemis lisent `room.danger` au moment où ils lancent un télégraphe ou tirent. Les projectiles déjà en vol gardent leur vitesse.
 5. Remonter ne change pas `room_tier` avant la salle suivante.
 6. `room_cleared` transmet `room_tier`, qui fixe le multiplicateur de loot.
@@ -726,11 +726,13 @@ Ces patterns garantissent que tous les agents écrivent du code compatible.
 **Cas limites :** en arène, `begin_room()` est appelé à chaque vague ; un seul renfort par salle ; les télégraphes ne descendent jamais sous 0,4 s.
 
 ```gdscript
-func _on_lucidity_room_danger_raised(tier: Lucidity.Tier) -> void:
-	danger = DangerProfile.from_tier(tier, Tuning.LUCIDITY)
+func _on_lucidity_room_danger_raised(tier: Lucidity.Tier, _previous: Lucidity.Tier) -> void:
+	var changed: bool = danger.apply_tier(tier, Tuning.LUCIDITY)
 	if danger.reinforcement and not _reinforcement_done:
 		_reinforcement_done = true
 		_schedule_reinforcement()
+	if changed:
+		_play_danger_signal()
 ```
 
 #### P2. Graze et dash parfait
