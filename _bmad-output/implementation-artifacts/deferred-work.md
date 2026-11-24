@@ -407,7 +407,7 @@
 - **Interblocage `load()` pendant un chargement threadé** (Godot 4.7, headless) : un `load()` synchrone lancé après `load_threaded_request` a bloqué un test de façon reproductible ; `Run` charge donc le départ avant les requêtes, et `RoomLoader.scene_for()` d'un chemin jamais demandé reste un `load()` (repli rare). À surveiller si un chemin hors étage se charge en cours de run.
 - **Hauteur de la transition en pause** : `Transition` s'arrête avec `GameClock.paused` mais le joueur désactivé le reste jusqu'à la fin du fondu ; un `Main._freeze(false)` pendant le noir ne le réactive pas (voulu : `Run._end_travel` le fait).
 - **Sauvegarde d'entrée de salle** (`RunSnapshot`, AR18) : epic 8. Salle trésor, boutique, porte de sortie de l'étage (epic 6) : hors périmètre.
-- **Carte de l'étage (4.9), NON ÉVALUÉ** : lisibilité réelle à 640×360 (aucune capture WSLg faite), icônes provisoires (losange, disque, croix), Select sur une vraie manette (`JOY_BUTTON_BACK`, indice 4 sur le pad de test non vérifié). La carte révèle l'emprise de l'étage (géométrie stable) ; à rediscuter avec l'epic 7.
+- **Carte de l'étage (4.9), NON ÉVALUÉ** : lisibilité réelle à 640×360 (aucune capture WSLg faite), icônes provisoires (losange, disque, croix), Select sur une vraie manette (`JOY_BUTTON_BACK`, indice 4 sur le pad de test non vérifié). La carte se cale sur la grille de génération entière (`FloorLayout.grid`), pas sur l emprise réelle : elle ne révèle pas la forme de l étage.
 
 ## Deferred from: code review of story 4-8-passer-d-une-salle-a-l-autre (2026-11-24)
 
