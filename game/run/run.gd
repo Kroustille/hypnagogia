@@ -103,6 +103,7 @@ func _start_floor() -> bool:
 		var path: String = layout.cells[cell].info.path
 		if path != start_path and not others.has(path):
 			others.append(path)
+	floor_map.layout = layout
 	_loader = RoomLoader.new()
 	_loader.scene_for(start_path) # on the spot, before the background requests start: nothing is loading yet
 	_loader.request_all(others)
