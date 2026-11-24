@@ -1,6 +1,6 @@
 # Story 4.6 : Explorer les grandes salles
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -28,13 +28,13 @@ Hors périmètre : portes multiples par côté (une porte par côté, canonique)
 
 ## Tâches
 
-- [ ] `Room.SizeKind` complète, `playable_tiles()`, `frame_cells()`, `frame_px()` ; remplacer les usages restants de `Const.ROOM_TILES` hors de la vérification d'écran de `Arena`.
-- [ ] `rooms/room_camera.gd` (`RefCounted`, fonctions statiques) ; `Room._physics_process` (priorité de physique 10, après le joueur) pose `_camera.position = RoomCamera.target(...) + shake_offset()` ; pas de `Camera2D.limit_*` (voir pièges).
-- [ ] Adapter `_process_shake` : le retour « exact » est vers la position suivie du tick.
-- [ ] Positions d'apparition par défaut du joueur (`player_spawn_position()` : centre du cadre, valable en grande salle).
-- [ ] Validateur (dimensions par `size_kind`), outil ASCII (`size: wide|tall`, grille de la bonne taille).
-- [ ] Tests GUT : `tests/unit/rooms/test_room_camera.gd` (bords, coins, axe court, salle d'un écran identique à l'ancienne position, vue incluse dans le cadre + bande pour 200 positions de joueur de la salle), `tests/integration/rooms/test_big_rooms.gd` (la caméra suit en déplaçant le joueur ; apparition d'ennemis et de renfort dans la zone de 72×19 ; tremblement puis retour à la position suivie ; validateur accepte/refuse).
-- [ ] Capture WSLg d'une salle WIDE pour juger la lisibilité (NON VÉRIFIÉ par un humain).
+- [x] `Room.SizeKind` complète, `playable_tiles()`, `frame_cells()`, `frame_px()` ; remplacer les usages restants de `Const.ROOM_TILES` hors de la vérification d'écran de `Arena`.
+- [x] `rooms/room_camera.gd` (`RefCounted`, fonctions statiques) ; `Room._physics_process` (priorité de physique 10, après le joueur) pose `_camera.position = RoomCamera.target(...) + shake_offset()` ; pas de `Camera2D.limit_*` (voir pièges).
+- [x] Adapter `_process_shake` : le retour « exact » est vers la position suivie du tick.
+- [x] Positions d'apparition par défaut du joueur (`player_spawn_position()` : centre du cadre, valable en grande salle).
+- [x] Validateur (dimensions par `size_kind`), outil ASCII (`size: wide|tall`, grille de la bonne taille).
+- [x] Tests GUT : `tests/unit/rooms/test_room_camera.gd` (bords, coins, axe court, salle d'un écran identique à l'ancienne position, vue incluse dans le cadre + bande pour 200 positions de joueur de la salle), `tests/integration/rooms/test_big_rooms.gd` (la caméra suit en déplaçant le joueur ; apparition d'ennemis et de renfort dans la zone de 72×19 ; tremblement puis retour à la position suivie ; validateur accepte/refuse).
+- [x] Capture WSLg d'une salle WIDE pour juger la lisibilité (NON VÉRIFIÉ par un humain).
 
 ## État du code concerné
 
@@ -69,6 +69,27 @@ Hors périmètre : portes multiples par côté (une porte par côté, canonique)
 
 ### Agent Model Used
 
+Claude Sonnet 5.5
+
 ### Completion Notes
 
+- `Room.SizeKind` complète (SCREEN, WIDE 72×19, TALL 36×38 déduites de `Const.ROOM_TILES`), `frame_cells()`, `frame_px()`; nav, validateur, constructeur, position d'apparition les utilisent.
+- `RoomCamera.target()` pure (par axe, centre de l'intervalle autorisé quand il est vide : redonne exactement l'ancienne position d'un écran). `Room` (priorité physique 10) place la caméra à chaque tick; `snap_camera()` au `_ready` et appelé par `Run` après le placement du joueur.
+- Tremblement : déjà porté par `Camera2D.offset`, donc il revient de lui-même à la position suivie; aucun changement de `_process_shake`.
+- Souris et réticule : déjà calculés par `get_global_mouse_position()` et la transformation du canevas; test de la transformation. La bande de HUD reste sur sa `CanvasLayer`.
+- Différés 4.6 : `LucidityFx` devient `Node2D` (PostFx suit la salle); validateur lit les positions locales par composition des transformations; charge du mouton = `max_charge_room_diagonals` × diagonale du cadre quand `max_charge_distance` = 0 (sheep.tres : 1,5).
+- Salles `onset_combat_007` (WIDE) et `onset_combat_008` (TALL), valides; pool de 8 salles.
+- Tests : GUT `test_room_camera`, `test_big_rooms`; `run_all.sh` et GUT verts.
+- NON ÉVALUÉ : lisibilité en jeu et capture WSLg (voir deferred-work.md).
+
+### Décisions (4.6, dev)
+
+- Tremblement conservé sur `offset` (pas `position + shake`) : même résultat, retour exact à la position suivie sans toucher à la 3.8.
+- Le mouton garde `max_charge_distance` absolu (0 = dérivé de la salle) pour que les tests à 2 tuiles restent valables.
+
 ### File List
+
+- game/rooms/room.gd, room_camera.gd, room_nav.gd, validator/room_validator.gd, validator/room_builder.gd
+- game/run/run.gd, game/vfx/lucidity_fx.gd, game/enemies/sheep/sheep.gd, sheep_def.gd, game/data/enemies/sheep.tres
+- art_source/rooms/onset_combat_00{7,8}.txt, game/rooms/pool/onset/onset_combat_00{7,8}.tscn
+- game/tests/unit/rooms/test_room_camera.gd, game/tests/integration/rooms/test_big_rooms.gd, test_room_validator.gd, test_sheep_and_sleepwalker_pits.gd
