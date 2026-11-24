@@ -17,6 +17,9 @@ const RIM_COLOR: Color = Color(1.0, 1.0, 1.0)
 const CONSUMABLE_COLOR: Color = Color(0.5, 0.85, 0.95)
 ## Physics ticks a disarmed pickup waits before looking at the overlaps (the first ones report nothing yet).
 const ARMING_SETTLE_TICKS: int = 3
+## A disarmed pickup the player never touched arms only when the player is farther than this (a deposit moved to a free
+## cell does not overlap the player yet, who may land on it).
+const ARM_DISTANCE_PX: float = RADIUS_PX + Const.TILE_SIZE
 
 ## The player took a consumable and was already carrying one: the old one goes back on the floor (the room lays it).
 signal consumable_replaced(def: ConsumableDef, global_position: Vector2)
@@ -72,7 +75,7 @@ func _physics_process(_delta: float) -> void:
 
 ## True when the player could take this item now.
 func is_available() -> bool:
-	return not _collected and _player != null and _can_take()
+	return not _collected and _armed and _player != null and _can_take()
 
 
 func _collect() -> void:
@@ -102,7 +105,8 @@ func _on_body_entered(body: Node2D) -> void:
 func _on_body_exited(body: Node2D) -> void:
 	if body == _player:
 		_touching = false
-		if not _armed:
+		# A pause or a door fade switches the physics off, which also reports the exit: that is not the player stepping off.
+		if not _armed and can_process() and _player.can_process():
 			_arm()
 
 
@@ -116,7 +120,11 @@ func _can_take() -> bool:
 ## A disarmed pickup arms when the player steps off it; one the player never touched (a room visited again) arms after
 ## the first ticks have reported the overlaps.
 func _update_arming() -> void:
-	if _alive_ticks >= ARMING_SETTLE_TICKS and not get_overlapping_bodies().has(_player):
+	if not _player.can_process():
+		_alive_ticks = 0 # a fade or a pause: the player is out of the physics space, nothing is known
+		return
+	if _alive_ticks >= ARMING_SETTLE_TICKS and not get_overlapping_bodies().has(_player) \
+			and global_position.distance_to(_player.global_position) > ARM_DISTANCE_PX:
 		_arm()
 
 

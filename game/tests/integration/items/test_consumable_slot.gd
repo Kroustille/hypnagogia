@@ -141,3 +141,59 @@ func test_a_disarmed_consumable_the_player_never_touched_arms_itself() -> void:
 	var offer: RoomStock.Offer = _room.add_consumable_offer(PINCH, _room.to_local(_player.global_position + Vector2(-100, 0)), false)
 	await _harness.ticks(6)
 	assert_true(offer.armed, "a room visited again does not keep it dead")
+
+
+## A consumable laid by the player's replaced pickup: disarmed, under the player.
+func _dropped_pinch() -> Pickup:
+	await _step_on(PINCH)
+	await _step_on(COFFEE)
+	return _room.pickups()[0]
+
+
+func test_a_pause_or_fade_exit_does_not_arm_a_dropped_consumable() -> void:
+	var pickup: Pickup = await _dropped_pinch()
+	_player.process_mode = Node.PROCESS_MODE_DISABLED
+	pickup._on_body_exited(_player)
+	_player.process_mode = Node.PROCESS_MODE_INHERIT
+	assert_false(pickup.offer.armed, "the player did not step off, the physics was switched off")
+	pickup._on_body_exited(_player)
+	assert_true(pickup.offer.armed, "a real exit arms it")
+
+
+func test_the_settle_fallback_does_not_arm_a_deposit_next_to_the_player() -> void:
+	var offer: RoomStock.Offer = _room.add_consumable_offer(PINCH, _room.to_local(_player.global_position + Vector2(24, 0)), false)
+	await _harness.ticks(12)
+	assert_false(offer.armed, "close to the player, who may land on it")
+	_player.global_position += Vector2(-80, 0)
+	await _harness.ticks(8)
+	assert_true(offer.armed)
+
+
+func test_the_settle_fallback_waits_while_the_player_is_out_of_the_physics() -> void:
+	var offer: RoomStock.Offer = _room.add_consumable_offer(PINCH, _room.to_local(_player.global_position + Vector2(-90, 0)), false)
+	_player.process_mode = Node.PROCESS_MODE_DISABLED
+	await _harness.ticks(12)
+	assert_false(offer.armed)
+	_player.process_mode = Node.PROCESS_MODE_INHERIT
+	await _harness.ticks(8)
+	assert_true(offer.armed)
+
+
+func test_a_disarmed_pickup_is_not_available() -> void:
+	var pickup: Pickup = await _dropped_pinch()
+	assert_false(pickup.is_available())
+
+
+func test_the_consumable_already_carried_is_not_taken_again() -> void:
+	await _step_on(COFFEE)
+	var banners: Array[int] = [0]
+	var listener: Callable = func(_a: StringName, _b: StringName, _c: StringName) -> void: banners[0] += 1
+	Events.banner_requested.connect(listener)
+	var spot: Vector2 = _player.global_position + Vector2(0, 50)
+	var offer: RoomStock.Offer = _room.add_consumable_offer(COFFEE, _room.to_local(spot))
+	_player.global_position = spot
+	await _harness.ticks(8)
+	Events.banner_requested.disconnect(listener)
+	assert_false(offer.taken)
+	assert_eq(banners[0], 0)
+	assert_eq(_room.pickups().size(), 1)

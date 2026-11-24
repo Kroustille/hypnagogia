@@ -85,9 +85,10 @@ func acquire(def: ItemDef) -> OwnedItem:
 	return owned
 
 
-## True when the player can take it (alive). A carried consumable is replaced, never a refusal.
+## True when the player can take it: alive, and not the very consumable already carried (an exchange for itself would only
+## replay the banner and lay a copy on the floor). Another carried consumable is replaced, not a refusal.
 func can_take_consumable(def: ConsumableDef) -> bool:
-	return def != null and player != null and not player.health.is_dead()
+	return def != null and player != null and not player.health.is_dead() and not (loadout.consumable != null and loadout.consumable.id == def.id)
 
 
 ## The player takes the consumable: the slot, the bus and the banner. Returns the one it replaces (null when the slot was
