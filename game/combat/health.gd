@@ -139,6 +139,19 @@ func restore_max(amount: int) -> int:
 	return given
 
 
+## A price paid in life, not a hit (story 5.3): removes hearts only, never armor, and never the last half-heart. No
+## invulnerability is read or started. Returns the half-hearts really lost.
+func lose_half_hearts_unarmored(amount: int) -> int:
+	if not _check_amount(amount, "lose_half_hearts_unarmored") or _dead:
+		return 0
+	var lost: int = clampi(half_hearts - 1, 0, amount)
+	if lost == 0:
+		return 0
+	half_hearts -= lost
+	changed.emit()
+	return lost
+
+
 ## Heals up to max_half_hearts. Returns false when nothing fits (already full, or dead).
 func heal(amount: int) -> bool:
 	if not _check_amount(amount, "heal") or _dead:

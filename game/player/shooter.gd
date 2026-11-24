@@ -22,6 +22,13 @@ func _init(tuning: ShotTuning) -> void:
 		assert(false, "Invalid ShotTuning fire_rate")
 
 
+## The rate changed (a stat): the period is recomputed. A cooldown in progress is never made longer, so no free shot
+## and no lost one.
+func set_fire_rate(fire_rate: float) -> void:
+	_period_ticks = Engine.physics_ticks_per_second / maxf(fire_rate, MIN_FIRE_RATE)
+	_cooldown_left = minf(_cooldown_left, _period_ticks)
+
+
 ## Advances one physics tick. Returns true when one shot must be emitted on this tick.
 ## blocked (dash) prevents the shot but does not freeze the cooldown.
 func tick(clock_scale: float, wants_fire: bool, blocked: bool) -> bool:
