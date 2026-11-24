@@ -21,7 +21,9 @@ func after_each() -> void:
 
 
 func test_the_real_sheep_limit_exceeds_a_room_diagonal() -> void:
-	assert_gt(SHEEP_DEF.max_charge_distance, ROOM_DIAGONAL_TILES)
+	var sheep: Sheep = _harness.room.spawn_enemy(SHEEP_DEF, Vector2(300.0, 100.0)) as Sheep
+	assert_not_null(sheep)
+	assert_gt(sheep._max_charge_px / Const.TILE_SIZE, ROOM_DIAGONAL_TILES)
 
 
 func test_a_sheep_charge_that_touches_nothing_ends_at_rest_without_a_stun() -> void:

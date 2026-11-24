@@ -75,6 +75,8 @@ func _ready() -> void:
 	_charge_px = _bounded_px(_sheep_def.charge_speed, "charge_speed")
 	if is_finite(_sheep_def.max_charge_distance) and _sheep_def.max_charge_distance > 0.0:
 		_max_charge_px = _sheep_def.max_charge_distance * Const.TILE_SIZE
+	elif _nav != null and is_finite(_sheep_def.max_charge_room_diagonals) and _sheep_def.max_charge_room_diagonals > 0.0:
+		_max_charge_px = _sheep_def.max_charge_room_diagonals * Vector2(_nav.size_cells() * Const.TILE_SIZE).length()
 	if _charge_px <= 0.0:
 		_inert = true
 		Log.error("combat", "sheep charge_speed=%s is invalid, it never charges" % _sheep_def.charge_speed)

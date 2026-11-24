@@ -14,7 +14,11 @@ extends EnemyDef
 ## Speed of the charge.
 @export_range(0.0, 40.0, 0.1, "or_greater") var charge_speed: float = 0.0
 ## Safety net: a charge that has covered this many tiles without touching anything stops, with no stun (story 4.3:
-## a pit or an open door would let it run forever). 0 = no limit. Above the diagonal of a one-screen room.
+## a pit or an open door would let it run forever). 0 = derived from the room (max_charge_room_diagonals), or no limit
+## without a room.
 @export_range(0.0, 200.0, 0.5, "or_greater") var max_charge_distance: float = 0.0
+## Used when max_charge_distance is 0: the limit is this many diagonals of the room's wall frame (story 4.6), so it grows
+## with large rooms. 0 = no limit.
+@export_range(0.0, 10.0, 0.1, "or_greater") var max_charge_room_diagonals: float = 0.0
 ## Duration of the stun after hitting a wall.
 @export_range(0.0, 10.0, 0.05, "or_greater") var stun_duration: float = 0.0
