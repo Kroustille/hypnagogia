@@ -54,11 +54,11 @@ func _ready() -> void:
 	if _def == null:
 		return # already reported by Enemy
 	_boss_def = _def as BossDef
-	if _boss_def == null or _bullets == null or _room == null or _run_rng == null or _boss_def.phases.is_empty():
+	if _boss_def == null or _bullets == null or _room == null or _run_rng == null or _boss_def.phases.is_empty() or _boss_def.phases.has(null):
 		process_mode = Node.PROCESS_MODE_DISABLED # before the assert: it aborts the function in debug builds
 		_def = null # subclasses test _def after super()
 		Log.error("combat", "boss %s needs a BossDef with phases, a room, its streams and the enemy BulletManager" % get_path())
-		assert(false, "Boss needs a BossDef, bind_room() and a BulletManager")
+		_assert_failed("Boss needs a BossDef, bind_room() and a BulletManager")
 		return
 	_validate_def()
 	_bullet_params = BulletParams.new() # own instance, never a shared Resource
@@ -290,6 +290,10 @@ func _start_attacks(attacks: Array[BossAttack], group: int) -> void:
 
 ## A set-up runner for the attack, or null (after a Log.error) when the attack cannot run.
 func _make_runner(attack: BossAttack) -> AttackRunner:
+	if attack == null:
+		Log.error("combat", "boss %s attack skipped: null attack" % _boss_def.id)
+		_assert_failed("BossAttack is null")
+		return null
 	var problem: String = attack.validate()
 	if problem.is_empty() and attack.kind == BossAttack.Kind.ROW and attack.gap_tiles >= arena_px().size.x / Const.TILE_SIZE:
 		problem = "gap_tiles %s does not fit in the room" % attack.gap_tiles
