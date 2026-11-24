@@ -1,5 +1,5 @@
 extends Node
-## Player settings: volumes, window mode, VSync, damage numbers. Holds no run state.
+## Player settings: volumes, window mode, VSync, damage numbers, screen effect intensities, photosensitivity. Holds no run state.
 ## Loads and applies user://settings.cfg at startup (never writes it then), applies every change at once
 ## and saves it atomically (temporary file, then rename). An unreadable file or value falls back to the
 ## default and is logged, never blocking the start (AR28).
@@ -25,9 +25,14 @@ const DEFAULT_VOLUMES: Dictionary[StringName, float] = {
 const DEFAULT_FULLSCREEN: bool = false
 const DEFAULT_VSYNC: bool = true
 const DEFAULT_DAMAGE_NUMBERS: bool = false
+## Screen effect settings (story 3.8): intensity of the distortions and of the screen shakes (0..1), photosensitivity mode.
+const DEFAULT_DISTORTION_INTENSITY: float = 1.0
+const DEFAULT_SHAKE_INTENSITY: float = 1.0
+const DEFAULT_PHOTOSENSITIVE: bool = false
 
 const SECTION_AUDIO: String = "audio"
 const SECTION_DISPLAY: String = "display"
+const SECTION_ACCESSIBILITY: String = "accessibility"
 ## Key of each bus in the [audio] section.
 const VOLUME_KEYS: Dictionary[StringName, String] = {
 	MASTER_BUS: "master",
@@ -38,11 +43,18 @@ const VOLUME_KEYS: Dictionary[StringName, String] = {
 const KEY_FULLSCREEN: String = "fullscreen"
 const KEY_VSYNC: String = "vsync"
 const KEY_DAMAGE_NUMBERS: String = "damage_numbers"
+const KEY_DISTORTION_INTENSITY: String = "distortion_intensity"
+const KEY_SHAKE_INTENSITY: String = "shake_intensity"
+const KEY_PHOTOSENSITIVE: String = "photosensitive"
 
 ## Read-only from outside: use the setters.
 var fullscreen: bool = DEFAULT_FULLSCREEN
 var vsync: bool = DEFAULT_VSYNC
 var damage_numbers: bool = DEFAULT_DAMAGE_NUMBERS
+## The photosensitive mode wins over the two intensities without changing them (the player gets them back by turning it off).
+var distortion_intensity: float = DEFAULT_DISTORTION_INTENSITY
+var shake_intensity: float = DEFAULT_SHAKE_INTENSITY
+var photosensitive: bool = DEFAULT_PHOTOSENSITIVE
 
 var _volumes: Dictionary[StringName, float] = DEFAULT_VOLUMES.duplicate()
 var _path: String = FILE_PATH
@@ -135,11 +147,41 @@ func set_damage_numbers(value: bool) -> void:
 	changed.emit()
 
 
+## Applies and saves. value is clamped to [0, 1]; a non-finite value falls back to the default.
+func set_distortion_intensity(value: float) -> void:
+	var sanitized: float = _sanitize_intensity(value, DEFAULT_DISTORTION_INTENSITY)
+	if sanitized == distortion_intensity:
+		return
+	distortion_intensity = sanitized
+	_save()
+	changed.emit()
+
+
+func set_shake_intensity(value: float) -> void:
+	var sanitized: float = _sanitize_intensity(value, DEFAULT_SHAKE_INTENSITY)
+	if sanitized == shake_intensity:
+		return
+	shake_intensity = sanitized
+	_save()
+	changed.emit()
+
+
+func set_photosensitive(value: bool) -> void:
+	if value == photosensitive:
+		return
+	photosensitive = value
+	_save()
+	changed.emit()
+
+
 func _reset_to_defaults() -> void:
 	_volumes = DEFAULT_VOLUMES.duplicate()
 	fullscreen = DEFAULT_FULLSCREEN
 	vsync = DEFAULT_VSYNC
 	damage_numbers = DEFAULT_DAMAGE_NUMBERS
+	distortion_intensity = DEFAULT_DISTORTION_INTENSITY
+	shake_intensity = DEFAULT_SHAKE_INTENSITY
+	photosensitive = DEFAULT_PHOTOSENSITIVE
 
 
 ## A missing key keeps its default silently; a wrong type or an out-of-range value logs one warning.
@@ -161,16 +203,41 @@ func _read(config: ConfigFile) -> void:
 	fullscreen = _read_bool(config, KEY_FULLSCREEN, DEFAULT_FULLSCREEN)
 	vsync = _read_bool(config, KEY_VSYNC, DEFAULT_VSYNC)
 	damage_numbers = _read_bool(config, KEY_DAMAGE_NUMBERS, DEFAULT_DAMAGE_NUMBERS)
+	distortion_intensity = _read_intensity(config, KEY_DISTORTION_INTENSITY, DEFAULT_DISTORTION_INTENSITY)
+	shake_intensity = _read_intensity(config, KEY_SHAKE_INTENSITY, DEFAULT_SHAKE_INTENSITY)
+	photosensitive = _read_bool(config, KEY_PHOTOSENSITIVE, DEFAULT_PHOTOSENSITIVE, SECTION_ACCESSIBILITY)
 
 
-func _read_bool(config: ConfigFile, key: String, default: bool) -> bool:
-	if not config.has_section_key(SECTION_DISPLAY, key):
+func _read_bool(config: ConfigFile, key: String, default: bool, section: String = SECTION_DISPLAY) -> bool:
+	if not config.has_section_key(section, key):
 		return default
-	var raw: Variant = config.get_value(SECTION_DISPLAY, key)
+	var raw: Variant = config.get_value(section, key)
 	if typeof(raw) != TYPE_BOOL:
-		Log.warn("save", "settings %s/%s is not a boolean, using the default" % [SECTION_DISPLAY, key])
+		Log.warn("save", "settings %s/%s is not a boolean, using the default" % [section, key])
 		return default
 	return raw
+
+
+## A number in [0, 1]; a wrong type or a non-finite value gives the default, an out-of-range one is clamped.
+func _read_intensity(config: ConfigFile, key: String, default: float) -> float:
+	if not config.has_section_key(SECTION_ACCESSIBILITY, key):
+		return default
+	var raw: Variant = config.get_value(SECTION_ACCESSIBILITY, key)
+	var type: int = typeof(raw)
+	if type != TYPE_FLOAT and type != TYPE_INT:
+		Log.warn("save", "settings %s/%s is not a number, using the default" % [SECTION_ACCESSIBILITY, key])
+		return default
+	var number: float = raw
+	var value: float = _sanitize_intensity(number, default)
+	if value != number:
+		Log.warn("save", "settings %s/%s=%s out of range, using %s" % [SECTION_ACCESSIBILITY, key, number, value])
+	return value
+
+
+func _sanitize_intensity(value: float, default: float) -> float:
+	if not is_finite(value):
+		return default
+	return clampf(value, 0.0, 1.0)
 
 
 func _sanitize_volume(bus: StringName, linear: float) -> float:
@@ -236,6 +303,9 @@ func _save() -> void:
 	config.set_value(SECTION_DISPLAY, KEY_FULLSCREEN, fullscreen)
 	config.set_value(SECTION_DISPLAY, KEY_VSYNC, vsync)
 	config.set_value(SECTION_DISPLAY, KEY_DAMAGE_NUMBERS, damage_numbers)
+	config.set_value(SECTION_ACCESSIBILITY, KEY_DISTORTION_INTENSITY, distortion_intensity)
+	config.set_value(SECTION_ACCESSIBILITY, KEY_SHAKE_INTENSITY, shake_intensity)
+	config.set_value(SECTION_ACCESSIBILITY, KEY_PHOTOSENSITIVE, photosensitive)
 	var tmp_path: String = _path + ".tmp"
 	var err: Error = config.save(tmp_path)
 	if err != OK:

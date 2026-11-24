@@ -115,6 +115,40 @@ custom_minimum_size = Vector2(36, 0)
 layout_mode = 2
 horizontal_alignment = 2
 
+[node name="DistortionLabel" type="Label" parent="Center/Panel/Items/Volumes"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="DistortionSlider" type="HSlider" parent="Center/Panel/Items/Volumes"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_vertical = 4
+step = 5.0
+
+[node name="DistortionValue" type="Label" parent="Center/Panel/Items/Volumes"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(36, 0)
+layout_mode = 2
+horizontal_alignment = 2
+
+[node name="ShakeLabel" type="Label" parent="Center/Panel/Items/Volumes"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ShakeSlider" type="HSlider" parent="Center/Panel/Items/Volumes"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_vertical = 4
+step = 5.0
+
+[node name="ShakeValue" type="Label" parent="Center/Panel/Items/Volumes"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(36, 0)
+layout_mode = 2
+horizontal_alignment = 2
+
 [node name="FullscreenButton" type="CheckButton" parent="Center/Panel/Items"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -124,6 +158,10 @@ unique_name_in_owner = true
 layout_mode = 2
 
 [node name="DamageNumbersButton" type="CheckButton" parent="Center/Panel/Items"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="PhotosensitiveButton" type="CheckButton" parent="Center/Panel/Items"]
 unique_name_in_owner = true
 layout_mode = 2
 

@@ -1,6 +1,7 @@
 class_name SettingsMenu
 extends Control
-## Settings menu: the four bus volumes, fullscreen, VSync and damage numbers. Changes go through Settings
+## Settings menu: the four bus volumes, fullscreen, VSync, damage numbers, and the screen effects (distortion and
+## shake intensity, photosensitivity mode). Changes go through Settings
 ## only (applied at once, saved by Settings). A dragged slider is previewed continuously and saved on
 ## release; a keyboard, gamepad or track change is saved at once. Pause, Start, Escape or B goes back.
 ## Texts come from tr() (localization/strings.csv), never from the scene.
@@ -29,9 +30,17 @@ const PERCENT: float = 100.0
 @onready var _fullscreen_button: CheckButton = %FullscreenButton
 @onready var _vsync_button: CheckButton = %VsyncButton
 @onready var _damage_numbers_button: CheckButton = %DamageNumbersButton
+@onready var _distortion_slider: HSlider = %DistortionSlider
+@onready var _shake_slider: HSlider = %ShakeSlider
+@onready var _distortion_value: Label = %DistortionValue
+@onready var _shake_value: Label = %ShakeValue
+@onready var _photosensitive_button: CheckButton = %PhotosensitiveButton
 @onready var _back_button: Button = %BackButton
 
 var _dragging: Dictionary[StringName, bool] = {}
+## A screen effect slider is being dragged: its value is saved on release (every step would write the file).
+var _distortion_dragging: bool = false
+var _shake_dragging: bool = false
 
 
 func _ready() -> void:
@@ -43,6 +52,9 @@ func _ready() -> void:
 	_fullscreen_button.text = tr(&"UI_SETTINGS_FULLSCREEN")
 	_vsync_button.text = tr(&"UI_SETTINGS_VSYNC")
 	_damage_numbers_button.text = tr(&"UI_SETTINGS_DAMAGE_NUMBERS")
+	(%DistortionLabel as Label).text = tr(&"UI_SETTINGS_DISTORTION")
+	(%ShakeLabel as Label).text = tr(&"UI_SETTINGS_SHAKE")
+	_photosensitive_button.text = tr(&"UI_SETTINGS_PHOTOSENSITIVE")
 	_back_button.text = tr(&"UI_SETTINGS_BACK")
 	for bus: StringName in _sliders:
 		var slider: HSlider = _sliders[bus]
@@ -53,6 +65,13 @@ func _ready() -> void:
 	_fullscreen_button.toggled.connect(_on_fullscreen_button_toggled)
 	_vsync_button.toggled.connect(_on_vsync_button_toggled)
 	_damage_numbers_button.toggled.connect(_on_damage_numbers_button_toggled)
+	_distortion_slider.value_changed.connect(_on_distortion_value_changed)
+	_distortion_slider.drag_started.connect(_on_distortion_drag_started)
+	_distortion_slider.drag_ended.connect(_on_distortion_drag_ended)
+	_shake_slider.value_changed.connect(_on_shake_value_changed)
+	_shake_slider.drag_started.connect(_on_shake_drag_started)
+	_shake_slider.drag_ended.connect(_on_shake_drag_ended)
+	_photosensitive_button.toggled.connect(_on_photosensitive_button_toggled)
 	_back_button.pressed.connect(_on_back_button_pressed)
 	hide()
 
@@ -62,6 +81,12 @@ func _ready() -> void:
 func _notification(what: int) -> void:
 	if what != NOTIFICATION_VISIBILITY_CHANGED or is_visible_in_tree():
 		return
+	if _distortion_dragging:
+		_distortion_dragging = false
+		Settings.set_distortion_intensity(_distortion_slider.value / PERCENT)
+	if _shake_dragging:
+		_shake_dragging = false
+		Settings.set_shake_intensity(_shake_slider.value / PERCENT)
 	for bus: StringName in _dragging:
 		if _dragging[bus]:
 			_dragging[bus] = false
@@ -79,6 +104,13 @@ func open() -> void:
 	_fullscreen_button.set_pressed_no_signal(Settings.fullscreen)
 	_vsync_button.set_pressed_no_signal(Settings.vsync)
 	_damage_numbers_button.set_pressed_no_signal(Settings.damage_numbers)
+	_distortion_dragging = false
+	_shake_dragging = false
+	_distortion_slider.set_value_no_signal(roundf(Settings.distortion_intensity * PERCENT))
+	_shake_slider.set_value_no_signal(roundf(Settings.shake_intensity * PERCENT))
+	_distortion_value.text = tr(&"UI_SETTINGS_PERCENT") % roundi(_distortion_slider.value)
+	_shake_value.text = tr(&"UI_SETTINGS_PERCENT") % roundi(_shake_slider.value)
+	_photosensitive_button.set_pressed_no_signal(Settings.photosensitive)
 	show()
 	_sliders[Settings.MASTER_BUS].grab_focus()
 
@@ -135,6 +167,40 @@ func _on_vsync_button_toggled(pressed: bool) -> void:
 
 func _on_damage_numbers_button_toggled(pressed: bool) -> void:
 	Settings.set_damage_numbers(pressed)
+
+
+func _on_distortion_value_changed(percent: float) -> void:
+	_distortion_value.text = tr(&"UI_SETTINGS_PERCENT") % roundi(percent)
+	if not _distortion_dragging:
+		Settings.set_distortion_intensity(percent / PERCENT)
+
+
+func _on_distortion_drag_started() -> void:
+	_distortion_dragging = true
+
+
+func _on_distortion_drag_ended(_value_changed: bool) -> void:
+	_distortion_dragging = false
+	Settings.set_distortion_intensity(_distortion_slider.value / PERCENT)
+
+
+func _on_shake_value_changed(percent: float) -> void:
+	_shake_value.text = tr(&"UI_SETTINGS_PERCENT") % roundi(percent)
+	if not _shake_dragging:
+		Settings.set_shake_intensity(percent / PERCENT)
+
+
+func _on_shake_drag_started() -> void:
+	_shake_dragging = true
+
+
+func _on_shake_drag_ended(_value_changed: bool) -> void:
+	_shake_dragging = false
+	Settings.set_shake_intensity(_shake_slider.value / PERCENT)
+
+
+func _on_photosensitive_button_toggled(pressed: bool) -> void:
+	Settings.set_photosensitive(pressed)
 
 
 func _on_back_button_pressed() -> void:
