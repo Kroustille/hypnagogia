@@ -5,7 +5,9 @@ set -u
 cd "$(dirname "$0")/.."
 
 OUT="$(mktemp)"
-trap 'rm -f "$OUT"' EXIT
+DATA_DIR="$(mktemp -d)"
+export XDG_DATA_HOME="$DATA_DIR" # the autoloads write telemetry to user://: keep it away from the player's data
+trap 'rm -f "$OUT"; rm -rf "$DATA_DIR"' EXIT
 
 ARGS=()
 if [ $# -gt 0 ]; then

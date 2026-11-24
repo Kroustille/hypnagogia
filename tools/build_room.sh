@@ -15,9 +15,11 @@ if [ $# -gt 1 ]; then
 fi
 
 OUT="$(mktemp)"
-trap 'rm -f "$OUT"' EXIT
+DATA_DIR="$(mktemp -d)"
+export XDG_DATA_HOME="$DATA_DIR" # the autoloads write telemetry to user://: keep it away from the player's data
+trap 'rm -f "$OUT"; rm -rf "$DATA_DIR"' EXIT
 
-timeout 120 godot --headless --path game --scene res://rooms/validator/room_builder.tscn -- "$SOURCE" $OUTPUT >"$OUT" 2>&1
+timeout 120 godot --headless --path game --scene res://rooms/validator/room_builder.tscn -- "$SOURCE" ${OUTPUT:+"$OUTPUT"} >"$OUT" 2>&1
 status=$?
 grep -vE "^Godot Engine|^$" "$OUT"
 if grep -qE "SCRIPT ERROR|Parse Error" "$OUT"; then
