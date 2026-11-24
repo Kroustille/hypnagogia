@@ -35,7 +35,8 @@ var _load_test_active: bool = false
 ## True while the wake screen is open (the run is over, the game is frozen behind it).
 var _run_over: bool = false
 var _run_ended_msec: int = 0
-## Wake time of the last run (story 6.6), -1 before any run: the bedroom alarm clock shows it. Kept in memory only (6.7 persists it).
+## Wake time of the last run (story 6.6), -1 before any run: the bedroom alarm clock shows it. Starts from the profile (6.7);
+## a run on a typed seed changes it here but not the profile.
 var _last_wake_minute: int = -1
 var _run_options: RunOptions
 var _wake_screen: WakeScreen
@@ -45,6 +46,9 @@ var _seed_entry: SeedEntry
 var _seed_origin: SeedOrigin = SeedOrigin.PAUSE
 var _hud: Hud
 var _map_view: FloorMapView
+var _profile: Profile
+var _achievements: Achievements
+var _notice: Notice
 
 @onready var _active_scene: Node = %ActiveScene
 @onready var _ui: CanvasLayer = %UI
@@ -66,6 +70,10 @@ func _ready() -> void:
 	var chalk_title: ChalkTitle = ChalkTitle.new()
 	_ui.add_child(chalk_title)
 	_ui.move_child(chalk_title, 3)
+	_notice = Notice.new()
+	_ui.add_child(_notice)
+	_ui.move_child(_notice, 4) # a message that does not stop the game, under the menus
+	_load_profile()
 	if OS.is_debug_build():
 		_check_viewport_size()
 		_check_collision_layer_names()
@@ -192,6 +200,7 @@ func _start_run(options: RunOptions = null) -> void:
 		_run_options = options
 	else:
 		_run_options = _fresh_seed_options(_run_options) # a restart is a new night, not a replay of the typed seed
+	_run_options.unlocks.assign(_unlocks_for(_run_options))
 	_wake_screen.hide()
 	_close_menus()
 	_run_over = false
@@ -204,6 +213,26 @@ func _start_run(options: RunOptions = null) -> void:
 	_active_scene.add_child(run)
 	_run_options = run.played_options() # the options actually played: a room that could not load fell back to the arena
 	_load_test_active = false
+
+
+## Reads profile.json (a damaged one is set aside and a new profile starts, with a notice), starts the achievements and
+## takes the last wake time from it.
+func _load_profile() -> void:
+	var path: String = SaveService.path_of(Profile.FILE_NAME)
+	_profile = Profile.load_file(path)
+	_last_wake_minute = _profile.last_wake_minute
+	_achievements = Achievements.new()
+	_achievements.setup(_profile, path)
+	add_child(_achievements)
+	if _profile.was_corrupt:
+		_notice.show_key(&"UI_PROFILE_CORRUPT")
+
+
+## The unlocks a run starts with: those of the profile, none on a typed seed (the floor must not depend on the profile).
+func _unlocks_for(options: RunOptions) -> Array[StringName]:
+	if options.seeded:
+		return []
+	return Unlocks.ids_of(_profile)
 
 
 ## The bedroom replaces whatever is active (story 6.5): the hub where a night starts. The HUD and the map belong to a run
@@ -302,6 +331,8 @@ func _on_events_wake_time_set(minute: int) -> void:
 ## The run ended (death or victory): freeze the game and show the wake screen of that outcome. Synchronous, in the tick
 ## of the lethal hit (or the last tick of the victory delay). An outcome Run does not know is a defeat.
 func _on_events_run_ended(outcome: int) -> void:
+	if not is_inside_tree():
+		return # a Main already removed from the tree still hears the bus
 	if _run_over:
 		return
 	_run_over = true

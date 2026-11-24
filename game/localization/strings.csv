@@ -97,3 +97,4 @@ UI_BEDROOM_SEED,Saisir une seed (%s)
 UI_WAKE_BEDROOM,Retourner dans la chambre
 UI_WAKE_TIME,Réveil : %s
 UI_CLOCK_FORMAT,%02d:%02d
+UI_PROFILE_CORRUPT,"Ta sauvegarde était illisible : elle est mise de côté, une nouvelle commence."
