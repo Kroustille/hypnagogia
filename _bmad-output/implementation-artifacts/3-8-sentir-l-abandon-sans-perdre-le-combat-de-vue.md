@@ -1,6 +1,6 @@
 # Story 3.8 : Sentir l'abandon, sans perdre le combat de vue
 
-Status: in-progress
+Status: done
 
 ## Story
 
@@ -121,12 +121,14 @@ Claude Sonnet 5.5
 
 Revue de code 2026-11-24 (trois couches : Blind Hunter, Edge Case Hunter, Acceptance Auditor). Couches vérifiées propres : aucun nœud du monde sous 0 hors décor et `PostFx` (réticule 100, HUD en `CanvasLayer`), stretch `viewport` 640×360 entier (un pixel d'écran = un pixel de jeu), filtre ajouté une seule fois, boucle non empilée à la relance, flux `cosmetic` semé par nom (aucun effet sur `combat`), réglages assainis et sauvegarde atomique, trois clés dans `strings.csv`.
 
-- [ ] [Review][Patch] Arrondi de l'onde asymétrique (à 1,5 px : +2 px à droite, -1 px à gauche) [game/vfx/shaders/lucidity_distortion.gdshader:16] — remplacer par `float w = sin(row * ROW_FREQUENCY + time * WAVE_SPEED) * wave_amount;` puis `float wave_px = sign(w) * floor(abs(w) + 0.5);`.
-- [ ] [Review][Patch] Paliers sans différence visible et plafond photosensible dépassé (0,5 px affiché à 1 px) [game/data/tuning/lucidity_tuning.tres:22-23, game/core/lucidity_tuning.gd:47,49,55] — décision 15 : `fx_wave = (0, 0.75, 1.25, 1.75, 2.25)`, `fx_aberration = (0, 1, 2, 3, 4)`, `fx_photosensitive_cap = 1.0` (dans le `.tres` et les valeurs par défaut du script) ; mettre à jour la ligne 3-8 de `deferred-work.md` et le contrôle de plafond de `t_lucidity_fx` s'il fige 0,5.
-- [ ] [Review][Patch] Copie d'écran active alors que rien n'est dessiné (intensité faible, fin d'ease vers Lucide) [game/vfx/lucidity_fx.gd:119] — `_postfx.visible = _wave >= 0.5 or _aberration >= 0.5` (seuil où l'arrondi du shader décale d'un pixel).
-- [ ] [Review][Patch] `shake()` écrase l'amplitude avant de décider : un appel à 0 % / photosensible pendant un tremblement en cours laisse `randi_range(1, 0)` tirer 1 px [game/rooms/arena/arena.gd:621-626] — `var amplitude: int = roundi(pixels * Settings.shake_intensity)` ; retour anticipé si `Settings.photosensitive or amplitude <= 0 or duration <= 0.0` ; seulement ensuite `_shake_amplitude = amplitude`. Dans `_process_shake` (l.634), si `Settings.photosensitive or Settings.shake_intensity <= 0.0` : `_shake_ticks_left = 0.0`, `_camera.offset = Vector2.ZERO`, retour (réglage changé depuis la pause pendant un tremblement figé).
-- [ ] [Review][Patch] L'attente de sortie compte les `delay_msec`, pas le temps réel (300 ms mesurés à chaque sortie headless ; au-delà de 600 ms si le sommeil déborde) [game/autoloads/audio.gd:62-72] — `var deadline: int = Time.get_ticks_msec() + EXIT_FLUSH_MSEC` et `while passes < EXIT_FLUSH_PASSES and Time.get_ticks_msec() < deadline:` ; supprimer `waited`.
-- [ ] [Review][Patch] Chemin d'erreur de `_ready` : `_physics_process` déréférence ensuite `_material` nul à chaque tick (assert retiré en release) [game/vfx/lucidity_fx.gd:42-45] — `set_physics_process(false)` avant le `return`.
+- [x] [Review][Patch] Arrondi de l'onde asymétrique (à 1,5 px : +2 px à droite, -1 px à gauche) [game/vfx/shaders/lucidity_distortion.gdshader:16] — remplacer par `float w = sin(row * ROW_FREQUENCY + time * WAVE_SPEED) * wave_amount;` puis `float wave_px = sign(w) * floor(abs(w) + 0.5);`.
+- [x] [Review][Patch] Paliers sans différence visible et plafond photosensible dépassé (0,5 px affiché à 1 px) [game/data/tuning/lucidity_tuning.tres:22-23, game/core/lucidity_tuning.gd:47,49,55] — décision 15 : `fx_wave = (0, 0.75, 1.25, 1.75, 2.25)`, `fx_aberration = (0, 1, 2, 3, 4)`, `fx_photosensitive_cap = 1.0` (dans le `.tres` et les valeurs par défaut du script) ; mettre à jour la ligne 3-8 de `deferred-work.md` et le contrôle de plafond de `t_lucidity_fx` s'il fige 0,5.
+- [x] [Review][Patch] Copie d'écran active alors que rien n'est dessiné (intensité faible, fin d'ease vers Lucide) [game/vfx/lucidity_fx.gd:119] — `_postfx.visible = _wave >= 0.5 or _aberration >= 0.5` (seuil où l'arrondi du shader décale d'un pixel).
+- [x] [Review][Patch] `shake()` écrase l'amplitude avant de décider : un appel à 0 % / photosensible pendant un tremblement en cours laisse `randi_range(1, 0)` tirer 1 px [game/rooms/arena/arena.gd:621-626] — `var amplitude: int = roundi(pixels * Settings.shake_intensity)` ; retour anticipé si `Settings.photosensitive or amplitude <= 0 or duration <= 0.0` ; seulement ensuite `_shake_amplitude = amplitude`. Dans `_process_shake` (l.634), si `Settings.photosensitive or Settings.shake_intensity <= 0.0` : `_shake_ticks_left = 0.0`, `_camera.offset = Vector2.ZERO`, retour (réglage changé depuis la pause pendant un tremblement figé).
+- [x] [Review][Patch] L'attente de sortie compte les `delay_msec`, pas le temps réel (300 ms mesurés à chaque sortie headless ; au-delà de 600 ms si le sommeil déborde) [game/autoloads/audio.gd:62-72] — `var deadline: int = Time.get_ticks_msec() + EXIT_FLUSH_MSEC` et `while passes < EXIT_FLUSH_PASSES and Time.get_ticks_msec() < deadline:` ; supprimer `waited`.
+- [x] [Review][Patch] Chemin d'erreur de `_ready` : `_physics_process` déréférence ensuite `_material` nul à chaque tick (assert retiré en release) [game/vfx/lucidity_fx.gd:42-45] — `set_physics_process(false)` avant le `return`.
+
+Les 6 correctifs ont été appliqués et vérifiés (`run_all.sh` : ALL PASS, 1146 contrôles).
 
 ### File List
 
@@ -136,3 +138,4 @@ Revue de code 2026-11-24 (trois couches : Blind Hunter, Edge Case Hunter, Accept
 
 - 2026-11-24 : implémentation de la 3.8 (distorsions, passe-bas, réglages, tremblement d'Éveil), passage en `review`.
 - 2026-11-24 : revue de code (6 correctifs à appliquer, 4 reports, décisions 14 à 18), retour en `in-progress`.
+- 2026-11-24 : correctifs de revue appliqués et vérifiés, passage en `done`.
