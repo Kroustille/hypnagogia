@@ -669,6 +669,32 @@ func enemies_within(point: Vector2, radius_px: float) -> Array[Enemy]:
 	return found
 
 
+## A shockwave (story 5.7): hits the living enemies and the standing furniture whose center is at most radius_px from
+## the center (global), center to center, through their hurtboxes. Never touches the player. Shows a ring. Returns the
+## number of targets hit.
+func shockwave(center: Vector2, radius_px: float, damage: float, color: Color = Color.WHITE, duration: float = 0.3) -> int:
+	var hit: int = 0
+	for enemy: Enemy in enemies_within(center, radius_px): # a copy: a dying enemy leaves the room's list
+		if is_instance_valid(enemy) and not enemy.is_dead() and _shock(enemy.hurtbox, damage):
+			hit += 1
+	for piece: Furniture in furnitures():
+		if piece.is_destroyed() or piece.footprint_rect().get_center().distance_to(center) > radius_px:
+			continue
+		if _shock(piece.player_shot_hurtbox, damage):
+			hit += 1
+	_add_ring(center, radius_px, color, duration)
+	return hit
+
+
+func _shock(box: Hurtbox, damage: float) -> bool:
+	if box == null or not is_instance_valid(box):
+		return false
+	var info: DamageInfo = DamageInfo.new()
+	info.amount = damage
+	info.source = DamageInfo.Source.SHOCKWAVE
+	return box.receive(info)
+
+
 ## The EnemySpawn markers, in tree order (an arena has none).
 func enemy_spawns() -> Array[EnemySpawn]:
 	var found: Array[EnemySpawn] = []
