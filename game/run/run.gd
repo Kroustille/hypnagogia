@@ -36,6 +36,7 @@ func _ready() -> void:
 	_room_slot.add_child(room)
 	_player.global_position = room.player_spawn_position()
 	_player.reset_physics_interpolation() # the player does not trail from (0, 0)
+	room.snap_camera() # and the camera starts on the player
 	Log.info("run", "run started")
 	Events.run_started.emit()
 

@@ -1,5 +1,5 @@
 class_name LucidityFx
-extends Node
+extends Node2D
 ## Screen effects of the live lucidity tier (story 3.8): a wave and a chromatic aberration on the decor only, and a
 ## low-pass filter on the music. Child of the arena. The effects follow the live tier (not the room tier), read
 ## Settings, and ease to every new target over Tuning.LUCIDITY.fx_transition (counted in game ticks of the FX group).

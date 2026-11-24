@@ -40,7 +40,7 @@ func _init(cells_size: Vector2i, blocked: Array[Vector2i] = []) -> void:
 
 ## The grid of a room: walls, obstacles, pits and living furniture. Pieces destroyed later free their cells.
 static func from_room(room: Room) -> RoomNav:
-	var frame: Vector2i = room.playable_tiles() + Vector2i(2, 2)
+	var frame: Vector2i = room.frame_cells()
 	var nav: RoomNav = RoomNav.new(frame, room.solid_cells())
 	nav.origin = room.global_position
 	nav.max_paths_per_tick = Tuning.COMBAT.max_paths_per_tick

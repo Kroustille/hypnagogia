@@ -13,8 +13,8 @@ extends Node2D
 
 ## What a room is for. Only COMBAT and NIGHTMARE hold enemies.
 enum RoomType { START, COMBAT, TREASURE, SHOP, NIGHTMARE }
-## Footprint of a room. WIDE and TALL arrive with story 4.6.
-enum SizeKind { SCREEN }
+## Footprint of a room: one screen, two screens wide, two screens tall.
+enum SizeKind { SCREEN, WIDE, TALL }
 
 ## Tile sources of the onset tileset (rooms/tilesets/onset.tres).
 const TILE_FLOOR: int = 0
@@ -26,6 +26,9 @@ const TILE_PIT: int = 4
 ## The last enemy left the tree (end of the frame it died in). Also emitted while the room is torn down: listeners must
 ## ignore it then (the WaveRunner does).
 signal emptied
+
+## Physics priority of the room: its camera is placed after the player has moved (priority 0) on the same tick.
+const CAMERA_PHYSICS_PRIORITY: int = 10
 
 ## Technical pool size of the player's shots (~11 in flight at 4/s over 36 tiles at 14 tiles/s).
 const PLAYER_BULLET_CAPACITY: int = 128
@@ -133,12 +136,26 @@ static func playable_tiles_of(kind: SizeKind) -> Vector2i:
 	match kind:
 		SizeKind.SCREEN:
 			return Const.ROOM_TILES
+		SizeKind.WIDE:
+			return Const.ROOM_TILES * Vector2i(2, 1)
+		SizeKind.TALL:
+			return Const.ROOM_TILES * Vector2i(1, 2)
 	return Const.ROOM_TILES
 
 
 ## Playable tiles of this room, walls excluded.
 func playable_tiles() -> Vector2i:
 	return playable_tiles_of(size_kind)
+
+
+## The wall frame in cells (playable tiles plus one wall tile on each side).
+func frame_cells() -> Vector2i:
+	return playable_tiles() + Vector2i(2, 2)
+
+
+## The wall frame in pixels.
+func frame_px() -> Vector2:
+	return Vector2(frame_cells() * Const.TILE_SIZE)
 
 
 ## The doors of the room (children of the Doors node).
@@ -170,8 +187,7 @@ func _ready() -> void:
 		assert(false, "Room.setup() must be called before add_child()")
 	if OS.is_debug_build():
 		_check_screen_layout()
-	var frame_cells: Vector2i = playable_tiles() + Vector2i(2, 2)
-	var frame_px: Vector2 = Vector2(frame_cells * Const.TILE_SIZE)
+	var cells: Vector2i = frame_cells()
 
 	_floor.z_index = Const.Z_INDEX_DECOR
 	_walls.z_index = Const.Z_INDEX_DECOR
@@ -180,8 +196,8 @@ func _ready() -> void:
 	_pits = get_node_or_null("%Pits") as TileMapLayer
 	if _pits != null:
 		_pits.z_index = Const.Z_INDEX_DECOR
-	_build_decor(frame_cells)
-	_setup_doors(frame_cells)
+	_build_decor(cells)
+	_setup_doors(cells)
 	if _player != null:
 		_player.enter_room(self) # the player reads the pits through this room
 	_setup_player_bullets() # after the tiles: the BulletManager needs Walls to have a TileSet
@@ -189,11 +205,10 @@ func _ready() -> void:
 	_setup_furniture_and_triggers() # after both BulletManagers: their hurtboxes register with them
 	_nav = RoomNav.from_room(self) # after the tiles, the doors and the furniture
 	_setup_damage_numbers() # after the bullets: drawn above them
-	_setup_lucidity_fx(frame_px)
+	_setup_lucidity_fx(frame_px())
 
-	# Fixed camera: centered on the room, shifted up by half the HUD band so the band stays free at the top.
-	_camera.position = frame_px / 2.0 - Vector2(0.0, Const.HUD_BAND_HEIGHT / 2.0)
-	_camera.reset_physics_interpolation()
+	process_physics_priority = CAMERA_PHYSICS_PRIORITY # after the player (0): the camera reads this tick's position
+	snap_camera()
 
 	if _waves_wanted():
 		_setup_waves() # last: spawns need the bullets and the player
@@ -272,6 +287,7 @@ func _exit_tree() -> void:
 
 
 func _physics_process(_delta: float) -> void:
+	_track_camera()
 	_process_shake()
 	if _pending.is_empty():
 		return
@@ -489,8 +505,7 @@ func wave_runner() -> WaveRunner:
 
 ## Where the player enters the room (center of the playable area), in global coordinates.
 func player_spawn_position() -> Vector2:
-	var frame_px: Vector2 = Vector2((playable_tiles() + Vector2i(2, 2)) * Const.TILE_SIZE)
-	return to_global(frame_px / 2.0)
+	return to_global(frame_px() / 2.0)
 
 
 ## Hook: how the room is named in the log.
@@ -895,6 +910,8 @@ func _setup_damage_numbers() -> void:
 
 ## The room (walls included) plus the HUD band must fit the viewport exactly in height, with a margin in width.
 func _check_screen_layout() -> void:
+	if size_kind != SizeKind.SCREEN:
+		return # the larger rooms are followed by the camera
 	var tiles: Vector2i = playable_tiles()
 	var height_ok: bool = Const.VIEWPORT.y - Const.HUD_BAND_HEIGHT == (tiles.y + 2) * Const.TILE_SIZE
 	var width_margin: int = Const.VIEWPORT.x - (tiles.x + 2) * Const.TILE_SIZE
@@ -938,3 +955,17 @@ func furniture_cells(piece: Furniture) -> Array[Vector2i]:
 		for x: int in count.x:
 			cells.append(first + Vector2i(x, y))
 	return cells
+
+
+## Puts the camera on its target at once, with no glide from where it was (a room just entered, a player just placed).
+func snap_camera() -> void:
+	_track_camera()
+	_camera.reset_physics_interpolation()
+
+
+## Places the camera for this tick (story 4.6). The shake is the camera's offset, so it comes back to this position.
+func _track_camera() -> void:
+	if _camera == null or _player == null:
+		return
+	var viewport: Vector2 = Vector2(Const.VIEWPORT)
+	_camera.position = Vector2(RoomCamera.target(to_local(_player.global_position), frame_px(), viewport, Const.HUD_BAND_HEIGHT))
