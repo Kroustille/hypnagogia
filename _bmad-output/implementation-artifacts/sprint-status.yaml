@@ -81,18 +81,18 @@ development_status:
   epic-3-retrospective: optional
 
   # Epic 4: Explorer un étage né d'une seed
-  epic-4: backlog
-  4-1-tester-la-logique-du-jeu-sans-le-lancer: backlog
-  4-2-jouer-une-salle-predessinee: backlog
-  4-3-tomber-dans-les-trous: backlog
-  4-4-jouer-avec-la-salle-meubles-et-elements-declenchables: backlog
-  4-5-des-ennemis-qui-contournent-les-obstacles: backlog
-  4-6-explorer-les-grandes-salles: backlog
-  4-7-generer-l-etage-depuis-une-seed: backlog
-  4-8-passer-d-une-salle-a-l-autre: backlog
-  4-9-consulter-la-carte-de-l-etage: backlog
-  4-10-remplir-le-pool-de-l-endormissement: backlog
-  4-11-afficher-et-saisir-une-seed: backlog
+  epic-4: in-progress
+  4-1-tester-la-logique-du-jeu-sans-le-lancer: ready-for-dev
+  4-2-jouer-une-salle-predessinee: ready-for-dev
+  4-3-tomber-dans-les-trous: ready-for-dev
+  4-4-jouer-avec-la-salle-meubles-et-elements-declenchables: ready-for-dev
+  4-5-des-ennemis-qui-contournent-les-obstacles: ready-for-dev
+  4-6-explorer-les-grandes-salles: ready-for-dev
+  4-7-generer-l-etage-depuis-une-seed: ready-for-dev
+  4-8-passer-d-une-salle-a-l-autre: ready-for-dev
+  4-9-consulter-la-carte-de-l-etage: ready-for-dev
+  4-10-remplir-le-pool-de-l-endormissement: ready-for-dev
+  4-11-afficher-et-saisir-une-seed: ready-for-dev
   epic-4-retrospective: optional
 
   # Epic 5: Construire son build
