@@ -23,7 +23,7 @@ static func distance_for(tuning: GlideTuning, from_stick: bool, stick: Vector2, 
 
 
 ## Last free point on the line from origin along dir (unit), at most distance px away. The ray stops at walls,
-## high obstacles and enemies; then the body is moved back until it overlaps no wall, obstacle (high or low) or
+## high obstacles, furniture and enemies; then the body is moved back until it overlaps no wall, obstacle (high or low) or
 ## enemy. Returns origin when nothing is free.
 static func resolve_destination(
 	space: PhysicsDirectSpaceState2D, origin: Vector2, dir: Vector2, distance: float, shape: Shape2D, exclude: Array[RID]
@@ -32,7 +32,7 @@ static func resolve_destination(
 		return origin
 	var target: Vector2 = origin + dir * distance
 	var ray: PhysicsRayQueryParameters2D = PhysicsRayQueryParameters2D.create(
-		origin, target, Const.LAYER_WALLS | Const.LAYER_HIGH_OBSTACLES | Const.LAYER_ENEMIES, exclude
+		origin, target, Const.LAYER_WALLS | Const.LAYER_HIGH_OBSTACLES | Const.LAYER_FURNITURE | Const.LAYER_ENEMIES, exclude
 	)
 	ray.collide_with_areas = false
 	var hit: Dictionary = space.intersect_ray(ray)
@@ -44,7 +44,7 @@ static func resolve_destination(
 			return origin
 	var query: PhysicsShapeQueryParameters2D = PhysicsShapeQueryParameters2D.new()
 	query.shape = shape
-	query.collision_mask = Const.LAYER_WALLS | Const.LAYER_HIGH_OBSTACLES | Const.LAYER_LOW_OBSTACLES | Const.LAYER_ENEMIES
+	query.collision_mask = Const.LAYER_WALLS | Const.LAYER_HIGH_OBSTACLES | Const.LAYER_LOW_OBSTACLES | Const.LAYER_FURNITURE | Const.LAYER_ENEMIES
 	query.exclude = exclude
 	query.margin = 0.0
 	var travelled: float = origin.distance_to(target)

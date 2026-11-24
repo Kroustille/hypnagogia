@@ -184,6 +184,7 @@ func _ready() -> void:
 		_player.enter_room(self) # the player reads the pits through this room
 	_setup_player_bullets() # after the tiles: the BulletManager needs Walls to have a TileSet
 	_setup_enemy_bullets() # drawn above the player's shots
+	_setup_furniture_and_triggers() # after both BulletManagers: their hurtboxes register with them
 	_setup_damage_numbers() # after the bullets: drawn above them
 	_setup_lucidity_fx(frame_px)
 
@@ -539,6 +540,42 @@ func _register_static_hurtboxes(_bullets: BulletManager) -> void:
 	pass
 
 
+## The pieces of furniture of the room, in tree order (an arena has none), destroyed ones included.
+func furnitures() -> Array[Furniture]:
+	var found: Array[Furniture] = []
+	var container: Node = get_node_or_null("Furnitures")
+	if container != null:
+		for child: Node in container.get_children():
+			var piece: Furniture = child as Furniture
+			if piece != null:
+				found.append(piece)
+	return found
+
+
+## The triggers of the room, in tree order.
+func triggers() -> Array[Trigger]:
+	var found: Array[Trigger] = []
+	var container: Node = get_node_or_null("Triggers")
+	if container != null:
+		for child: Node in container.get_children():
+			var element: Trigger = child as Trigger
+			if element != null:
+				found.append(element)
+	return found
+
+
+## The living enemies of the room whose center is at most radius_px from the point (global), center to center.
+## Enemies that have not appeared yet (a reinforcement still announced) are not in the room: never reached.
+func enemies_within(point: Vector2, radius_px: float) -> Array[Enemy]:
+	var found: Array[Enemy] = []
+	for child: Node in _enemies.get_children():
+		var enemy: Enemy = child as Enemy
+		if enemy != null and not enemy.is_dead() and not enemy.is_queued_for_deletion() \
+				and enemy.global_position.distance_to(point) <= radius_px:
+			found.append(enemy)
+	return found
+
+
 ## The EnemySpawn markers, in tree order (an arena has none).
 func enemy_spawns() -> Array[EnemySpawn]:
 	var found: Array[EnemySpawn] = []
@@ -549,6 +586,14 @@ func enemy_spawns() -> Array[EnemySpawn]:
 			if spawn != null:
 				found.append(spawn)
 	return found
+
+
+## Gives every piece of furniture and every trigger its place in the BulletManagers (they exist by now).
+func _setup_furniture_and_triggers() -> void:
+	for piece: Furniture in furnitures():
+		piece.register_hurtboxes(_player_bullets, _enemy_bullets)
+	for element: Trigger in triggers():
+		element.register(_player_bullets, self)
 
 
 func _setup_doors(frame_cells: Vector2i) -> void:
@@ -743,6 +788,12 @@ func _overlaps_obstacle(rect: Rect2) -> bool:
 			var cell: Vector2i = Vector2i(x, y)
 			if _high_obstacles.get_cell_source_id(cell) != -1 or _low_obstacles.get_cell_source_id(cell) != -1 \
 					or _walls.get_cell_source_id(cell) != -1 or (_pits != null and _pits.get_cell_source_id(cell) != -1):
+				return true
+	for piece: Furniture in furnitures():
+		if not piece.is_destroyed():
+			var piece_rect: Rect2 = piece.footprint_rect()
+			piece_rect.position = to_local(piece_rect.position)
+			if rect.intersects(piece_rect):
 				return true
 	return false
 

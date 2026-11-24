@@ -11,8 +11,8 @@ extends Node
 ##   spawn <enemy> <wave> <x> <y>     enemy: sleepwalker, night_light, lullaby, sheep (none = no enemy, for fixtures)
 ##   reinforce <x> <y>
 ##   door <N|E|S|W>
-##   furniture <kind> <x> <y>
-##   trigger <kind> <x> <y>
+##   furniture <bed|chair|desk> <x> <y>   (none = no def, for fixtures) the piece covers its size in tiles from (x, y) to the right and down
+##   trigger <lamp> <x> <y>                 (none = no kind, for fixtures)
 ## x and y count playable tiles from 0 at the top-left of the grid; markers sit at the center of their tile.
 
 const BASE_SCENE: PackedScene = preload("res://rooms/room_base.tscn")
@@ -24,6 +24,8 @@ const ENEMIES: Dictionary = {
 	"lullaby": "res://data/enemies/lullaby.tres",
 	"sheep": "res://data/enemies/sheep.tres",
 }
+const FURNITURE_DIR: String = "res://data/furniture/"
+const FURNITURE_KINDS: Array[String] = ["bed", "chair", "desk"]
 const GRID_CHARS: String = ".#HLP"
 const ROOM_TYPES: Dictionary = {
 	"start": Room.RoomType.START, "combat": Room.RoomType.COMBAT, "treasure": Room.RoomType.TREASURE,
@@ -228,7 +230,10 @@ func _add_furniture(room: Room, words: PackedStringArray, serial: int, errors: P
 		errors.append("furniture needs: furniture <kind> <x> <y>")
 		return
 	var furniture: Furniture = Furniture.new()
-	furniture.kind = StringName(words[1])
+	if FURNITURE_KINDS.has(words[1]):
+		furniture.def = load(FURNITURE_DIR + words[1] + ".tres") as FurnitureDef
+	elif words[1] != "none":
+		errors.append("unknown furniture: %s" % words[1])
 	furniture.position = _tile_center(words[2], words[3])
 	_adopt(room, "Furnitures", furniture, "Furniture_%s_%d" % [words[1], serial])
 
@@ -238,7 +243,10 @@ func _add_trigger(room: Room, words: PackedStringArray, serial: int, errors: Pac
 		errors.append("trigger needs: trigger <kind> <x> <y>")
 		return
 	var trigger: Trigger = Trigger.new()
-	trigger.kind = StringName(words[1])
+	if Trigger.KNOWN_KINDS.has(StringName(words[1])):
+		trigger.kind = StringName(words[1])
+	elif words[1] != "none":
+		errors.append("unknown trigger: %s" % words[1])
 	trigger.position = _tile_center(words[2], words[3])
 	_adopt(room, "Triggers", trigger, "Trigger_%s_%d" % [words[1], serial])
 

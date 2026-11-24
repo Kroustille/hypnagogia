@@ -10,3 +10,7 @@ extends Resource
 @export_range(0.0, 10.0, 0.1, "or_greater") var wave_pause: float = 2.0
 ## Where the player appears when entering a room, in tiles inside the door (read by story 4.8).
 @export_range(1.0, 10.0, 0.25, "or_greater") var player_entry_distance: float = 3.0
+## Radius of the lamp's dazzle around it, in tiles, measured center to center (story 4.4).
+@export_range(0.5, 10.0, 0.25, "or_greater") var lamp_radius_tiles: float = 3.0
+## Seconds a dazzled enemy stands still without attacking (story 4.4).
+@export_range(0.1, 10.0, 0.1, "or_greater") var lamp_dazzle_duration: float = 1.0

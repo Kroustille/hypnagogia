@@ -8,3 +8,5 @@ door_width_tiles = 2
 player_entry_distance = 3.0
 first_wave_delay = 1.0
 wave_pause = 2.0
+lamp_radius_tiles = 3.0
+lamp_dazzle_duration = 1.0

@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="FurnitureDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/furniture_def.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+id = &"bed"
+size = Vector2i(3, 2)
+max_hp = 30.0
+color = Color(0.55, 0.4, 0.7, 1)

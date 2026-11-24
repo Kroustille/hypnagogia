@@ -97,7 +97,7 @@ var _blinking: bool = false
 func _ready() -> void:
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 	collision_layer = Const.LAYER_PLAYER
-	collision_mask = Const.LAYER_WALLS | Const.LAYER_ENEMIES | Const.LAYER_HIGH_OBSTACLES | Const.LAYER_LOW_OBSTACLES # the dash and the walk stop on enemy bodies (FR4) and obstacles
+	collision_mask = Const.LAYER_WALLS | Const.LAYER_ENEMIES | Const.LAYER_HIGH_OBSTACLES | Const.LAYER_LOW_OBSTACLES | Const.LAYER_FURNITURE # the dash and the walk stop on enemy bodies (FR4), obstacles and furniture
 	_motor = PlayerMotor.new(Tuning.PLAYER)
 	_dash = Dash.new(Tuning.DASH)
 	_dash.ended.connect(_on_dash_ended)
