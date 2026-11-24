@@ -1,6 +1,6 @@
 # Story 3.3 : Dépenser sa lucidité : Éveil
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -36,6 +36,15 @@ Hors périmètre : bonus de palier (3.5), danger (3.6), distorsions et trembleme
 - [x] `Arena` : `_on_awakening_used(origin)` branché sur le joueur (même câblage que le graze de 3.2) : `_enemy_bullets.clear_all()`, recul des ennemis du rayon, anneau.
 - [x] `vfx/ring_pulse.gd` (`Node2D`, dessin d'un cercle qui grandit et s'estompe, rayon, couleur, durée en ticks du groupe `FX`) ; sons `sfx_awakening.wav`, `sfx_power_refused.wav` (générés, provisoires).
 - [x] Télémétrie : `TelemetrySession` compte les dépenses ; F3 affiche la recharge d'Éveil ; vérifications `t_awakening` ; `run_all.sh` une fois à la fin.
+
+### Review Findings
+
+- [ ] [Review][Patch] Recul dans l'ordre des enfants : un ennemi proche est bloqué par un ennemi plus loin qui n'a pas encore bougé (distance qui dépend de l'ordre d'apparition) [game/rooms/arena/arena.gd:231] — Correctif : collecter d'abord les ennemis vivants du rayon avec leur distance, les trier par distance décroissante (`sort_custom`, le plus loin d'abord), puis appeler `knock_back` ; ne compter `pushed` que si `knock_back` renvoie > 0.
+- [ ] [Review][Patch] La Veilleuse (tourelle « qui ne bouge jamais », FR28) est repoussée par l'Éveil et reste déplacée (décision 9) [game/enemies/night_light/night_light.gd:43] — Correctif : surcharger dans `NightLight` `func knock_back(_direction: Vector2, _distance_px: float) -> float: return 0.0` (commentaire : tourelle fixe, jamais poussée) ; ajouter un cas dans `t_awakening` (Veilleuse à 2 tuiles : position inchangée).
+- [ ] [Review][Patch] Écriture disque synchrone à chaque dépense, dans le tick physique du joueur (JSON complet + renommage), alors que `tier_changed` n'écrit pas [game/telemetry/telemetry.gd:99] — Correctif : retirer `_write()` de `_on_events_lucidity_spent` ; les dépenses partent avec `run_end` / `session_end` comme le temps par palier (`t_awakening` lit la session, pas le fichier).
+- [x] [Review][Defer] Pas de base `power.gd` ni de `awaken.gd` (architecture : glossaire `Awaken`, arbre `player/powers/power.gd`) ; la logique d'Éveil est dans `Player` et `Arena`, et la dépense part même si rien n'écoute `awakening_used` [game/player/player.gd:185] — reporté : écart spec/architecture, à trancher avant que 3.4 recopie le motif (rétro d'epic 3).
+- [x] [Review][Defer] `clear_all()` n'est pas protégé contre un appel pendant la boucle du manager et laisse les listes de touches / grazes en attente [game/combat/bullets/bullet_manager.gd:410] — reporté : latent, aucun appelant aujourd'hui hors du tick du joueur.
+- [x] [Review][Defer] LT sans hystérésis : une gâchette tenue autour de 0,5 peut redéclencher l'Éveil (30 de lucidité) ou le son de refus [game/project.godot:138] — reporté : manette réelle, NON VÉRIFIÉ.
 
 ## État du code concerné
 
@@ -82,6 +91,8 @@ Hors périmètre : bonus de palier (3.5), danger (3.6), distorsions et trembleme
 6. **Pas d'indicateur de recharge dans le HUD ; le son de refus est le seul retour** — Raison : le HUD n'a pas d'emplacement de pouvoir avant l'epic 5 ; ligne F3 pour le debug. Marqué `NON ÉVALUÉ` : à juger au playtest du jalon A.
 7. **`power_1` : clic droit et LT (axe 4)** — Raison : AC de l'epic ; `power_2` suivra en 3.4 (Maj, LB).
 8. **Éveil utilisable pendant un dash** — Raison : aucune règle contraire ; c'est une sortie de secours.
+9. **(Revue) La Veilleuse n'est pas repoussée par l'Éveil** — Question : l'AC dit « les ennemis à moins de 3 tuiles », mais la Veilleuse est une tourelle fixe (FR28, « ne bouge jamais »). Choix : immobile (recul ignoré). Raison : garde son rôle de point fixe et d'obstacle dans la salle ; changement d'une ligne si le playtest dit l'inverse.
+10. **(Revue) « Tous les projectiles » = ceux présents à l'activation** — Question : un ennemi qui tire dans le même tick, après le joueur dans l'arbre, garde sa salve. Choix : accepté, pas de correctif. Raison : c'est un tir neuf, annoncé par un télégraphe ; l'effacer imposerait un effacement différé ou une immunité de tir, plus coûteux pour un tick.
 
 ## Dev Agent Record
 
@@ -107,3 +118,4 @@ Modifiés : `game/core/tuning.gd`, `game/player/lucidity.gd`, `game/player/playe
 ### Change Log
 
 - 2026-11-24 : implémentation de la story 3.3 (Éveil), passée en review.
+- 2026-11-24 : revue de code (3 couches) : 3 correctifs en attente, 3 reports, décisions 9 et 10 ; story repassée en in-progress.

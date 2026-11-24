@@ -253,3 +253,9 @@
 ## Deferred from: story 3-3 (2026-11-24)
 
 - **NON ÉVALUÉ (humain) : sensation d'Éveil** : recul de 2 tuiles instantané, anneau placeholder, sons provisoires (remplacés par 7.7), recharge d'1 s sans indicateur HUD (emplacements en epic 5), recul qui n'interrompt ni charge ni télégraphe, LT sur manette réelle. À juger au playtest du jalon A.
+
+## Deferred from: code review of 3-3-depenser-sa-lucidite-eveil (2026-11-24)
+
+- **Pas de base `power.gd` ni de `awaken.gd`** (rétro de l'epic 3, avant que 3.4 recopie le motif) : l'architecture prévoit `player/powers/power.gd` et `Awaken` (glossaire) ; le code a `Awakening`, la logique dans `Player._try_awakening` et `Arena._on_awakening_used`. Conséquence : la lucidité est dépensée même si aucune salle n'écoute `awakening_used` (salle de test, futur type de salle). Trancher : aligner l'architecture sur le code, ou extraire une base `Power`.
+- **`BulletManager.clear_all()` sans garde de réentrance** (première story qui déclenche un effet depuis `grazed`, `dodged`, `Events.player_hit` ou un changement de palier, ex. objets de l'epic 5) : un appel pendant la boucle du manager déclenche l'assert « Slot freed twice », et les listes `_grazed_positions` / `_dodged_positions` / `_hit_target_ids` déjà remplies sont livrées après l'effacement. Ajouter un drapeau `_in_tick` + assert, et vider ces listes dans `clear_all()`.
+- **NON VÉRIFIÉ (manette réelle) : LT sans hystérésis** (playtest du jalon A) : `power_1` sur l'axe 4 avec zone morte 0,5 ; une gâchette tenue autour du seuil peut produire plusieurs `just_pressed`, donc un second Éveil non voulu (30 de lucidité) après la recharge, ou des sons de refus en rafale. Si gênant : réarmer seulement sous un seuil plus bas.
