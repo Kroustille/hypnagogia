@@ -6,8 +6,12 @@ extends Node
 ## one to the next through the open doors, behind a fade to black.
 
 ## How a run ended. Values are explicit because they travel as ints on Events.run_ended:
-## new outcomes are appended at the end (VICTORY: story 6.4).
-enum Outcome { DEATH = 0 }
+## new outcomes are appended at the end.
+enum Outcome { DEATH = 0, VICTORY = 1 }
+
+## Floor index of the deepest nightmare unlocked: the boss of that floor ends the run. One floor at the MVP (story 6.4),
+## the anchor of the unlocks of act 1.
+const DEEPEST_FLOOR_INDEX: int = 0
 
 ## Kept in the resource cache for the whole session: Main preloads run.tscn, which preloads this (AC 3).
 const ARENA_SCENE: PackedScene = preload("res://rooms/arena/arena.tscn")
@@ -19,6 +23,7 @@ const TREASURE_POOL_PATH: String = "res://data/pools/treasure_pool.tres"
 ## The items a shop may offer (story 5.5).
 const SHOP_POOL_PATH: String = "res://data/pools/shop_pool.tres"
 const FLOOR_DEF_PATH: String = "res://data/floors/onset.tres"
+const TICK_EPSILON: float = 1e-6
 
 ## The floor definition played (a variable so that a check can point it at a missing file).
 var floor_def_path: String = FLOOR_DEF_PATH
@@ -44,6 +49,10 @@ var _cell: Vector2i = Vector2i.ZERO
 var _loader: RoomLoader
 ## True from the moment a door was taken until the player controls the new room.
 var _traveling: bool = false
+## True from the death of the boss until the run ends by victory: the player cannot be hurt, no door is taken.
+var _victory_pending: bool = false
+## Ticks of the clock of the world left before the victory.
+var _victory_ticks_left: float = 0.0
 
 @onready var _player: Player = %Player
 @onready var _room_slot: Node = %RoomSlot
@@ -63,6 +72,8 @@ func _ready() -> void:
 	_player.died.connect(_on_player_died)
 	Events.room_cleared.connect(_on_events_room_cleared)
 	Events.shards_collected.connect(_on_events_shards_collected)
+	Events.boss_defeated.connect(_on_events_boss_defeated)
+	set_physics_process(false) # only the wait of the victory needs it
 	var playing_floor: bool = _options.mode == RunOptions.Mode.FLOOR and _start_floor()
 	if not playing_floor and not _start_single_room():
 		if _options.mode != RunOptions.Mode.ROOM:
@@ -101,6 +112,11 @@ func stock_of(cell: Vector2i) -> RoomStock:
 	if not stocks.has(cell):
 		stocks[cell] = RoomStock.new()
 	return stocks[cell]
+
+
+## Floor index of the deepest nightmare unlocked (0: only The Professor exists).
+func deepest_floor_index() -> int:
+	return DEEPEST_FLOOR_INDEX
 
 
 ## The room that is active now, null between two rooms.
@@ -312,9 +328,42 @@ func _on_player_died() -> void:
 	Events.run_ended.emit(Outcome.DEATH)
 
 
+## The boss died: if it is the deepest nightmare, the player is protected and the night ends after the delay. A boss of
+## a shallower floor leaves the run going. Ignored once the run is over.
+func _on_events_boss_defeated(boss_id: StringName) -> void:
+	if _ended or _victory_pending or _player.health.is_dead():
+		return
+	if state.floor_index != deepest_floor_index():
+		Log.info("run", "boss %s defeated on floor %d: not the deepest nightmare, the run goes on" % [boss_id, state.floor_index])
+		return
+	_victory_pending = true
+	_victory_ticks_left = Tuning.ROOM.boss_victory_delay * Engine.physics_ticks_per_second
+	_player.health.set_forced_invulnerability(true) # no bullet in flight, pit or late arrival can kill during the wait
+	set_physics_process(true)
+	Log.info("run", "boss %s defeated: victory in %s s" % [boss_id, Tuning.ROOM.boss_victory_delay])
+
+
+func _physics_process(_delta: float) -> void:
+	if not _victory_pending or _ended:
+		return
+	_victory_ticks_left -= GameClock.scale(GameClock.Group.WORLD)
+	if _victory_ticks_left > TICK_EPSILON:
+		return
+	_end_by_victory()
+
+
+## The delay is over: the night is won, once.
+func _end_by_victory() -> void:
+	_victory_pending = false
+	set_physics_process(false)
+	_ended = true
+	Log.info("run", "run ended outcome=victory")
+	Events.run_ended.emit(Outcome.VICTORY)
+
+
 ## A door was taken (a physics callback): the room is not touched here, the trip starts on the next idle moment.
 func _on_room_door_taken(side: int) -> void:
-	if _traveling or _ended or floor_layout == null:
+	if _traveling or _ended or _victory_pending or floor_layout == null:
 		return
 	_traveling = true
 	travel.call_deferred(side)
@@ -323,7 +372,7 @@ func _on_room_door_taken(side: int) -> void:
 ## Walks through the door of this side of the active room: fade to black, the old room is released, the neighbour
 ## replaces it, the player appears inside the opposite door, fade back. Called by the door signal, deferred.
 func travel(side: int) -> void:
-	if _ended:
+	if _ended or _victory_pending:
 		_traveling = false # the player died on the very frame of the door
 		return
 	_traveling = true

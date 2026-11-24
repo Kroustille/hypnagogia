@@ -16,3 +16,5 @@ extends Resource
 @export_range(0.1, 10.0, 0.1, "or_greater") var lamp_dazzle_duration: float = 1.0
 ## Seconds of each half of the fade to black between two rooms (story 4.8): to black, then back.
 @export_range(0.0, 2.0, 0.01, "or_greater") var transition_duration: float = 0.12
+## Seconds between the death of a boss and the end of the run by victory (story 6.4): the player cannot be hurt meanwhile.
+@export_range(0.0, 10.0, 0.1, "or_greater") var boss_victory_delay: float = 2.0
