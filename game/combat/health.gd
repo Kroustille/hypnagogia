@@ -127,12 +127,13 @@ func lose_max(amount: int) -> int:
 ## Gives back up to this many half-hearts of the max taken by lose_max() (the current hearts do not move: heal for those).
 ## Returns what was really given back.
 func restore_max(amount: int) -> int:
-	if not _check_amount(amount, "restore_max"):
+	if not _check_amount(amount, "restore_max") or _dead:
 		return 0
 	var given: int = mini(amount, _max_lost)
 	if given == 0:
 		return 0
 	max_half_hearts += given
+	armor = mini(armor, maxi(_cap_half_hearts - max_half_hearts, 0))
 	_max_lost -= given
 	changed.emit()
 	return given

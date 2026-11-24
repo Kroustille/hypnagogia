@@ -40,3 +40,26 @@ func test_restore_max_gives_back_only_what_was_lost() -> void:
 	assert_eq(_health.max_half_hearts, 6)
 	assert_eq(_health.half_hearts, 4, "the hearts do not come back by themselves")
 	assert_eq(_health.restore_max(2), 0)
+
+
+func test_restore_max_gives_back_exactly_what_was_taken() -> void:
+	var paid: int = _health.lose_max(2)
+	assert_eq(_health.restore_max(paid), 2)
+	assert_eq(_health.max_half_hearts, 6)
+
+
+func test_restore_max_gives_nothing_to_a_dead_player() -> void:
+	var paid: int = _health.lose_max(2)
+	_health.half_hearts = 0
+	_health.set("_dead", true)
+	assert_eq(_health.restore_max(paid), 0)
+	assert_eq(_health.max_half_hearts, 4)
+
+
+func test_restore_max_clamps_armor_to_the_cap() -> void:
+	var paid: int = _health.lose_max(2)
+	_health.add_armor(_health.cap_half_hearts() - _health.max_half_hearts)
+	assert_eq(_health.max_half_hearts + _health.armor, _health.cap_half_hearts())
+	_health.restore_max(paid)
+	assert_lte(_health.max_half_hearts + _health.armor, _health.cap_half_hearts())
+	assert_eq(_health.armor, _health.cap_half_hearts() - 6)

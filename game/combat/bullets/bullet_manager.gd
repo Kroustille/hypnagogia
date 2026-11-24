@@ -313,7 +313,7 @@ func _refresh_target_rects() -> void:
 func _test_targets(i: int) -> bool:
 	var pos: Vector2 = _positions[i]
 	var radius_sq: float = _radii[i] * _radii[i]
-	var piercing: bool = _flags[i] & FLAG_PIERCE != 0
+	var piercing: bool = _flags[i] & FLAG_PIERCE != 0 # a hurtbox with stops_piercing still ends the bullet
 	var already: PackedInt64Array = _pierced.get(i, PackedInt64Array()) if piercing else PackedInt64Array()
 	for t: int in _target_rects.size():
 		var rect: Rect2 = _target_rects[t]
@@ -333,7 +333,7 @@ func _test_targets(i: int) -> bool:
 			_hit_directions.append(_velocities[i].normalized())
 			if _targets[t].one_hit_per_tick:
 				_target_hittable[t] = false # the next bullets of this tick pass through
-			if piercing:
+			if piercing and not _targets[t].stops_piercing:
 				already.append(target_id)
 				_pierced[i] = already
 				continue

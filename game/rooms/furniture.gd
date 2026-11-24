@@ -102,6 +102,7 @@ func _make_hurtbox(box_name: String, camp: BulletManager.Camp) -> Hurtbox:
 	var box: Hurtbox = Hurtbox.new()
 	box.name = box_name
 	box.camp = camp
+	box.stops_piercing = true
 	box.add_child(_make_shape_node("Shape")) # before add_child(): its _ready() looks for it
 	add_child(box)
 	box.set_hit_filter(_can_be_hit)

@@ -56,6 +56,8 @@ const MAX_SHOT_SPEED: float = 59.0
 const MIN_HURTBOX_SIZE: float = 0.0625
 const MIN_MOVE_SPEED: float = 1.0
 const MIN_FIRE_RATE: float = 0.5
+## Damage never reaches 0: BulletManager refuses a shot that does no damage.
+const MIN_DAMAGE: float = 0.1
 
 ## Hearts, armor and invulnerability after a hit. Created in code (setup() before add_child()).
 var health: Health
@@ -186,7 +188,7 @@ func equip_bullets(manager: BulletManager) -> void:
 	_shot_params.speed = stats.value_of(StatBlock.Stat.SHOT_SPEED)
 	_shot_params.radius = maxf(tuning.hitbox_size, 0.0) / 2.0
 	_shot_params.lifetime = tuning.lifetime
-	_shot_params.damage = maxf(stats.value_of(StatBlock.Stat.DAMAGE), 0.0)
+	_shot_params.damage = stats.value_of(StatBlock.Stat.DAMAGE)
 	_shot_params.pierce = stats.value_of(StatBlock.Stat.PIERCE) > 0.0
 	_shot_params.appearance = manager.add_appearance(_make_shot_texture())
 
@@ -588,7 +590,7 @@ func _setup_stats() -> void:
 	# Limits no stack of items may cross (story 5.1).
 	stats.set_bounds(StatBlock.Stat.SHOT_SPEED, MIN_SHOT_SPEED, MAX_SHOT_SPEED)
 	stats.set_bounds(StatBlock.Stat.HURTBOX_SIZE, MIN_HURTBOX_SIZE, INF)
-	stats.set_bounds(StatBlock.Stat.DAMAGE, 0.0, INF)
+	stats.set_bounds(StatBlock.Stat.DAMAGE, MIN_DAMAGE, INF)
 	stats.set_bounds(StatBlock.Stat.MOVE_SPEED, MIN_MOVE_SPEED, INF)
 	stats.set_bounds(StatBlock.Stat.FIRE_RATE, MIN_FIRE_RATE, INF)
 	stats.changed.connect(_on_stat_changed)
@@ -619,7 +621,7 @@ func _on_stat_changed(stat: int) -> void:
 				_shot_params.speed = stats.value_of(StatBlock.Stat.SHOT_SPEED)
 		StatBlock.Stat.DAMAGE:
 			if _shot_params != null:
-				_shot_params.damage = maxf(stats.value_of(StatBlock.Stat.DAMAGE), 0.0)
+				_shot_params.damage = stats.value_of(StatBlock.Stat.DAMAGE)
 		StatBlock.Stat.PIERCE:
 			if _shot_params != null:
 				_shot_params.pierce = stats.value_of(StatBlock.Stat.PIERCE) > 0.0
@@ -646,9 +648,9 @@ func _setup_carrier() -> void:
 ## A price paid in hearts: the max goes down now (the current hearts come down with it).
 func _on_item_added(owned: OwnedItem) -> void:
 	if owned.def.max_half_hearts_delta < 0:
-		health.lose_max(-owned.def.max_half_hearts_delta)
+		owned.max_half_hearts_paid = health.lose_max(-owned.def.max_half_hearts_delta)
 
 
 func _on_item_removed(owned: OwnedItem) -> void:
-	if owned.def.max_half_hearts_delta < 0:
-		health.restore_max(-owned.def.max_half_hearts_delta)
+	if owned.max_half_hearts_paid > 0:
+		health.restore_max(owned.max_half_hearts_paid)

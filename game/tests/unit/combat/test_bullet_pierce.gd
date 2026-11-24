@@ -14,8 +14,9 @@ func before_each() -> void:
 	_hits = {}
 
 
-func _add_target(x: float) -> Hurtbox:
+func _add_target(x: float, stops_piercing: bool = false) -> Hurtbox:
 	var hurtbox: Hurtbox = Hurtbox.new()
+	hurtbox.stops_piercing = stops_piercing
 	hurtbox.camp = BulletManager.Camp.ENEMY
 	var shape_node: CollisionShape2D = CollisionShape2D.new()
 	var shape: RectangleShape2D = RectangleShape2D.new()
@@ -73,3 +74,16 @@ func test_the_memory_of_a_slot_does_not_leak_to_the_next_bullet() -> void:
 	for i: int in 360:
 		_manager._physics_process(1.0 / 60.0)
 	assert_eq(_count(first), 2, "one hit per bullet")
+
+
+func test_a_piercing_shot_is_stopped_by_furniture_but_not_by_the_lamp() -> void:
+	var lamp: Hurtbox = _add_target(40.0) # a trigger: pierced
+	var furniture: Hurtbox = _add_target(80.0, true)
+	var behind: Hurtbox = _add_target(120.0)
+	_shoot(true)
+	for i: int in 360:
+		_manager._physics_process(1.0 / 60.0)
+	assert_eq(_count(lamp), 1)
+	assert_eq(_count(furniture), 1, "the furniture takes the hit")
+	assert_eq(_count(behind), 0, "and the bullet ends there")
+	assert_eq(_manager.active_count, 0)

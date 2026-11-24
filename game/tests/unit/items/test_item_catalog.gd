@@ -45,3 +45,35 @@ func test_two_modifiers_on_one_stat_are_refused() -> void:
 	var second: ModifierDef = ModifierDef.new()
 	def.modifiers = [first, second]
 	assert_ne(ItemCatalog.problem_of(def), "")
+
+
+func _valid_def(id: StringName) -> ItemDef:
+	var def: ItemDef = ItemDef.new()
+	def.id = id
+	def.name_key = &"A"
+	def.bonus_key = &"B"
+	def.cost_key = &"C"
+	return def
+
+
+func test_a_positive_max_half_hearts_delta_is_refused() -> void:
+	var def: ItemDef = _valid_def(&"x")
+	def.max_half_hearts_delta = 2
+	assert_ne(ItemCatalog.problem_of(def), "")
+	def.max_half_hearts_delta = -2
+	assert_eq(ItemCatalog.problem_of(def), "")
+
+
+func test_a_duplicate_tag_is_refused() -> void:
+	var def: ItemDef = _valid_def(&"x")
+	def.tags = [&"heavy", &"heavy"]
+	assert_ne(ItemCatalog.problem_of(def), "")
+	def.tags = [&"heavy", &"light"]
+	assert_eq(ItemCatalog.problem_of(def), "")
+
+
+func test_a_duplicate_id_is_detected() -> void:
+	var seen: Dictionary[StringName, bool] = {}
+	assert_true(ItemCatalog.is_new_id(_valid_def(&"x"), seen))
+	assert_true(ItemCatalog.is_new_id(_valid_def(&"y"), seen))
+	assert_false(ItemCatalog.is_new_id(_valid_def(&"x"), seen))

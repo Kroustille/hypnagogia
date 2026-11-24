@@ -90,10 +90,12 @@ func test_lead_legs_slow_the_walk_and_clear_cleanly() -> void:
 	await _lay_and_step_on(LEGS)
 	assert_almost_eq(_player.stats.value_of(StatBlock.Stat.MOVE_SPEED), Tuning.PLAYER.move_speed * 0.8, 0.0001)
 	assert_gt(_player.stats.value_of(StatBlock.Stat.PIERCE), 0.0)
+	assert_true(_player._shot_params.pierce, "the shot goes through")
 	var owned: OwnedItem = _player.carrier.loadout.items()[0]
 	_player.carrier.loadout.remove(owned)
 	assert_almost_eq(_player.stats.value_of(StatBlock.Stat.MOVE_SPEED), Tuning.PLAYER.move_speed, 0.0001)
 	assert_eq(_player.stats.value_of(StatBlock.Stat.PIERCE), 0.0)
+	assert_false(_player._shot_params.pierce)
 
 
 func test_removing_a_tooth_gives_the_heart_back() -> void:
@@ -173,3 +175,11 @@ func test_stat_bounds_are_set_on_the_player() -> void:
 	_player.stats.set_modifier(self, StatBlock.Stat.FIRE_RATE, StatBlock.Kind.MULTIPLY, 0.0)
 	assert_gte(_player.stats.value_of(StatBlock.Stat.FIRE_RATE), 0.5)
 	_player.stats.clear_source(self)
+
+
+func test_damage_is_floored_above_zero_and_the_shot_stays_valid() -> void:
+	var source: RefCounted = RefCounted.new()
+	_player.stats.set_modifier(source, StatBlock.Stat.DAMAGE, StatBlock.Kind.ADD_FLAT, -1000.0)
+	assert_almost_eq(_player.stats.value_of(StatBlock.Stat.DAMAGE), Player.MIN_DAMAGE, 0.0001)
+	assert_gt(_player._shot_params.damage, 0.0, "BulletManager would refuse a 0 damage shot")
+	assert_almost_eq(_player._shot_params.damage, Player.MIN_DAMAGE, 0.0001)

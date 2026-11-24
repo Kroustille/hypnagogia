@@ -30,6 +30,13 @@ static func problem_of(def: ItemDef) -> String:
 		return "no id"
 	if def.name_key == &"" or def.bonus_key == &"" or def.cost_key == &"":
 		return "needs a name, a bonus and a cost key"
+	if def.max_half_hearts_delta > 0:
+		return "a positive max_half_hearts_delta is not handled (the item would give nothing)"
+	var tags_seen: Dictionary[StringName, bool] = {}
+	for tag: StringName in def.tags:
+		if tags_seen.has(tag):
+			return "duplicate tag %s (it would be counted twice)" % tag
+		tags_seen[tag] = true
 	var seen: Dictionary[int, bool] = {}
 	for modifier: ModifierDef in def.modifiers:
 		if modifier == null:
@@ -58,6 +65,7 @@ static func _load(dir: String, check: bool) -> Array[ItemDef]:
 			names.append(name)
 	names.sort()
 	var found: Array[ItemDef] = []
+	var ids_seen: Dictionary[StringName, bool] = {}
 	for name: String in names:
 		var def: ItemDef = load(dir.path_join(name)) as ItemDef
 		if def == null:
@@ -66,5 +74,24 @@ static func _load(dir: String, check: bool) -> Array[ItemDef]:
 			continue
 		if check and not validate(def):
 			continue
+		if check and not _register_id(def, ids_seen):
+			continue
 		found.append(def)
 	return found
+
+
+## True the first time an id is seen; a repeated id is reported (journal + assert in debug builds) and refused.
+static func _register_id(def: ItemDef, ids_seen: Dictionary[StringName, bool]) -> bool:
+	if not is_new_id(def, ids_seen):
+		Log.error("items", "item %s refused: id already used by another definition" % def.id)
+		assert(false, "Duplicate ItemDef id")
+		return false
+	return true
+
+
+## Records the id of def in ids_seen; false when it was already there.
+static func is_new_id(def: ItemDef, ids_seen: Dictionary[StringName, bool]) -> bool:
+	if ids_seen.has(def.id):
+		return false
+	ids_seen[def.id] = true
+	return true

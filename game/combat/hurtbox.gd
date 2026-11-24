@@ -16,6 +16,9 @@ signal damage_received(info: DamageInfo)
 ## Set on the player's hurtbox: its first hit opens the invulnerability (story 2.1).
 @export var one_hit_per_tick: bool = false
 
+## Furniture: a piercing bullet is stopped here (it hits, then is freed) instead of flying through.
+@export var stops_piercing: bool = false
+
 var _refused: bool = false
 var _filter_error_reported: bool = false
 var _hit_filter: Callable # set by the owner; returns bool: "can this hurtbox be hit now?"
