@@ -1,6 +1,6 @@
 # Story 6.1 : Affronter Le Professeur : la Dictée
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -93,6 +93,20 @@ epics.md (Story 6.1) ; GDD, Ennemis et IA, Le Professeur (2 500 PV, Dictée, 5 t
 13. **`Boss` émet `boss_health_changed(0, max)` en quittant l’arbre** (mort, salle détruite) : c’est ce qui cache la barre ; 6.4 pourra ajouter un signal de mort sans toucher à la barre. La barre se cache aussi sur `run_started` et `run_ended`.
 14. **Tirage du trou par `Boss.draw_unit()`** (un `randf()` du flux `boss`), `ChalkPatterns.next_gap(unit, …)` reste pure : la règle scratch interdit `randf` hors d’une ligne `_rng.stream(`.
 
+**Revue de code (2026-11-24) :**
+
+15. **Revue — quatre portes déclarées (décision 9) gardées** : l'impasse n'a qu'un lien, `Room._setup_doors` scelle les trois autres (`room.gd:912`), donc une seule porte ouverte en jeu : l'AC 1 « une porte » est tenue.
+16. **Revue — espacement 0,75 (fente de 4 px = hurtbox Lucide de 4 px) gardé** : fermé aujourd'hui parce que le test de touche de `BulletManager` est `<=` (`bullet_manager.gd:327`) et qu'aucun objet ne réduit la hurtbox sous 0,25 ; marge nulle reportée (deferred-work).
+17. **Revue — renfort et reflet exclus de la salle du cauchemar** : conforme au GDD (`gdd.md:266`, decision-log : « jamais en salle de cauchemar »).
+
+### Review Findings
+
+Revue de code (2026-11-24, Opus, trois couches en passes isolées : Blind Hunter, Edge Case Hunter, Acceptance Auditor) sur `d48c06b..2489183`, sur une copie jetable du commit `2489183` (l'arbre de travail portait la 6.2) : GUT `integration/bosses` 15/15, `unit/bosses` et `unit/ui/test_boss_bar` verts. Vérifiés sans défaut : `Kind { ROW = 0 }` explicite ; `tick(clock_step, pace)` (signe à l'horloge seule, plancher 0,4 s tenu sous `pace_mult` et `telegraph_mult` 0,85) ; `fire_hold` gèle signe et cadence, l'annonce continue ; crochets `Enemy` vides, appelés une fois (coup létal : barre à 0 puis `_on_death` → `_halt`) ; mort du joueur = `run_ended` immédiat (`run.gd:312`) → plus aucune rangée ; Éveil : craies effacées, recul refusé ; flux `boss` seul tiré, `combat`/`drops` intacts ; trou toujours franchissable (≥ 5 tuiles libres, pas de passage entre craies ni le long des murs, décalage ≤ 10 tuiles = 3,9 t/s requis contre 4,8 avec Jambes de plomb ; la Copie d'examen vierge ne s'applique pas au cauchemar) ; balles bloquées par les murs et les portes fermées (tuiles), vie 18 s ; barre sur la rangée du mur bas (ne masque pas l'aire de jeu), titre au-dessus de la première rangée de craies, cachés à `run_started`/`run_ended`, clés dans `strings.csv` ; F1 `H` libre. Relance d'annonce par phase et alternance des groupes (décision 11) : réglées par la 6.2 (`b135aa8`).
+
+- [ ] [Review][Patch] Bande sûre sous le mur haut : la Dictée ne touche jamais un joueur collé au mur nord [`game/bosses/runners/row_runner.gd:10`, `:72`, `:80`] — une rangée naît à 1,5 tuile du bord (disques de 1,25 à 1,75 tuile), le joueur (corps 0,375) peut se tenir à 0,19 tuile : sonde sur 7 rangées, 0 recouvrement contre le mur haut, 407 à 4 tuiles. Correctif : remplacer `SPAWN_OFFSET_TILES` par `const SPAWN_MARGIN_TILES: float = 0.0625` et, aux deux endroits, `arena.position.y + (Tuning.COMBAT.enemy_bullet_radius + SPAWN_MARGIN_TILES) * Const.TILE_SIZE` (centre à 5 px du mur, dans une case de sol ; un helper `_row_y(arena)` évite la duplication). Vérifié sur la copie jetable : 97 recouvrements contre le mur, 0 refus du pool, `integration/bosses` 15/15. Mettre à jour la ligne « une rangée naît à 1,5 tuile » des Pièges. Test : un rectangle de hurtbox collé au mur haut, hors du trou, est recouvert par une rangée.
+- [ ] [Review][Patch] Nom du boss en dur dans l'UI [`game/ui/hud/boss_bar.gd:15`, `:51`] — `NAME_KEYS` par `BossDef.id` oblige à toucher la barre pour chaque cauchemar. Ajouter `@export var name_key: StringName = &""` à `BossDef` (`boss_def.gd`), `name_key = &"BOSS_PROFESSOR_NAME"` dans `professor.tres`, `signal boss_engaged(boss_id: StringName, name_key: StringName, max_hp: float)` (`events.gd:131`), `Events.boss_engaged.emit(_boss_def.id, _boss_def.name_key, hp.maximum)` (`boss.gd:58`), et dans la barre `_label.text = tr(name_key) if name_key != &"" else ""` ; supprimer `NAME_KEYS`. Adapter `test_boss_bar.gd` et `test_professor_room.gd` (paramètres du signal).
+- [ ] [Review][Patch] Surcharge vide [`game/bosses/runners/row_runner.gd:23-24`] — `setup()` ne fait qu'appeler `super` : la supprimer.
+
 ## Dev Agent Record
 
 ### Notes de complétion
@@ -112,4 +126,5 @@ Modifiés : `game/enemies/enemy.gd`, `game/combat/telegraph.gd`, `game/core/run_
 ### Journal des modifications
 
 - 2026-11-24 : implémentation de la story 6.1 (cadre des boss, Dictée du Professeur), passée en `review`.
+- 2026-11-24 : revue de code, 3 correctifs à appliquer, story repassée en `in-progress`.
 

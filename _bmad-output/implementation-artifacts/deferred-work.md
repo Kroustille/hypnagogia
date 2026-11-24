@@ -537,3 +537,7 @@
 
 - **NON ÉVALUÉ (humain) : Calcul mental et Examen final** (playtest du jalon A) : lisibilité de la spirale (4 bras, 60°/s, craies à 5 t/s) et de l'éventail visé (vitesse 6 t/s posée au jugé), fenêtre du dash contre la règle (voir note de complétion : parade en dash vers la barre OK par le calcul, dash sur place trop court de 0,02 s), lisibilité du signe de la règle (rectangle + 3 flèches, 0,8 s), enchaînement 8 s / 8 s, durée réelle du combat (théorie ≈ 73 s, cible 75 s).
 - **Règle : la première règle arrive 7 s après le début de l'Examen final** (signe à 6,2 s), pas dès l'annonce : à confirmer au playtest.
+
+## Deferred from: code review of 6-1-affronter-le-professeur-la-dictee (2026-11-24)
+
+- **Marge nulle entre deux craies d'une rangée** (première story qui réduit la hurtbox du joueur sous 0,25 tuile, ou réglage de la Dictée au playtest) : `spacing_tiles` 0,75 = diamètre 0,5 + 0,25, soit une fente de 4 px, exactement la hurtbox Lucide (`lucid_hurtbox_size` 0,25) ; elle n'est fermée que parce que `BulletManager` touche à distance `<=` rayon (`game/combat/bullets/bullet_manager.gd:327`). La borne du stat est 0,0625 (`player.gd:56`) : une hurtbox plus petite passerait entre les craies. Vérifier que la fente (`spacing_tiles - 2 × enemy_bullet_radius`) reste strictement plus petite que la plus petite hurtbox atteignable en jeu (aujourd'hui 0,25), ou passer l'espacement à 0,7.
