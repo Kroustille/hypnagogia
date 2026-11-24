@@ -51,6 +51,12 @@ func _ready() -> void:
 	_map_view = MAP_VIEW_SCENE.instantiate() as FloorMapView
 	_ui.add_child(_map_view) # over the HUD, under the menus
 	_ui.move_child(_map_view, 1)
+	var boss_bar: BossBar = BossBar.new()
+	_ui.add_child(boss_bar) # the health bar of a boss and the chalk title of its phase, over the map and under the menus
+	_ui.move_child(boss_bar, 2)
+	var chalk_title: ChalkTitle = ChalkTitle.new()
+	_ui.add_child(chalk_title)
+	_ui.move_child(chalk_title, 3)
 	if OS.is_debug_build():
 		_check_viewport_size()
 		_check_collision_layer_names()

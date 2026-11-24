@@ -86,3 +86,5 @@ ITEM_BLANK_EXAM_COST,"Chrono de 45 s par salle : à zéro, les ennemis restants 
 ITEM_NAKED_IN_PUBLIC_NAME,Être nu en public
 ITEM_NAKED_IN_PUBLIC_BONUS,"Les ennemis ne tirent pas pendant 1,5 s au début de chaque salle"
 ITEM_NAKED_IN_PUBLIC_COST,"Perd toute l'armure, et plus aucune armure ensuite"
+BOSS_PROFESSOR_NAME,Le Professeur
+BOSS_PROFESSOR_PHASE_1,Dictée
