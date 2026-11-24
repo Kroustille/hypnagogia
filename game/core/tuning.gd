@@ -12,3 +12,4 @@ const AWAKENING: AwakeningTuning = preload("res://data/tuning/awakening_tuning.t
 const GLIDE: GlideTuning = preload("res://data/tuning/glide_tuning.tres")
 const ROOM: RoomTuning = preload("res://data/tuning/room_tuning.tres")
 const ECONOMY: EconomyTuning = preload("res://data/tuning/economy_tuning.tres")
+const WAKE: WakeTuning = preload("res://data/tuning/wake_tuning.tres")
