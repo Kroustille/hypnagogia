@@ -1,6 +1,6 @@
 # Story 6.8 : Sauvegarder, quitter et reprendre
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -82,6 +82,19 @@ epics.md (Story 6.8) ; GDD, Quitter en pleine run (limite acceptée : save-scum)
 8. **Une run seedée se sauvegarde et se reprend comme une autre** (`seeded` conservé : elle n'écrira toujours rien dans le profil).
 9. **Un `run.json` d'une version de format plus récente est quarantainé**, jamais lu à moitié.
 
+### Review Findings
+
+Lignes de `d7d8b04`.
+
+- [ ] [Review][Patch] HUD vide après une reprise : `_restore_from` (dans `_start_floor`) remplit les cases actif et consommable avant `run_started`, que `Hud._on_events_run_started` vide ; l'actif reste utilisable mais sans icône ni barre de charge jusqu'au prochain événement [game/run/run.gd:225-228 ; game/ui/hud/hud.gd:196] — à la fin de `_announce_restored_items()` : `var active: OwnedItem = loadout.active`, `if active != null: Events.active_item_changed.emit(active.def.id, active.charge, active.charge_max)` ; `if loadout.consumable != null: Events.consumable_changed.emit(loadout.consumable.id, loadout.consumable.name_key)` ; test : écouter ces deux signaux après `start_resume`.
+- [ ] [Review][Patch] Une nuit seedée reprise enregistre le succès `synergy_three` (AR29) : `loadout.add()` pendant `_restore_from` déclenche `synergy_activated` avant `run_seeded` ; `Achievements._seeded` vaut encore `false` (et `_seed_code` `""`) ⇒ `_obtain()` écrit `profile.json` [game/progression/achievements.gd:70 ; game/run/run.gd:203-211] — dans `_on_synergy_activated` : `if _seed_code.is_empty(): return` (aucun `run_seeded` reçu pour cette run : ce sont des synergies rejouées, déjà comptées) ; test : reprise seedée avec `fall_3` atteinte ⇒ pas de succès.
+- [ ] [Review][Patch] Bannières et son de synergie rejoués à chaque reprise : `BuildCarrier` neuf (`_announced` vide, `_acquiring` faux) ⇒ `_announce_pending()` pour chaque synergie restaurée [game/items/build_carrier.gd:214-231 ; game/run/run.gd:203-211] — ajouter `BuildCarrier.restore_item(def: ItemDef, charge: int) -> OwnedItem` : `_acquiring = true`, `loadout.set_active(def, charge)` / `loadout.add(def)`, puis `_to_announce.clear()` et `_acquiring = false` (les synergies restent dans `_announced`) ; l'utiliser dans `_restore_from`.
+- [ ] [Review][Patch] Télémétrie : une nuit reprise sous un palier autre que Lucide est comptée Lucide : `lucidity.restore_value` émet `lucidity_tier_changed` avant `run_started` (ignoré, `_tier == -1`), puis `run_started` remet `_tier = 0` [game/run/run.gd:218, 225] — dans `_announce_restored_items()` : `if _player.lucidity.live_tier != Lucidity.Tier.LUCID: Events.lucidity_tier_changed.emit(_player.lucidity.live_tier, Lucidity.Tier.LUCID)`.
+- [ ] [Review][Patch] `run.json` survit au repli sur l'arène : l'instantané est écrit en tête de `_enter_cell`, avant le chargement de la scène ; si elle ne charge pas, la run passe à l'arène (« Quitter ») mais le fichier reste ⇒ chaque lancement propose de reprendre, repasse à l'arène et réécrit le même fichier (AC 1, AC 3) [game/run/run.gd:504 `_fall_back_to_arena` ; game/run/run.gd:170-188 branches d'échec de `_start_floor`] — `SaveService.delete_run()` dans `_fall_back_to_arena()` et avant chaque `return false` de `_start_floor` (plan invalide, `validate`, `_enter_cell` faux).
+- [ ] [Review][Patch] Un changement du pool de salles n'est pas détecté : `FloorGenerator` tire la forme sur le flux `layout` sans le pool, seules les salles (flux `rooms`) changent ; `validate()` ne contrôle que l'existence des cellules ⇒ salles visitées remplacées, offres sauvées posées dans d'autres salles, `cleared` sur des salles jamais jouées (AC 4) [game/run/run_snapshot.gd:34-56, 62-84, 88-131, 137-157] — `var plan: String` = `run.floor_layout.signature().sha256_text()` dans `capture` ; `"plan"` dans `to_dict` ; `from_dict` exige une `String` ; `validate(layout)` : `if layout.signature().sha256_text() != plan: return "the floor of the seed changed"` ; test : modifier `plan` ⇒ quarantaine + `Notice`.
+- [ ] [Review][Patch] Quarantaine ratée de `run.json` annoncée comme réussie : `read_run` ignore le retour de `quarantine()` et met `CORRUPT` (même défaut que celui corrigé en 6.7 dans `read_json`) [game/autoloads/save_service.gd:104-105] — `last_read_status = Status.CORRUPT if quarantine(path) else Status.UNREADABLE`.
+- [ ] [Review][Patch] `pre_run.gd` n'arrête pas vraiment la suite : `quit(1)` est différé, GUT lance les tests avant et `SaveService` pointe encore `user://` [game/tests/support/pre_run.gd:15-16] — appeler `abort()` (GutHookScript, lu par `gut.gd:763`) avant `quit(1)`.
+
 ## Dev Agent Record
 
 ### Notes de complétion
@@ -100,6 +113,11 @@ Reports traités : stocks de salles sérialisés ; durée et objets d'une run re
 13. **Durée de la nuit = temps de jeu** (`play_seconds`), plus l'horloge murale : `Achievements` la lit sur la `Run` (repli horloge murale sans run).
 14. **Les objets restaurés sont réémis sur `item_acquired`** (télémétrie et succès de ce lancement) sans bannière.
 15. **L'échec de `store_string` (6.7) n'a pas de test** : impossible à provoquer sans disque plein.
+16. **(revue) Progrès de la salle perdu par « Sauvegarder et quitter »** (ennemis tués, achats, dégâts subis depuis l'entrée) : voulu (GDD, décision 3), le save-scum est une limite acceptée par la GDD. Écarté.
+17. **(revue) États d'objets entre salles non sauvés** (café en cours, bonus de Chute libre, Ailes de papier suspendues) : décision 5 confirmée, écarté.
+18. **(revue) Quitter pendant le délai de victoire rejoue le boss** : même limite que la décision 15 de la 6.7 (≈ 2 s), acceptée, écarté.
+19. **(revue) Changement du pool de salles entre deux versions** : la forme de l'étage ne dépend pas du pool (flux `layout`), seules les salles changent ; `validate()` ne le voit pas. Traité en patch (empreinte du plan), pas en report : peu coûteux et c'est l'intention de l'AC 4.
+20. **(revue) Reproduction exacte vérifiée** par un test jetable (3 seeds, sauvegarde à l'entrée de la 2e salle, puis 2 à 3 salles jusqu'au boss avec ennemis tués, comparées après reprise : flux RNG, stocks, Éclats, santé, objets, ennemis et positions) : 0 écart.
 
 ### Liste des fichiers
 
@@ -108,3 +126,4 @@ Reports traités : stocks de salles sérialisés ; durée et objets d'une run re
 ### Journal des modifications
 
 - 2026-11-24 : instantané de salle, reprise, invite, sauvegarder et quitter ; statut `review`.
+- 2026-11-24 : revue de code (3 couches) : 8 patchs, 4 reports ; statut `in-progress`.
