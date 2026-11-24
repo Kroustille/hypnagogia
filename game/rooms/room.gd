@@ -27,6 +27,10 @@ const TILE_PIT: int = 4
 ## ignore it then (the WaveRunner does).
 signal emptied
 
+## The player stands in the doorway of an open door (story 4.8). side: Door.Side. Emitted from a physics callback: the
+## listener acts later (Run.travel), it never frees this room from here.
+signal door_taken(side: int)
+
 ## Physics priority of the room: its camera is placed after the player has moved (priority 0) on the same tick.
 const CAMERA_PHYSICS_PRIORITY: int = 10
 
@@ -116,6 +120,8 @@ class PendingReinforcement extends RefCounted:
 	var sign: ReinforcementSign
 
 var _rng: RunRng
+## How the room is entered on a floor; null for a stand-alone room.
+var _options: RoomOptions
 ## The floor of the run this room belongs to (stream key).
 var _floor_index: int = 0
 ## Enemies planned for the current wave, dead ones included (null-free): decides the type of the reinforcement.
@@ -174,11 +180,13 @@ func doors() -> Array[Door]:
 
 ## Dependency injection: call before add_child().
 ## rng: the run's streams; without it the room makes a fixed one (verification scenes). floor_index: the floor the room
-## belongs to, part of the key of its combat and cosmetic streams.
-func setup(player: Player, rng: RunRng = null, floor_index: int = 0) -> void:
+## belongs to, part of the key of its combat and cosmetic streams. options: the cell, the doors that lead somewhere, whether
+## the fight is already won and where the player comes in (story 4.8).
+func setup(player: Player, rng: RunRng = null, floor_index: int = 0, options: RoomOptions = null) -> void:
 	_player = player
 	_rng = rng
 	_floor_index = floor_index
+	_options = options
 
 
 func _ready() -> void:
@@ -210,11 +218,16 @@ func _ready() -> void:
 	_nav = RoomNav.from_room(self) # after the tiles, the doors and the furniture
 	_setup_damage_numbers() # after the bullets: drawn above them
 	_setup_lucidity_fx(frame_px())
+	set_notify_transform(true) # the navigation grid follows the room if it is ever moved
+	if _player != null and _player.lucidity != null:
+		_player.lucidity.begin_room() # the room tier of a room starts at the live tier, not at the one of the last fight
 
 	process_physics_priority = CAMERA_PHYSICS_PRIORITY # after the player (0): the camera reads this tick's position
 	snap_camera()
 
-	if _waves_wanted():
+	if _options != null and _options.already_cleared:
+		_cleared = true # won on an earlier visit: doors open, nobody appears, nothing announced
+	elif _waves_wanted():
 		_setup_waves() # last: spawns need the bullets and the player
 		_close_doors() # a fight starts on entry: begin_room() shuts them again (no effect)
 
@@ -287,7 +300,13 @@ func cell_center_at(global_pos: Vector2) -> Vector2:
 func _exit_tree() -> void:
 	if is_instance_valid(_player):
 		_player.leave_room(self)
+		_unsubscribe_from_player()
 	_clear_pending() # a room torn down never spawns
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_TRANSFORM_CHANGED and _nav != null:
+		_nav.origin = global_position
 
 
 func _physics_process(_delta: float) -> void:
@@ -520,9 +539,37 @@ func is_nightmare() -> bool:
 	return room_type == RoomType.NIGHTMARE
 
 
-## Where the player enters the room (center of the playable area), in global coordinates.
+## Where the player enters the room, in global coordinates: inside the door it came by, or the center of the playable area.
 func player_spawn_position() -> Vector2:
+	if _options != null and _options.entry_side >= 0:
+		return entry_position(_options.entry_side)
 	return to_global(frame_px() / 2.0)
+
+
+## The point inside the room, Tuning.ROOM.player_entry_distance tiles from the center of the door of this side, in global
+## coordinates (the player arrives there facing the inside). Usable before the room is in the tree.
+func entry_position(side: Door.Side) -> Vector2:
+	var inward: Vector2 = Vector2.ZERO
+	match side:
+		Door.Side.N:
+			inward = Vector2.DOWN
+		Door.Side.S:
+			inward = Vector2.UP
+		Door.Side.W:
+			inward = Vector2.RIGHT
+		Door.Side.E:
+			inward = Vector2.LEFT
+	return to_global(Door.center_for(side, frame_cells()) + inward * Tuning.ROOM.player_entry_distance * Const.TILE_SIZE)
+
+
+## The cell of the floor this room occupies (the origin for a stand-alone room).
+func cell() -> Vector2i:
+	return _options.cell if _options != null else Vector2i.ZERO
+
+
+## True when this room runs a fight: its waves are armed (a cleared, start, treasure or shop room has none).
+func has_fight() -> bool:
+	return _wave_runner != null
 
 
 ## Hook: how the room is named in the log.
@@ -535,9 +582,13 @@ func _build_decor(_frame_cells: Vector2i) -> void:
 	pass
 
 
-## Hook: true when the room runs waves on entry. A pre-drawn room does when it has enemy markers.
+## Hook: true when the room runs waves on entry. A pre-drawn room does when it has a marker that can appear: one whose
+## wave would be empty keeps no fight, so no door stays shut for good.
 func _waves_wanted() -> bool:
-	return not enemy_spawns().is_empty()
+	for spawn: EnemySpawn in enemy_spawns():
+		if spawn.enemy != null and spawn.enemy.scene != null:
+			return true
+	return false
 
 
 ## Hook: the waves of this room. The pre-drawn rooms read their EnemySpawn markers, in tree order: a wave is the
@@ -635,11 +686,43 @@ func _setup_doors(frame_cells: Vector2i) -> void:
 	_doors = doors()
 	for door: Door in _doors:
 		door.attach(_walls, frame_cells)
+		if _options != null and _options.use_links and not _options.link_sides.has(door.side):
+			door.seal() # no neighbour: a wall, never an opening on the void
+		door.taken.connect(_on_door_taken)
 
 
+func _on_door_taken(side: Door.Side) -> void:
+	door_taken.emit(side)
+
+
+## Shuts the doors. A player standing in a doorway is first put back inside the room, at the entry point of that door:
+## a door never closes on a body. Enemies and reinforcements never appear that close to a door (validator).
 func _close_doors() -> void:
 	for door: Door in _doors:
+		if door.state == Door.State.OPEN and _player_in_doorway(door):
+			_place_player_at(entry_position(door.side))
 		door.close()
+
+
+## True when the body of the player touches a cell of the door.
+func _player_in_doorway(door: Door) -> bool:
+	if _player == null or not _player.is_inside_tree():
+		return false
+	var half_px: float = Tuning.PLAYER.hitbox_size * Const.TILE_SIZE / 2.0
+	var here: Vector2 = to_local(_player.global_position)
+	for cell: Vector2i in door.cells():
+		var rect: Rect2 = Rect2(Vector2(cell * Const.TILE_SIZE), Vector2.ONE * Const.TILE_SIZE).grow(half_px)
+		if rect.has_point(here):
+			return true
+	return false
+
+
+## Puts the player somewhere inside the room: no motion left, no trail, the camera on it.
+func _place_player_at(position_px: Vector2) -> void:
+	_player.global_position = position_px
+	_player.stop_motion()
+	_player.reset_physics_interpolation()
+	snap_camera()
 
 
 func _setup_waves() -> void:
@@ -688,6 +771,16 @@ func _setup_enemy_bullets() -> void:
 		_player.lucidity.room_danger_raised.connect(_on_room_danger_raised)
 		_player.awakening_used.connect(_on_awakening_used)
 		_player.glided.connect(_on_player_glided)
+
+
+## The room leaves the tree: nothing of the player points to it any more (the player outlives the room).
+func _unsubscribe_from_player() -> void:
+	if _player.lucidity != null and _player.lucidity.room_danger_raised.is_connected(_on_room_danger_raised):
+		_player.lucidity.room_danger_raised.disconnect(_on_room_danger_raised)
+	if _player.awakening_used.is_connected(_on_awakening_used):
+		_player.awakening_used.disconnect(_on_awakening_used)
+	if _player.glided.is_connected(_on_player_glided):
+		_player.glided.disconnect(_on_player_glided)
 
 
 ## Awakening (story 3.3): wipes the enemy bullets, pushes the close enemies back, shows a ring. origin: global.

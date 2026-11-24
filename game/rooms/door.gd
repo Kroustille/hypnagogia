@@ -3,7 +3,7 @@ extends Node2D
 ## A door of a room (story 4.2). It sits at a canonical place of its side of the wall frame (middle of the side,
 ## Tuning.ROOM.door_width_tiles wide) and is made of wall tiles of the room's Walls layer: closed or sealed it puts
 ## them back, open it removes them. Shots, enemies and the Glide ray therefore respect it with no code of their own.
-## Crossing a door arrives with story 4.8.
+## Crossing a door (story 4.8): an open door has an exit zone, an Area2D that sees the player and says so with `taken`.
 
 enum Side { N, E, S, W }
 ## SEALED: no neighbour, stays a wall for good. CLOSED: a wall for now (fight in progress). OPEN: passable.
@@ -13,12 +13,16 @@ enum State { SEALED, CLOSED, OPEN }
 const WALL_SOURCE_ID: int = 1
 
 signal state_changed(state: State)
+## The player is in the doorway of an open door. Emitted from a physics callback: act on it later, never free the room here.
+signal taken(side: Side)
 
 @export var side: Door.Side = Door.Side.N
 var state: State = State.OPEN
 
 var _walls: TileMapLayer
 var _frame_cells: Vector2i = Vector2i.ZERO
+## Senses the player in the doorway; watches only while the door is open.
+var _exit_zone: Area2D
 
 
 ## The wall cells of a door on a side of a frame of frame_cells cells, in frame coordinates.
@@ -52,6 +56,7 @@ func attach(walls: TileMapLayer, frame_cells: Vector2i) -> void:
 	_walls = walls
 	_frame_cells = frame_cells
 	position = center_for(side, frame_cells)
+	_make_exit_zone()
 	_apply()
 
 
@@ -100,3 +105,30 @@ func _apply() -> void:
 	# Physics bodies of a TileMapLayer follow a cell change one step late: force them now, so the door is solid
 	# (or free) on this very tick.
 	_walls.update_internals()
+	if _exit_zone != null:
+		_exit_zone.set_deferred(&"monitoring", state == State.OPEN)
+
+
+## The doorway as an Area2D on the player layer: it sees the player only, and only while the door is open.
+func _make_exit_zone() -> void:
+	if _exit_zone != null:
+		return
+	_exit_zone = Area2D.new()
+	_exit_zone.name = "ExitZone"
+	_exit_zone.collision_layer = 0
+	_exit_zone.collision_mask = Const.LAYER_PLAYER
+	_exit_zone.monitoring = false
+	_exit_zone.monitorable = false
+	var shape_node: CollisionShape2D = CollisionShape2D.new()
+	var shape: RectangleShape2D = RectangleShape2D.new()
+	var width_px: float = Tuning.ROOM.door_width_tiles * Const.TILE_SIZE
+	shape.size = Vector2(width_px, Const.TILE_SIZE) if side == Side.N or side == Side.S else Vector2(Const.TILE_SIZE, width_px)
+	shape_node.shape = shape
+	_exit_zone.add_child(shape_node)
+	_exit_zone.body_entered.connect(_on_exit_zone_body_entered)
+	add_child(_exit_zone)
+
+
+func _on_exit_zone_body_entered(_body: Node2D) -> void:
+	if state == State.OPEN:
+		taken.emit(side)

@@ -40,6 +40,7 @@ static func validate_room(room: Room, id: String) -> PackedStringArray:
 			problems.append("two doors on the %s side" % Door.Side.find_key(door.side))
 		sides[door.side] = true
 	_check_player_spawn(room, playable, problems)
+	_check_entry_points(room, playable, doors, problems)
 	_check_enemies(room, playable, frame, doors, problems)
 	_check_furniture(room, playable, problems)
 	_check_triggers(room, playable, problems)
@@ -91,7 +92,20 @@ static func _require_frame_wall(walls: TileMapLayer, cell: Vector2i, problems: P
 		problems.append("frame wall missing at %s" % cell)
 
 
-## The player enters at the center of the room (until story 4.8): that cell must be free.
+## The player comes in by a door at its entry point (story 4.8): the cells on both sides of that point must be free of
+## wall, obstacle, pit and furniture, else the player would appear inside a body.
+static func _check_entry_points(room: Room, playable: Vector2i, doors: Array[Door], problems: PackedStringArray) -> void:
+	var blockers: Dictionary = _blockers(room)
+	for door: Door in doors:
+		var entry: Vector2 = room.to_local(room.entry_position(door.side))
+		# The door is 2 tiles wide: the entry point sits on the line between two cells, the body covers both.
+		var across: Vector2 = Vector2.RIGHT if door.side == Door.Side.N or door.side == Door.Side.S else Vector2.DOWN
+		for lateral: float in [-0.5, 0.5]:
+			_check_marker_cell("entry point of the %s door at %s" % [Door.Side.find_key(door.side), entry],
+					entry + across * lateral * Const.TILE_SIZE, Rect2i(Vector2i.ONE, playable), blockers, problems)
+
+
+## The player at the center of the room (a stand-alone room, the first room of a run): that cell must be free.
 static func _check_player_spawn(room: Room, playable: Vector2i, problems: PackedStringArray) -> void:
 	var position: Vector2 = room.to_local(room.player_spawn_position())
 	_check_marker_cell("player spawn at %s" % position, position, Rect2i(Vector2i.ONE, playable), _blockers(room), problems)
