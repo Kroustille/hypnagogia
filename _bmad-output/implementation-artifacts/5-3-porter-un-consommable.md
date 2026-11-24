@@ -1,6 +1,6 @@
 # Story 5.3 : Porter un consommable
 
-Status: in-progress
+Status: done
 
 ## Story
 
@@ -85,9 +85,11 @@ epics.md (Story 5.3) ; GDD « Consommables » ; deferred-work (`Shooter` / caden
 
 Revue de code 2026-11-24 (trois couches : Blind Hunter, Edge Case Hunter, Acceptance Auditor). Les AC 1 à 9 sont tenus ; trois correctifs sur l'armement du pickup.
 
-- [ ] [Review][Patch] Pause / fondu de porte arment le consommable déposé sous le joueur [game/items/pickup.gd:102] — `Main._freeze` (pause, perte de focus) et `Run.travel` passent la salle en `PROCESS_MODE_DISABLED` : l'Area2D sort de l'espace physique et émet `body_exited` (vérifié par une scène : `can_process()` vaut false pendant ce signal) ; `_on_body_exited` arme alors le pickup et écrit `offer.armed = true`. À la reprise, `body_entered` revient et le consommable est repris aussitôt (échange à chaque pause, contraire à l'AC2). Correctif : dans `_on_body_exited`, `if not _armed and can_process() and _player.can_process(): _arm()`.
-- [ ] [Review][Patch] Le repli des 3 ticks arme un pickup que le joueur va toucher [game/items/pickup.gd:118] — (a) pendant le fondu, le joueur est désactivé (hors espace physique) alors que la nouvelle salle tourne : une offre non armée près de la porte d'entrée s'arme et est prise à la fin du fondu ; (b) un dépôt déplacé vers la cellule libre la plus proche (joueur qui plane ou dashe au-dessus d'un trou) ne recouvre pas le joueur, s'arme en 3 ticks et est repris dès que le joueur atterrit dessus. Correctif : `if not _player.can_process(): _alive_ticks = 0; return` en tête de `_update_arming`, et armer seulement si `_alive_ticks >= ARMING_SETTLE_TICKS and global_position.distance_to(_player.global_position) > ARM_DISTANCE_PX` (nouvelle constante `ARM_DISTANCE_PX: float = RADIUS_PX + Const.TILE_SIZE`) au lieu de « pas de chevauchement ».
-- [ ] [Review][Patch] Un consommable déposé non armé n'est pas grisé [game/items/pickup.gd:74] — `is_available()` ignore `_armed`, donc `_refresh_look()` le dessine prenable alors qu'il est inerte (doc : « grisé et inerte quand il ne peut pas être pris »). Correctif : `return not _collected and _armed and _player != null and _can_take()` (décision 14).
+- [x] [Review][Patch] Pause / fondu de porte arment le consommable déposé sous le joueur [game/items/pickup.gd:102] — `Main._freeze` (pause, perte de focus) et `Run.travel` passent la salle en `PROCESS_MODE_DISABLED` : l'Area2D sort de l'espace physique et émet `body_exited` (vérifié par une scène : `can_process()` vaut false pendant ce signal) ; `_on_body_exited` arme alors le pickup et écrit `offer.armed = true`. À la reprise, `body_entered` revient et le consommable est repris aussitôt (échange à chaque pause, contraire à l'AC2). Correctif : dans `_on_body_exited`, `if not _armed and can_process() and _player.can_process(): _arm()`.
+- [x] [Review][Patch] Le repli des 3 ticks arme un pickup que le joueur va toucher [game/items/pickup.gd:118] — (a) pendant le fondu, le joueur est désactivé (hors espace physique) alors que la nouvelle salle tourne : une offre non armée près de la porte d'entrée s'arme et est prise à la fin du fondu ; (b) un dépôt déplacé vers la cellule libre la plus proche (joueur qui plane ou dashe au-dessus d'un trou) ne recouvre pas le joueur, s'arme en 3 ticks et est repris dès que le joueur atterrit dessus. Correctif : `if not _player.can_process(): _alive_ticks = 0; return` en tête de `_update_arming`, et armer seulement si `_alive_ticks >= ARMING_SETTLE_TICKS and global_position.distance_to(_player.global_position) > ARM_DISTANCE_PX` (nouvelle constante `ARM_DISTANCE_PX: float = RADIUS_PX + Const.TILE_SIZE`) au lieu de « pas de chevauchement ».
+- [x] [Review][Patch] Un consommable déposé non armé n'est pas grisé [game/items/pickup.gd:74] — `is_available()` ignore `_armed`, donc `_refresh_look()` le dessine prenable alors qu'il est inerte (doc : « grisé et inerte quand il ne peut pas être pris »). Correctif : `return not _collected and _armed and _player != null and _can_take()` (décision 14).
+
+Correctifs appliqués et vérifiés le 2026-11-24 (un test GUT chacun dans `test_consumable_slot.gd`, suite verte).
 
 ## Dev Agent Record
 
