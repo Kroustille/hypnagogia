@@ -1,6 +1,6 @@
 # Story 6.2 : Affronter Le Professeur : Calcul mental et Examen final
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -78,8 +78,26 @@ epics.md (Story 6.2) ; GDD, Le Professeur (trois épreuves, spirale 4 bras 60°/
 
 ## Dev Agent Record
 
+### Décisions complémentaires (dev, sans Kroustille)
+
+8. **`spread_deg` = angle entre les deux craies extrêmes** de l'éventail (3 craies sur 20° : -10°, 0°, +10°).
+9. **Première règle 7 s après le début de l'Examen final** (signe à 6,2 s) : pas de règle pendant l'annonce ni juste après le départ de la Dictée.
+10. **Vitesse des craies visées 6 t/s** (le GDD ne la donne pas) ; la spirale tire à 5 t/s.
+11. **Une règle déjà lancée est libérée à l'arrêt de son runner** (sortie de phase, mort, fin de run) ; tant que la phase dure, elle va au bout même pendant une annonce (elle avance seule). `fire_hold` la fige et désactive son contact.
+12. **Annonce en cours de combat = nouvel état ANNOUNCING du boss** (même télégraphe que l'ouverture) ; un second seuil franchi pendant l'annonce relance l'annonce de la phase atteinte.
+13. **`SPIRAL` ignore `interval`** (c'est `emit_interval`) et `RULER` ignore `bullet_speed` : `validate()` ne les exige plus pour ces genres.
+14. **Fenêtre de dash contre la règle** : passage de la barre sur le corps du joueur = (1 + 0,375) / 8 = 0,17 s > 0,15 s d'i-frames : un dash sur place (sans mouvement) échoue de 0,02 s ; un dash vers la barre (vitesse relative ≈ 25 t/s) la franchit en ≈ 0,06 s, et marche si la barre est à moins de 3 tuiles au départ du dash (testé à 2 tuiles). Même sens que la barre : moins de marge. À juger à la main ; réglage par donnée (`sweep_speed`, `thickness_tiles`).
+
 ### Notes de complétion
+
+- Genres `SPIRAL`, `AIMED`, `RULER` ajoutés à la fin de `BossAttack.Kind` ; `BossPhase.alternate_seconds` / `extras` ; `Boss` gère les changements de phase avec annonce (attaques suspendues, craies en vol conservées), l'alternance des ensembles et les extras.
+- `Hitbox.setup(..., heavy)`, `DamageInfo.Source.RULER = 6`, `Tuning.COMBAT.heavy_hit_half_hearts = 2`. `AttackSign` : formes `BAND`, `LINE_ARROW`, `RING` (6.3 ajoutera son cercle à `RING`).
+- Tests : GUT 698 / 698 (dont `test_heavy_hit`, `test_boss_duration`, `test_professor_phases`, `test_chalk_patterns` complété) ; 60 s d'Examen final en Abandon : `refused_count == 0`.
 
 ### Liste des fichiers
 
+`game/bosses/{boss,boss_attack,boss_phase,chalk_patterns,attack_sign,ruler}.gd`, `game/bosses/runners/{attack_runner,spiral_runner,aimed_runner,ruler_runner}.gd`, `game/combat/{hitbox,damage_info}.gd`, `game/core/combat_tuning.gd`, `game/data/tuning/combat_tuning.tres`, `game/data/bosses/professor.tres`, `game/localization/strings.csv`, tests (`unit/bosses/test_boss_duration`, `test_chalk_patterns`, `unit/combat/test_heavy_hit`, `integration/bosses/test_professor_phases`).
+
 ### Journal des modifications
+
+- 2026-11-24 : implémentation de la story 6.2 (commits 5e538ab à 59b6e6c).

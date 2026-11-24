@@ -532,3 +532,8 @@
 ## Deferred from: story 6-1-affronter-le-professeur-la-dictee (2026-11-24)
 
 - **NON ÉVALUÉ (humain) : la Dictée** (playtest du jalon A) : lisibilité et difficulté (trou de 5 tuiles, chute à 5 t/s, craies espacées de 0,75, rangée toutes les 2 s, signe de 0,5 s, annonce de 1,5 s), placement de la barre de vie (bas) et du titre à la craie (haut), vitesse d'écriture du titre (12 lettres/s). Valeurs de `game/data/bosses/professor.tres` posées au jugé. Sons provisoires réutilisés (annonce : Veilleuse, signe : Berceuse), à remplacer par la 7.7.
+
+## Deferred from: story 6-2-affronter-le-professeur-calcul-mental-et-examen-final (2026-11-24)
+
+- **NON ÉVALUÉ (humain) : Calcul mental et Examen final** (playtest du jalon A) : lisibilité de la spirale (4 bras, 60°/s, craies à 5 t/s) et de l'éventail visé (vitesse 6 t/s posée au jugé), fenêtre du dash contre la règle (voir note de complétion : parade en dash vers la barre OK par le calcul, dash sur place trop court de 0,02 s), lisibilité du signe de la règle (rectangle + 3 flèches, 0,8 s), enchaînement 8 s / 8 s, durée réelle du combat (théorie ≈ 73 s, cible 75 s).
+- **Règle : la première règle arrive 7 s après le début de l'Examen final** (signe à 6,2 s), pas dès l'annonce : à confirmer au playtest.
