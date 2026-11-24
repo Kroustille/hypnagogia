@@ -179,11 +179,15 @@ func equip_bullets(manager: BulletManager) -> void:
 func enter_room(room: Room) -> void:
 	_room = room
 	_pit_guard = PitGuard.new()
+	# The spawn cell is the first safe position: a first tick ending in a pit still falls (Run places the player there).
+	var spawn: Vector2 = room.player_spawn_position()
+	_pit_guard.observe(room.cell_center_at(spawn), room.is_floor_at(spawn) and not room.is_pit_at(spawn))
 
 
-## The room goes away: no more pit test.
-func leave_room() -> void:
-	_room = null
+## The room goes away: no more pit test. Ignored when another room has become current since (the next one may enter first).
+func leave_room(room: Room) -> void:
+	if _room == room:
+		_room = null
 
 
 func _physics_process(delta: float) -> void:
@@ -193,7 +197,7 @@ func _physics_process(delta: float) -> void:
 		_facing = wish.normalized()
 	# The motor runs on the real delta so the ramps and the paused state stay consistent with the input;
 	# it keeps stepping during a dash so walking resumes smoothly when the dash ends.
-	var motor_velocity: Vector2 = _motor.step(wish, delta)
+	_motor.step(wish, delta)
 	_dash.tick(clock_scale, Input.is_action_just_pressed(&"dash"), _facing)
 	_update_powers(clock_scale)
 	_update_shooting(clock_scale) # before the movement: sees "is the dash active this tick"
@@ -203,7 +207,7 @@ func _physics_process(delta: float) -> void:
 		velocity = _dash.velocity(delta)
 	else:
 		# The clock scale is applied once, on the final velocity (move_and_slide() uses the unscaled delta).
-		velocity = motor_velocity * clock_scale
+		velocity = _motor.velocity * clock_scale # read after the powers: a fall in this tick zeroed it
 	move_and_slide()
 	_dash.finish_tick()  # after the movement: listeners of dash_ended see the final position
 	if not _dash.is_active():
@@ -287,7 +291,7 @@ func _check_pits() -> void:
 	if _room == null or health.is_dead():
 		return
 	var on_floor: bool = _room.is_floor_at(global_position)
-	var safe: bool = on_floor and (can_fly_over_pits() or not _room.is_pit_at(global_position))
+	var safe: bool = on_floor and not _room.is_pit_at(global_position) # flight only removes the fall, never a pit as a safe place
 	_pit_guard.observe(_room.cell_center_at(global_position), safe)
 	if _is_over_pit():
 		_fall()
@@ -299,6 +303,7 @@ func _fall() -> void:
 	var from: Vector2 = global_position
 	global_position = _pit_guard.last_safe
 	velocity = Vector2.ZERO
+	_motor.reset() # else the motor rewrites the velocity next tick and the player walks back into the pit
 	reset_physics_interpolation()
 	var amount: int = roundi(stats.value_of(StatBlock.Stat.PIT_DAMAGE))
 	Log.debug("combat", "player fell at %s, back to %s damage=%d" % [from, global_position, amount])

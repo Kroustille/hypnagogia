@@ -124,6 +124,38 @@ func test_flying_over_pits_never_falls() -> void:
 	Input.action_release(&"move_right")
 	assert_gt(_player.global_position.x, 380.0, "crossed the band")
 	assert_eq(_player.health.half_hearts, 6)
+	assert_false(_harness.room.is_pit_at(_player._pit_guard.last_safe), "a pit is never remembered as a safe place")
+
+
+func test_a_fall_drops_the_momentum() -> void:
+	await _stand_at(CELL_20_X)
+	var before: int = _player.health.half_hearts
+	Input.action_press(&"move_right")
+	var fell: bool = await _harness.until(func() -> bool: return _player.health.half_hearts < before, 60)
+	assert_true(fell)
+	assert_eq(_player._motor.velocity, Vector2.ZERO, "the speed is gone at the tick of the fall")
+	await _harness.ticks(1)
+	Input.action_release(&"move_right")
+	assert_lt(_player._motor.velocity.x, 80.0, "the next tick restarts from rest, not from full speed")
+
+
+func test_the_spawn_cell_is_a_safe_place_from_the_start() -> void:
+	var room: Room = _harness.room
+	_player.global_position = Vector2(344.0, ROW_Y) # in the band
+	_player.enter_room(room)
+	assert_true(_player._pit_guard.has_safe())
+	assert_eq(_player._pit_guard.last_safe, room.cell_center_at(room.player_spawn_position()))
+	await _harness.ticks(2)
+	assert_lt(_player.global_position.x, PIT_LEFT_EDGE_X, "a first tick in a pit falls back to the spawn cell")
+
+
+func test_leaving_another_room_keeps_the_pits_of_the_current_one() -> void:
+	var other: Room = Room.new()
+	_player.leave_room(other)
+	other.free()
+	assert_not_null(_player._room, "a room that is not the current one cannot cut the pits")
+	_player.leave_room(_harness.room)
+	assert_null(_player._room)
 
 
 func test_pit_damage_comes_from_the_stat() -> void:

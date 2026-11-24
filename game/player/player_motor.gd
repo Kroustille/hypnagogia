@@ -34,6 +34,11 @@ func step(wish: Vector2, dt: float) -> Vector2:
 	return velocity
 
 
+## Drops the speed (a fall back to a safe place).
+func reset() -> void:
+	velocity = Vector2.ZERO
+
+
 func _validate_time(value: float, field: String) -> void:
 	if value < MIN_RAMP_TIME:
 		Log.error("input", "PlayerTuning.%s is %s, using %s" % [field, value, MIN_RAMP_TIME])

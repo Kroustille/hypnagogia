@@ -264,7 +264,7 @@ func cell_center_at(global_pos: Vector2) -> Vector2:
 
 func _exit_tree() -> void:
 	if is_instance_valid(_player):
-		_player.leave_room()
+		_player.leave_room(self)
 	_clear_pending() # a room torn down never spawns
 
 
