@@ -9,6 +9,7 @@ var _main: Main
 
 
 func before_each() -> void:
+	Main.start_in_bedroom = false
 	_main = MAIN_SCENE.instantiate() as Main
 	add_child(_main)
 	await get_tree().process_frame

@@ -17,6 +17,8 @@ func before_each() -> void:
 
 
 func after_each() -> void:
+	GameClock.paused = false
+	Input.action_release(&"pause")
 	Main.start_in_bedroom = false # the default of the suite (tests/support/pre_run.gd)
 	RoomLoader.collect_orphans(true)
 	remove_child(_main)

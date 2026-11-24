@@ -214,6 +214,7 @@ func _enter_bedroom() -> void:
 	_run_over = false
 	_hud.visible = false
 	_clear_active_scene() # also unbinds the map
+	Audio.set_music_muffle(Audio.OPEN_CUTOFF_HZ) # the muffle of a run ended in low lucidity does not follow into the bedroom
 	_freeze(false)
 	var bedroom: Bedroom = BEDROOM_SCENE.instantiate() as Bedroom
 	bedroom.sleep_requested.connect(_on_bedroom_sleep_requested)

@@ -37,6 +37,7 @@ func _ready() -> void:
 ## settings menu, or on the seed button when the seed window closes).
 func open(seed_code: String, focus: Focus = Focus.RESUME) -> void:
 	_seed_label.text = tr(&"UI_PAUSE_SEED") % seed_code
+	_seed_label.visible = not seed_code.is_empty() # no run behind it (the bedroom)
 	show()
 	match focus:
 		Focus.SETTINGS:

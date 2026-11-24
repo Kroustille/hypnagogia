@@ -62,6 +62,8 @@ func open(seed_code: String, outcome: int = Run.Outcome.DEATH, wake_minute: int 
 	_armed = false
 	_restart_button.disabled = true
 	_new_seed_button.disabled = true
+	_new_seed_button.focus_mode = Control.FOCUS_NONE # disabled buttons must not take the focus during the guard
+	_bedroom_button.focus_mode = Control.FOCUS_NONE
 	_bedroom_button.disabled = true
 	_answered = false
 	_question.text = tr(&"UI_WAKE_QUESTION")
@@ -81,6 +83,8 @@ func _physics_process(_delta: float) -> void:
 		_restart_button.disabled = false
 		_new_seed_button.disabled = false
 		_bedroom_button.disabled = false
+		_new_seed_button.focus_mode = Control.FOCUS_ALL
+		_bedroom_button.focus_mode = Control.FOCUS_ALL
 		_set_answers_enabled(true)
 
 

@@ -9,6 +9,7 @@ var _view: FloorMapView
 
 
 func before_each() -> void:
+	Main.start_in_bedroom = false
 	Main.default_mode = RunOptions.Mode.FLOOR
 	_main = MAIN_SCENE.instantiate() as Main
 	add_child(_main)

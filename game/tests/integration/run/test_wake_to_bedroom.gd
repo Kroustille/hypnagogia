@@ -16,6 +16,8 @@ func before_each() -> void:
 
 
 func after_each() -> void:
+	GameClock.paused = false
+	Input.action_release(&"pause")
 	RoomLoader.collect_orphans(true)
 	remove_child(_main)
 	_main.queue_free()
@@ -60,6 +62,7 @@ func test_back_to_the_bedroom_after_a_victory() -> void:
 	await _end_run(Run.Outcome.VICTORY)
 	(_wake().get_node("%BedroomButton") as Button).pressed.emit()
 	await wait_physics_frames(2)
+	assert_eq(Audio.music_cutoff_hz(), Audio.OPEN_CUTOFF_HZ)
 	assert_true(_has(Bedroom))
 	assert_false(_has(Run))
 	assert_false(GameClock.paused)
