@@ -13,6 +13,8 @@ var hp: HitPoints
 ## Registered by the room with the player's BulletManager.
 var hurtbox: Hurtbox
 var telegraph: Telegraph
+## The room's danger profile (story 3.6), read when the enemy fires or starts a telegraph. Never null.
+var danger: DangerProfile
 
 var _def: EnemyDef
 var _target: Node2D
@@ -28,8 +30,10 @@ var _dead: bool = false
 
 
 ## Dependency injection: call before add_child(). target: what the enemy chases; target_hurtbox: what its contact hits;
-## bullets: the room's enemy BulletManager (optional: only shooters need it).
-func setup(def: EnemyDef, target: Node2D, target_hurtbox: Hurtbox, bullets: BulletManager = null) -> void:
+## bullets: the room's enemy BulletManager (optional: only shooters need it). danger: the room's profile, shared and
+## mutated by the room (optional: a fresh neutral profile of its own otherwise).
+func setup(def: EnemyDef, target: Node2D, target_hurtbox: Hurtbox, bullets: BulletManager = null, room_danger: DangerProfile = null) -> void:
+	danger = room_danger if room_danger != null else DangerProfile.new()
 	_def = def
 	_bullets = bullets
 	_target = target
@@ -82,6 +86,12 @@ func _ready() -> void:
 	telegraph.name = "Telegraph"
 	telegraph.setup(GameClock.Group.ENEMIES)
 	add_child(telegraph)
+
+
+## Starts the telegraph with the room's danger applied (a telegraph already running keeps its duration).
+## Returns its duration in seconds.
+func _start_telegraph_of(base_seconds: float, sound: AudioStream) -> float:
+	return telegraph.start(base_seconds, sound, danger.telegraph_mult)
 
 
 func is_dead() -> bool:

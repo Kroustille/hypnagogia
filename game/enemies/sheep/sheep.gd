@@ -175,7 +175,7 @@ func _enter(next: State) -> void:
 			# Frozen here: a direction, not a point to aim at. Neither the backup nor the charge follow the target.
 			_charge_direction = (_target_position() - global_position).normalized()
 			_sprite.texture = _scrape_textures[0]
-			telegraph.start(_sheep_def.telegraph_duration, TELEGRAPH_SOUND)
+			_start_telegraph_of(_sheep_def.telegraph_duration, TELEGRAPH_SOUND)
 		State.BACKUP:
 			_sprite.texture = _charge_texture
 			_ticks_left = _backup_seconds * Engine.physics_ticks_per_second

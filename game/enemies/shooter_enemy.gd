@@ -15,6 +15,8 @@ var _volley_count: int = 0
 var _spread_radians: float = 0.0
 var _interval_seconds: float = 0.0
 var _telegraph_seconds: float = 0.0
+## Speed of the bullets before the room's danger (tiles per second): the multiplier never compounds on it.
+var _base_bullet_speed: float = 0.0
 
 
 func _ready() -> void:
@@ -52,7 +54,8 @@ func _ready() -> void:
 		_assert_failed("ShooterDef bullet_speed must be finite, > 0 and under one tile per tick")
 	_telegraph_seconds = telegraph_seconds
 	_bullet_params = BulletParams.new() # own instance, never a shared Resource
-	_bullet_params.speed = speed if _volley_count > 0 else 1.0
+	_base_bullet_speed = speed if _volley_count > 0 else 1.0
+	_bullet_params.speed = _base_bullet_speed
 	_bullet_params.radius = Tuning.COMBAT.enemy_bullet_radius
 	_bullet_params.lifetime = Tuning.COMBAT.enemy_bullet_lifetime
 	_bullet_params.damage = Tuning.COMBAT.hit_damage_half_hearts
@@ -78,7 +81,7 @@ func _is_cycle_over() -> bool:
 ## Starts the telegraph (sound included) and restarts the cycle. Called by the subclass's _enter(TELEGRAPH).
 func _start_telegraph(sound: AudioStream) -> void:
 	_restart_cycle()
-	telegraph.start(_telegraph_seconds, sound)
+	_start_telegraph_of(_telegraph_seconds, sound)
 
 
 ## Fires one volley at the target's current position. Returns the number of bullets fired (0 without a target, on
@@ -92,6 +95,7 @@ func _fire_volley() -> int:
 		return 0
 	var aim: Vector2 = to.normalized()
 	var fired: int = 0
+	_bullet_params.speed = _base_bullet_speed * danger.enemy_bullet_speed_mult # read now: bullets in flight keep theirs
 	for i: int in _volley_count:
 		var angle: float = _spread_radians * (i - (_volley_count - 1) / 2.0)
 		if _bullets.fire(_bullet_params, origin, aim.rotated(angle)):

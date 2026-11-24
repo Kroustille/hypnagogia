@@ -91,7 +91,7 @@ func _enter(next: State) -> void:
 		State.TELEGRAPH:
 			velocity = Vector2.ZERO
 			_sprite.texture = _raise_texture
-			telegraph.start(_sleepwalker_def.telegraph_duration, TELEGRAPH_SOUND)
+			_start_telegraph_of(_sleepwalker_def.telegraph_duration, TELEGRAPH_SOUND)
 		State.RUSH:
 			_sprite.texture = _walk_texture
 			_rush_ticks_left = _rush_seconds * Engine.physics_ticks_per_second

@@ -3,7 +3,7 @@ extends Node
 ## Announces an attack (FR26, AR7): every enemy attack starts with start(). Its duration is
 ## max(base x multiplier, Tuning.COMBAT.min_telegraph), counted in game ticks of the owner's clock group.
 ## Plays the telegraph sound; the animation is the owner's (it swaps its sprite texture on the same tick).
-## The multiplier stays 1 until the danger exists (epic 3: room.danger.telegraph_mult).
+## The multiplier is the room's danger.telegraph_mult (story 3.6).
 ## As a child of its owner at the same tick priority it ticks after it: started on tick N it reads
 ## 24 ticks (0.4 s at 60 Hz) and the owner sees it inactive on tick N + 24.
 
