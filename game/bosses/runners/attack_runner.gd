@@ -22,6 +22,8 @@ static func make(attack: BossAttack) -> AttackRunner:
 			return AimedRunner.new()
 		BossAttack.Kind.RULER:
 			return RulerRunner.new()
+		BossAttack.Kind.RING:
+			return RingRunner.new()
 	Log.error("combat", "no runner for the attack kind %d" % attack.kind)
 	return null
 

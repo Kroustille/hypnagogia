@@ -61,3 +61,12 @@ static func aimed_fan(aim: Vector2, count: int, spread_deg: float) -> Array[Vect
 		var offset: float = 0.0 if count == 1 else lerpf(-spread_deg / 2.0, spread_deg / 2.0, float(i) / (count - 1))
 		found.append(base.rotated(deg_to_rad(offset)))
 	return found
+
+
+## Unit directions of a ring: count chalks evenly spread around a point, the first at offset_deg (0 = right). Empty for
+## fewer than one chalk or a non-finite offset.
+static func ring_directions(count: int, offset_deg: float) -> Array[Vector2]:
+	if not is_finite(offset_deg):
+		var none: Array[Vector2] = []
+		return none
+	return spiral_directions(fposmod(offset_deg, 360.0), count)

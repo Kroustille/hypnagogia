@@ -118,3 +118,27 @@ func test_a_single_chalk_fan_is_the_aim_and_a_zero_aim_fires_nothing() -> void:
 	assert_almost_eq(ChalkPatterns.aimed_fan(Vector2.UP * 5.0, 1, 20.0)[0], Vector2.UP, Vector2.ONE * 1e-5)
 	assert_eq(ChalkPatterns.aimed_fan(Vector2.ZERO, 3, 20.0).size(), 0)
 	assert_eq(ChalkPatterns.aimed_fan(Vector2(0.0, 1e-4), 3, 20.0).size(), 0)
+
+
+func test_a_ring_of_twelve_is_thirty_degrees_apart() -> void:
+	var ring: Array[Vector2] = ChalkPatterns.ring_directions(12, 0.0)
+	assert_eq(ring.size(), 12)
+	assert_almost_eq(ring[0], Vector2.RIGHT, Vector2.ONE * 1e-5)
+	for i: int in 12:
+		assert_almost_eq(rad_to_deg(ring[i].angle_to(ring[(i + 1) % 12])), 30.0, 1e-3)
+
+
+func test_successive_rings_offset_by_half_a_step_never_coincide_and_repeat_every_two() -> void:
+	var first: Array[Vector2] = ChalkPatterns.ring_directions(12, 0.0)
+	var second: Array[Vector2] = ChalkPatterns.ring_directions(12, 15.0)
+	var third: Array[Vector2] = ChalkPatterns.ring_directions(12, 30.0)
+	for chalk: Vector2 in second:
+		for other: Vector2 in first:
+			assert_gt(rad_to_deg(absf(chalk.angle_to(other))), 14.9, "a chalk of the second ring is in a hole of the first")
+	for i: int in 12:
+		assert_almost_eq(third[i], first[(i + 1) % 12], Vector2.ONE * 1e-5, "every other circle has the same holes: a fixed pattern")
+
+
+func test_a_ring_without_chalks_or_with_a_bad_offset_is_empty() -> void:
+	assert_eq(ChalkPatterns.ring_directions(0, 0.0).size(), 0)
+	assert_eq(ChalkPatterns.ring_directions(12, NAN).size(), 0)

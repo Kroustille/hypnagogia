@@ -6,7 +6,7 @@ extends Resource
 
 ## Kinds of attack. Explicit values: they are serialized in .tres files, so a new kind is added at the END and nothing
 ## is ever renumbered.
-enum Kind { ROW = 0, SPIRAL = 1, AIMED = 2, RULER = 3 }
+enum Kind { ROW = 0, SPIRAL = 1, AIMED = 2, RULER = 3, RING = 4 }
 
 @export var kind: Kind = Kind.ROW
 ## Seconds from the start of one telegraph to the start of the next one (so from one volley to the next).
@@ -27,7 +27,7 @@ enum Kind { ROW = 0, SPIRAL = 1, AIMED = 2, RULER = 3 }
 @export_range(-720.0, 720.0, 1.0) var rotation_deg_per_s: float = 0.0
 ## SPIRAL: seconds between two emissions (one chalk per arm each time). `interval` is not used by a spiral.
 @export_range(0.0, 5.0, 0.05, "or_greater") var emit_interval: float = 0.0
-## AIMED: chalks of the fan.
+## AIMED: chalks of the fan. RING: chalks of the circle.
 @export_range(0, 16, 1, "or_greater") var bullet_count: int = 0
 ## AIMED: angle between the two outer chalks of the fan, in degrees (0 = all on one line).
 @export_range(0.0, 180.0, 0.5) var spread_deg: float = 0.0
@@ -35,6 +35,9 @@ enum Kind { ROW = 0, SPIRAL = 1, AIMED = 2, RULER = 3 }
 @export_range(0.0, 8.0, 0.25, "or_greater") var thickness_tiles: float = 0.0
 ## RULER: speed of the bar, in tiles per second (the room danger does not change it: the telegraph carries the fairness).
 @export_range(0.0, 30.0, 0.5, "or_greater") var sweep_speed: float = 0.0
+## RING: angle the circle turns by from one volley to the next, in degrees (half the step between two chalks: the holes
+## of two successive circles do not line up). A fixed pattern, no draw.
+@export_range(-180.0, 180.0, 0.5) var ring_offset_deg: float = 0.0
 
 
 ## "" when the attack can run, else why not (impossible values: not finite, <= 0, a telegraph under the minimum).
@@ -70,6 +73,11 @@ func validate() -> String:
 				return "bullet_count %d must be >= 1" % bullet_count
 			if not is_finite(spread_deg) or spread_deg < 0.0 or spread_deg > 180.0:
 				return "spread_deg %s must be between 0 and 180" % spread_deg
+		Kind.RING:
+			if bullet_count < 2:
+				return "bullet_count %d must be >= 2" % bullet_count
+			if not is_finite(ring_offset_deg):
+				return "ring_offset_deg %s must be finite" % ring_offset_deg
 		Kind.RULER:
 			if not _positive(thickness_tiles):
 				return "thickness_tiles %s must be finite and > 0" % thickness_tiles
