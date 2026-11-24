@@ -1,6 +1,6 @@
 # Story 5.5 : Acheter à la boutique
 
-Status: in-progress
+Status: done
 
 ## Story
 
@@ -87,7 +87,9 @@ epics.md (Story 5.5) ; GDD « Économie » (boutique : 2 objets à 15, 1 consomm
 
 Revue de code (2026-11-24, Opus, trois couches : Blind Hunter, Edge Case Hunter, Acceptance Auditor ; plage `8568035..b07113b` + `9d920a8`). AC 1 à 7 tenus ; tests GUT `test_shop*` verts (15 tests, 109 assertions). 1 correctif, 4 décisions (11 à 14), 3 reports, le reste écarté.
 
-- [ ] [Review][Patch] Un étal peut être posé sous le point d'entrée d'une porte : achat (ou son de refus) à l'arrivée [`game/rooms/validator/room_validator.gd:362-366`] — `_check_pickups` exige seulement 3,0 tuiles du centre de porte, or `Room.entry_position()` place le joueur à `player_entry_distance` = 3,0 tuiles ; un spot à 3,04 tuiles (centre de tuile à 8 px de l'axe d'une porte de 2 tuiles) passe et chevauche le joueur qui entre, l'étal étant armé par défaut. Correctif : `const MIN_PICKUP_DOOR_DISTANCE_TILES: float = 4.0` (entrée 3 + 1 tuile, au-delà du rayon 8 px + corps du joueur) utilisée pour les `PickupSpot` à la place de `MIN_SPAWN_DOOR_DISTANCE_TILES` ; ajouter à `tests/unit/rooms/test_room_validator_pickups.gd` une boutique avec un spot à 3 tuiles d'une porte, refusée. `onset_shop_001` (≥ 7,5 tuiles) et `onset_treasure_001` (≈ 9 tuiles) restent valides.
+- [x] [Review][Patch] Un étal peut être posé sous le point d'entrée d'une porte : achat (ou son de refus) à l'arrivée [`game/rooms/validator/room_validator.gd:362-366`] — `_check_pickups` exige seulement 3,0 tuiles du centre de porte, or `Room.entry_position()` place le joueur à `player_entry_distance` = 3,0 tuiles ; un spot à 3,04 tuiles (centre de tuile à 8 px de l'axe d'une porte de 2 tuiles) passe et chevauche le joueur qui entre, l'étal étant armé par défaut. Correctif : `const MIN_PICKUP_DOOR_DISTANCE_TILES: float = 4.0` (entrée 3 + 1 tuile, au-delà du rayon 8 px + corps du joueur) utilisée pour les `PickupSpot` à la place de `MIN_SPAWN_DOOR_DISTANCE_TILES` ; ajouter à `tests/unit/rooms/test_room_validator_pickups.gd` une boutique avec un spot à 3 tuiles d'une porte, refusée. `onset_shop_001` (≥ 7,5 tuiles) et `onset_treasure_001` (≈ 9 tuiles) restent valides.
+
+Correctif appliqué et vérifié (2026-11-24, par l’orchestrateur) : `MIN_PICKUP_DOOR_DISTANCE_TILES = 4.0` pour les PickupSpots dans `room_validator.gd` ; test `test_a_spot_on_the_entry_point_of_a_door_is_refused` (3,04 tuiles sous la porte nord → refusé) ; `test_room_validator_pickups` passe et `validate_rooms.sh` : 34 salles valides.
 - [x] [Review][Defer] Persistance « à la reprise » (epics.md, Story 5.5) — `run.json` (game-architecture.md, table des sauvegardes) ne liste pas les stocks des salles. → reporté à la story de sauvegarde/reprise (jalon B).
 - [x] [Review][Defer] Bannière de lecture sans hystérésis [`game/items/pickup.gd:169-175`] — longer le cercle des 2 tuiles la réémet. → epic 7 (lisibilité de la boutique, NON ÉVALUÉ).
 - [x] [Review][Defer] Doc d'architecture : ligne `economy/` (shop.gd/treasure.gd n'existent pas ; `shop_stock.gd`, `item_picker.gd`, `room_stock.gd`) et lexique (boutique, étal, achat, prix). → passe de doc de fin d'epic 5.
