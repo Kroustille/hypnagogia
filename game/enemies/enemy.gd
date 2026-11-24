@@ -9,6 +9,11 @@ extends CharacterBody2D
 ## Scene contract: a %Sprite (Sprite2D) at (0, 0) without material of its own (HitFeedback sets one, SpriteKick
 ## puts it back at (0, 0)): anchor it with offset, animate it with texture; a %Body (CollisionShape2D).
 
+## Placeholder tint of a dazzled enemy, until epic 7.
+const DAZZLED_TINT: Color = Color(1.0, 1.0, 0.55)
+## Rounding margin when comparing the dazzle countdown.
+const DAZZLE_EPSILON: float = 1e-6
+
 var hp: HitPoints
 ## Registered by the room with the player's BulletManager.
 var hurtbox: Hurtbox
@@ -24,6 +29,8 @@ var _bullets: BulletManager
 var _contact: Hitbox
 var _feedback: HitFeedback
 var _dead: bool = false
+## Ticks of dazzle left (story 4.4): the enemy neither moves nor attacks while it is above 0.
+var _dazzle_ticks_left: float = 0.0
 
 @onready var _sprite: Sprite2D = %Sprite
 @onready var _body: CollisionShape2D = %Body
@@ -49,7 +56,7 @@ func _ready() -> void:
 		return
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 	collision_layer = Const.LAYER_ENEMIES
-	collision_mask = Const.LAYER_WALLS | Const.LAYER_PLAYER | Const.LAYER_ENEMIES | Const.LAYER_HIGH_OBSTACLES | Const.LAYER_LOW_OBSTACLES
+	collision_mask = Const.LAYER_WALLS | Const.LAYER_PLAYER | Const.LAYER_ENEMIES | Const.LAYER_HIGH_OBSTACLES | Const.LAYER_LOW_OBSTACLES | Const.LAYER_FURNITURE
 
 	_body.shape = _make_rectangle(_def.body_size)
 	_body.position = Vector2.ZERO
@@ -96,6 +103,44 @@ func _start_telegraph_of(base_seconds: float, sound: AudioStream) -> float:
 
 func is_dead() -> bool:
 	return _dead
+
+
+## True while the lamp keeps the enemy from moving and attacking.
+func is_dazzled() -> bool:
+	return _dazzle_ticks_left > DAZZLE_EPSILON
+
+
+## Dazzles the enemy for seconds (story 4.4): its telegraph is cancelled, its attack stops, it neither moves nor starts
+## anything until the countdown ends, then it takes up its starting state (_on_dazzled()). A new dazzle restarts the
+## countdown. Its contact stays live (contact is not an attack). Nothing for a dead enemy or an invalid duration.
+func dazzle(seconds: float) -> void:
+	if _dead or process_mode == Node.PROCESS_MODE_DISABLED or not is_finite(seconds) or seconds <= 0.0:
+		return
+	_dazzle_ticks_left = seconds * Engine.physics_ticks_per_second
+	velocity = Vector2.ZERO
+	if telegraph != null:
+		telegraph.cancel()
+	_sprite.self_modulate = DAZZLED_TINT
+	_on_dazzled()
+	Log.debug("combat", "%s dazzled for %.2fs" % [_def.id, seconds])
+
+
+## Hook: back to the starting state (the only write of _state stays in _enter()). Called once per dazzle, after the
+## telegraph is cancelled.
+func _on_dazzled() -> void:
+	pass
+
+
+## Head of every _physics_process of the subclasses, after the clock scale is read: counts the dazzle down.
+## Returns true while the enemy is dazzled (the caller returns at once: no move, no attack, no timer).
+func _tick_dazzle(clock_scale: float) -> bool:
+	if _dazzle_ticks_left <= DAZZLE_EPSILON:
+		return false
+	_dazzle_ticks_left -= clock_scale
+	if _dazzle_ticks_left <= DAZZLE_EPSILON:
+		_dazzle_ticks_left = 0.0
+		_sprite.self_modulate = Color.WHITE
+	return true
 
 
 ## Kills the enemy as a lethal hit would (debug tools, waves): disabled now, freed at the end of the frame. Once.

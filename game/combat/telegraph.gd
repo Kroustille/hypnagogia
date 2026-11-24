@@ -58,6 +58,16 @@ func is_active() -> bool:
 	return _ticks_left > TICK_EPSILON
 
 
+## Drops the announcement: no attack comes of it (story 4.4, a dazzled enemy). The owner swaps its own sprite back.
+## Nothing happens when no telegraph is running. The sound already played is not cut.
+func cancel() -> void:
+	if not is_active():
+		return
+	_ticks_left = 0.0
+	_ticks_total = 0.0
+	Log.debug("combat", "telegraph %s cancelled" % (String(get_parent().name) if get_parent() != null else String(name)))
+
+
 ## Share of the telegraph already elapsed, from 0 (just started) to 1 (about to end); 0 when inactive.
 ## Drives the owner's animation steps (rising glow, inhale). Ticks after its owner: the owner reads last tick's value.
 func progress() -> float:

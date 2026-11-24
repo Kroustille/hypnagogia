@@ -91,6 +91,8 @@ func _physics_process(_delta: float) -> void:
 		return
 	if _excepted_body != null and _state != State.CHARGE:
 		_release_exception_when_clear()
+	if _tick_dazzle(clock_scale):
+		return
 	match _state:
 		State.REST:
 			_process_rest(clock_scale)
@@ -168,6 +170,11 @@ func _process_stun(clock_scale: float) -> void:
 		_enter(State.REST)
 		return
 	_ticks_left -= clock_scale
+
+
+## Dazzled (story 4.4): the telegraph is already cancelled, back to the starting state.
+func _on_dazzled() -> void:
+	_enter(State.REST)
 
 
 ## The only place that writes _state.

@@ -57,6 +57,8 @@ func _physics_process(_delta: float) -> void:
 	var clock_scale: float = GameClock.scale(GameClock.Group.ENEMIES) # one read per tick
 	if clock_scale <= 0.0:
 		return
+	if _tick_dazzle(clock_scale):
+		return
 	_tick_cycle(clock_scale)
 	match _state:
 		State.KEEP_DISTANCE:
@@ -82,6 +84,11 @@ func _process_telegraph(_clock_scale: float) -> void:
 	if not telegraph.is_active():
 		_fire_volley()
 		_enter(State.KEEP_DISTANCE)
+
+
+## Dazzled (story 4.4): the telegraph is already cancelled, back to the starting state.
+func _on_dazzled() -> void:
+	_enter(State.KEEP_DISTANCE)
 
 
 ## The only place that writes _state.

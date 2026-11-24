@@ -53,6 +53,8 @@ func _physics_process(_delta: float) -> void:
 	var clock_scale: float = GameClock.scale(GameClock.Group.ENEMIES) # one read per tick
 	if clock_scale <= 0.0:
 		return
+	if _tick_dazzle(clock_scale):
+		return
 	match _state:
 		State.CHASE:
 			_process_chase(clock_scale)
@@ -93,6 +95,11 @@ func _advance(speed_px: float, clock_scale: float) -> void:
 		velocity = Vector2.ZERO
 		return
 	_move_toward(point, speed_px, clock_scale)
+
+
+## Dazzled (story 4.4): the telegraph is already cancelled, back to the starting state.
+func _on_dazzled() -> void:
+	_enter(State.CHASE)
 
 
 ## The only place that writes _state.
