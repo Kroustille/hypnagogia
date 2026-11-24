@@ -55,6 +55,10 @@ const REINFORCEMENT_SIGN_RADIUS_TILES: float = 1.5
 const FALLBACK_RUN_SEED: int = 1
 ## Name of the RunRng stream that decides combat outcomes (reinforcement type and place).
 const COMBAT_STREAM: StringName = &"combat"
+## Name of the RunRng stream of purely visual draws (screen shake): never read by the gameplay.
+const COSMETIC_STREAM: StringName = &"cosmetic"
+## Ticks between two draws of the screen shake offset (technical: about 20 changes per second).
+const SHAKE_STEP_TICKS: int = 3
 ## Rounding margin when comparing countdown ticks.
 const TICK_EPSILON: float = 1e-6
 ## Centers closer than this (px²) have no usable direction: the push goes to the right.
@@ -106,6 +110,10 @@ var _wave_active: bool = false
 ## One reinforcement per wave: set when it is scheduled, cleared by begin_room().
 var _reinforcement_used: bool = false
 var _pending: Array[PendingReinforcement] = []
+## Screen shake (story 3.8): ticks left (FX group scale), ticks until the next draw, amplitude in pixels.
+var _shake_ticks_left: float = 0.0
+var _shake_next_draw: float = 0.0
+var _shake_amplitude: int = 0
 ## What the room tier does to the enemies (story 3.6): one object, mutated in place, given to every enemy.
 var danger: DangerProfile = DangerProfile.new()
 
@@ -138,6 +146,7 @@ func _ready() -> void:
 	_setup_player_bullets() # after the tiles: the BulletManager needs Walls to have a TileSet
 	_setup_enemy_bullets() # drawn above the player's shots
 	_setup_damage_numbers() # after the bullets: drawn above them
+	_setup_lucidity_fx(frame_px)
 
 	# Fixed camera: centered on the room, shifted up by half the HUD band so the band stays free at the top.
 	_camera.position = frame_px / 2.0 - Vector2(0.0, Const.HUD_BAND_HEIGHT / 2.0)
@@ -200,6 +209,7 @@ func _exit_tree() -> void:
 
 
 func _physics_process(_delta: float) -> void:
+	_process_shake()
 	if _pending.is_empty():
 		return
 	var step: float = GameClock.scale(GameClock.Group.ENEMIES)
@@ -462,6 +472,7 @@ func _on_awakening_used(origin: Vector2) -> void:
 		for moved: Enemy in moved_full:
 			enemy.remove_collision_exception_with(moved)
 	_add_ring(origin, radius_px, AWAKENING_RING_COLOR, AWAKENING_RING_DURATION)
+	shake(Tuning.LUCIDITY.shake_pixels, Tuning.LUCIDITY.shake_duration)
 	Log.debug("combat", "awakening cleared=%d pushed=%d" % [cleared, pushed])
 
 
@@ -592,6 +603,56 @@ func _emit_emptied_if_done() -> void:
 ## A failed assert aborts the function it is in (debug builds): kept apart so the caller carries on (AR28).
 func _assert_failed(message: String) -> void:
 	assert(false, message)
+
+
+## Distortion and music filter following the live lucidity tier (story 3.8).
+func _setup_lucidity_fx(frame_px: Vector2) -> void:
+	if _player == null:
+		return
+	var fx: LucidityFx = LucidityFx.new()
+	fx.name = "LucidityFx"
+	fx.setup(_player, frame_px) # before add_child()
+	add_child(fx)
+
+
+## Shakes the camera by whole pixels for duration seconds (story 3.8). pixels: the largest offset per axis, before the
+## shake setting; nothing happens when the setting is 0, in photosensitivity mode, or when the result rounds to 0 px.
+## The offsets come from the cosmetic stream of the run and the camera comes back exactly to zero.
+func shake(pixels: int, duration: float) -> void:
+	_shake_amplitude = roundi(pixels * Settings.shake_intensity)
+	if Settings.photosensitive or _shake_amplitude <= 0 or duration <= 0.0:
+		return
+	_shake_ticks_left = duration * Engine.physics_ticks_per_second
+	_shake_next_draw = 0.0
+
+
+## The camera's current shake offset in pixels (checks).
+func shake_offset() -> Vector2:
+	return _camera.offset
+
+
+func _process_shake() -> void:
+	if _shake_ticks_left <= 0.0:
+		return
+	var step: float = GameClock.scale(GameClock.Group.FX)
+	if step <= 0.0:
+		return # paused: the shake is frozen where it is
+	_shake_ticks_left -= step
+	if _shake_ticks_left <= TICK_EPSILON:
+		_shake_ticks_left = 0.0
+		_camera.offset = Vector2.ZERO
+		return
+	_shake_next_draw -= step
+	if _shake_next_draw <= TICK_EPSILON:
+		_shake_next_draw = SHAKE_STEP_TICKS
+		_camera.offset = Vector2(_shake_axis(), _shake_axis())
+
+
+## One axis of a shake offset: a whole number of pixels from 1 to the amplitude, in a random direction (cosmetic stream).
+func _shake_axis() -> int:
+	var magnitude: int = _rng.stream(COSMETIC_STREAM).randi_range(1, _shake_amplitude)
+	var negative: int = _rng.stream(COSMETIC_STREAM).randi_range(0, 1)
+	return -magnitude if negative == 1 else magnitude
 
 
 ## Damage numbers layer, at the room origin. Added after PlayerBullets: drawn above the shots.

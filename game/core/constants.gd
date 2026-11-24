@@ -63,9 +63,14 @@ const Z_INDEX_ENEMY_BULLETS: int = 10
 ## Node group of the player, found by debug tools without a node path.
 const GROUP_PLAYER: StringName = &"player"
 
-## z_index of the decor layers (floor, walls): drawn below the entities whatever their place in the tree.
+## z_index of the decor layers (floor, walls, obstacles): drawn first, below the post-processing copy (story 3.8).
 ## The player lives in Run, outside the room (story 2.2); entities, bullets and the HUD stay at 0 or above (AR19).
-const Z_INDEX_DECOR: int = -1
+const Z_INDEX_DECOR: int = -2
+## z_index of the lucidity distortion pass (story 3.8): it copies what is drawn before it (the decor) and nothing after,
+## so entities, telegraphs, bullets and the HUD are never distorted. Never put an entity at a negative z_index.
+const Z_INDEX_POSTFX: int = -1
+## z_index of the combat layer (enemy bullets and combat signs): the top of the world, alias of Z_INDEX_ENEMY_BULLETS.
+const Z_INDEX_COMBAT: int = Z_INDEX_ENEMY_BULLETS
 
 ## Physics tick priority of every BulletManager: they tick after the entities (priority 0), whatever their place
 ## in the tree, so hit tests read this tick's state of the hurtboxes (story 2.1).
