@@ -1,6 +1,6 @@
 # Story 3.5 : Être précis en Lucide, frapper fort dans l'abandon
 
-Status: review
+Status: done
 
 ## Story
 
@@ -77,6 +77,9 @@ Hors périmètre : loot ×1,25 / ×1,5 / ×2 (epic 5, à lire sur `room_tier`), 
 8. **Les contacts ennemis passent de 0,75 à 0,875 tuile (`contact_size` des quatre ennemis)** — Raison : le corps du joueur reste 6x6 px, donc un ennemi (corps 10 px) s'arrête à 8 px de centre ; avec une hurtbox de 4 px et une zone de contact de 12 px, les rectangles ne font que se toucher et le contact n'infligerait plus jamais de dégâts à un joueur Lucide. À 14 px, le recouvrement de 1 px d'avant est conservé. Test `t_sleepwalker` ajusté (valeur du `.tres`, zone témoin 14x14).
 9. **Valeur de 13,5 comparée à la tolérance** — Raison : `1 + 0,35` n'est pas exact en flottant ; `StatBlock` calcule en double précision (classe `Modifier`, pas de `Vector2` qui tronque en float32), les tests comparent à 1e-12.
 
+10. **Revue : décision 8 maintenue (zones de contact à 0,875 tuile plutôt qu'un changement du test de contact)** — Raison : correctif de données, réversible ; tester le contact contre le corps de mouvement changerait l'architecture `Hitbox` → `Hurtbox`. Effet sur l'équilibrage de l'epic 2 : en Lucide la portée latérale reste celle validée en 2.5 (joueur touché à moins de 9 px de la ligne) ; dans les autres paliers elle passe à 10 px (+1 px), négligeable et cohérent avec un abandon plus dangereux. Les scènes de l'epic 2 tournent avec un joueur Lucide (jauge pleine) et passent.
+11. **Revue : hurtbox de Lucide = écart `ADD_FLAT` calculé depuis la base au moment du changement de palier** — acceptée pour 3.5 (la base ne change jamais) ; combinaison avec des objets reportée à l'epic 5 (`deferred-work.md`).
+
 ## Dev Agent Record
 
 ### Agent Model Used
@@ -101,3 +104,13 @@ Claude Sonnet 5.5
 ### Change Log
 
 - 2026-11-24 : implémentation de la story 3.5 (StatBlock, bonus de palier, hurtbox de Lucide).
+
+### Review Findings
+
+Revue de code (2026-11-24, Claude Opus 5.5, mode complet : Blind Hunter, Edge Case Hunter, Acceptance Auditor) sur `f9ad888..26daad9`.
+
+- Critères d'acceptation 1 à 7 : satisfaits. `BulletManager.fire()` copie vitesse et dégâts dans les tableaux du projectile (les balles en vol gardent les leurs) ; `Hurtbox.world_rect()` relit la forme à chaque appel et le manager rafraîchit les rectangles à chaque tick (graze, esquive parfaite, dessin F2 et contact suivent la hurtbox réduite) ; modificateurs appliqués à la création et avant le relais du bus.
+- Preuves (arbre au commit `26daad9`, `--fixed-fps 60`) : `t_stat_block` 14/0, `t_tier_bonus` 49/0, `t_sleepwalker` 123/0, `t_graze` 37/0 ; `--quit-after 120` propre.
+- Patch : aucun. Écartés : appel d'`equip_bullets()` ou de `tier_changed` avant `stats` (le joueur est prêt avant l'arène, rien n'émet pendant `_setup_lucidity`), cache `_values` à l'epsilon près (cohérent avec ce que reçoivent les consommateurs), typage (aucun avertissement).
+- Reportés (`deferred-work.md`) : `StatBlock` face aux objets de l'epic 5 (base, durée de vie des sources, bornes, nommage de l'architecture) ; règle de taille des zones de contact pour les nouveaux ennemis.
+
