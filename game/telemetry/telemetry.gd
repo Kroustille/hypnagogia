@@ -40,6 +40,7 @@ func _ready() -> void:
 	Events.room_entered.connect(_on_events_room_entered)
 	Events.lucidity_tier_changed.connect(_on_events_lucidity_tier_changed)
 	Events.lucidity_spent.connect(_on_events_lucidity_spent)
+	Events.item_acquired.connect(_on_events_item_acquired)
 	Events.death_judged.connect(_on_events_death_judged)
 	_write()
 
@@ -109,6 +110,11 @@ func _on_events_lucidity_tier_changed(tier: int, _previous_tier: int) -> void:
 
 func _on_events_lucidity_spent(power: StringName, _cost: int, tier: int) -> void:
 	_session.spent(String(power), tier)
+
+
+func _on_events_item_acquired(item_id: StringName, _copies: int) -> void:
+	_session.item_taken(String(item_id))
+	_write()
 
 
 func _on_events_run_ended(_outcome: int) -> void:

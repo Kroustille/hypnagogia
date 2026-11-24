@@ -23,6 +23,9 @@ var _run_tier_seconds: Array[float] = [0.0, 0.0, 0.0, 0.0, 0.0]
 ## Spends by power then tier name (tier before the spend): of the session and of the current run.
 var spends: Dictionary = {}
 var _run_spends: Dictionary = {}
+## item_id of the items taken, in order: of the current run, and by id with their count over the session (story 5.1).
+var _run_items: Array[String] = []
+var items: Dictionary = {}
 ## True from a death until it is answered or skipped.
 var _death_open: bool = false
 
@@ -43,6 +46,7 @@ func run_started(at: float) -> void:
 	_tier_since = at
 	_run_tier_seconds = [0.0, 0.0, 0.0, 0.0, 0.0]
 	_run_spends = {}
+	_run_items = []
 	_add("run_start", at)
 
 
@@ -78,6 +82,14 @@ func spent(power: String, tier: int) -> void:
 	var tier_name: String = str(Lucidity.Tier.find_key(tier)).to_lower()
 	_count_spend(spends, power, tier_name)
 	_count_spend(_run_spends, power, tier_name)
+
+
+## The player took an item (ignored outside a run).
+func item_taken(item_id: String) -> void:
+	if _tier == -1:
+		return
+	_run_items.append(item_id)
+	items[item_id] = items.get(item_id, 0) + 1
 
 
 ## Run end: the time in each tier of this run, as a "run_end" event. Returns that run's seconds per tier.
@@ -138,6 +150,7 @@ func to_dict(at: float) -> Dictionary:
 			"yes_rate": yes_rate(),
 			"tier_seconds": tier_dict(tier_seconds),
 			"spends": spends,
+			"items": items,
 		},
 	}
 
@@ -154,7 +167,7 @@ func _close_tiers(at: float) -> void:
 		return
 	_credit(at)
 	_tier = -1
-	_add("run_end", at, {"tier_seconds": tier_dict(_run_tier_seconds), "spends": _run_spends.duplicate(true)})
+	_add("run_end", at, {"tier_seconds": tier_dict(_run_tier_seconds), "spends": _run_spends.duplicate(true), "items": _run_items.duplicate()})
 
 
 ## Tier name (Lucidity.Tier key, lower case) to seconds, rounded to 10 ms.
