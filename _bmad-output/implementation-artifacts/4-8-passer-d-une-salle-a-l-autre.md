@@ -1,6 +1,6 @@
 # Story 4.8 : Passer d'une salle à l'autre
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -28,15 +28,15 @@ Hors périmètre : sauvegarde de reprise (`RunSnapshot`, epic 8), carte affiché
 
 ## Tâches
 
-- [ ] `Main.default_mode` (statique, `Run.Mode.FLOOR`), `RunOptions`/`Run.setup` : modes ARENA, ROOM, FLOOR. **Les scènes `.scratch` qui lancent `main.tscn` (9 : `t_enemy_main`, `t_regress`, `t_sheep_main`, `t_shooters_main`, `t_waves_main`, `t_hud`, `t_telemetry`, `t_lucidity`, `t_lucidity_fx`) et `th.gd` supposent l'arène : leur ajouter une seule ligne `Main.default_mode = Run.Mode.ARENA`** (seule modification de `.scratch` permise).
-- [ ] `run/room_loader.gd` (`RoomLoader`) : `request_all(paths)`, `scene_for(path) -> PackedScene` (bloque via `load_threaded_get` si pas prête), `is_ready(path)`. Le départ est chargé en synchrone.
-- [ ] `Room.setup(player, rng, floor_index, options)` : cellule, côtés de portes ouverts par la disposition (`Door.State` : `CLOSED/OPEN` selon l'état, `SEALED` sans voisin), `already_cleared`, signal `door_taken(side)` émis quand le joueur est dans la zone de sortie d'une porte `OPEN`.
-- [ ] `Run.travel(side)` (différé hors de la physique) : fondu, `leave_room`, retrait + libération de l'ancienne salle, instanciation, `enter_room`, positionnement (`Room.entry_position(side)`), `reset_physics_interpolation()` joueur et caméra, fondu retour, `FloorMap` et `Events.room_entered`.
-- [ ] `main/transition.gd` sur le nœud `Transition` existant de `main.tscn` (un `ColorRect` noir, fondus par compteurs de ticks, groupe `transition`), jamais de `Timer`.
-- [ ] `Player.enter_room/leave_room` complets, `equip_bullets` répétable, `Room._exit_tree` appelle `leave_room` ; `Sheep`/ennemis : rien (les salles libérées emportent leurs ennemis).
-- [ ] Tutoriel : `ui/tutorial/controls_tutorial.tscn/.gd` (`Control` dans un `CanvasLayer` de la salle de départ, ou ajouté par `Run` quand `floor_index == 0` et type START), libellés d'actions depuis `InputMap` (clavier : `as_text_physical_keycode()`, manette : `Input.get_joy_button_string` ou nom d'axe : vérifier l'API avec Context7), `strings.csv`.
-- [ ] F1 : « arène (jalon A) » et « étage » ; tests GUT : `tests/integration/run/test_room_travel.gd` (franchir une porte, libération, une seule salle, entrée par la bonne porte, vidée = ouverte et sans ennemis, non vidée = fermée, 10 allers-retours sans fuite de nœuds ni de connexions de signaux), `test_floor_start.gd` (génération, départ calme, tutoriel présent), `tests/unit/run/test_floor_map.gd`, `tests/unit/run/test_room_loader.gd` (état prêt).
-- [ ] `run_all.sh` du `.scratch` ; `--quit-after 120` propre.
+- [x] `Main.default_mode` (statique, `Run.Mode.FLOOR`), `RunOptions`/`Run.setup` : modes ARENA, ROOM, FLOOR. **Les scènes `.scratch` qui lancent `main.tscn` (9 : `t_enemy_main`, `t_regress`, `t_sheep_main`, `t_shooters_main`, `t_waves_main`, `t_hud`, `t_telemetry`, `t_lucidity`, `t_lucidity_fx`) et `th.gd` supposent l'arène : leur ajouter une seule ligne `Main.default_mode = Run.Mode.ARENA`** (seule modification de `.scratch` permise).
+- [x] `run/room_loader.gd` (`RoomLoader`) : `request_all(paths)`, `scene_for(path) -> PackedScene` (bloque via `load_threaded_get` si pas prête), `is_ready(path)`. Le départ est chargé en synchrone.
+- [x] `Room.setup(player, rng, floor_index, options)` : cellule, côtés de portes ouverts par la disposition (`Door.State` : `CLOSED/OPEN` selon l'état, `SEALED` sans voisin), `already_cleared`, signal `door_taken(side)` émis quand le joueur est dans la zone de sortie d'une porte `OPEN`.
+- [x] `Run.travel(side)` (différé hors de la physique) : fondu, `leave_room`, retrait + libération de l'ancienne salle, instanciation, `enter_room`, positionnement (`Room.entry_position(side)`), `reset_physics_interpolation()` joueur et caméra, fondu retour, `FloorMap` et `Events.room_entered`.
+- [x] `main/transition.gd` sur le nœud `Transition` existant de `main.tscn` (un `ColorRect` noir, fondus par compteurs de ticks, groupe `transition`), jamais de `Timer`.
+- [x] `Player.enter_room/leave_room` complets, `equip_bullets` répétable, `Room._exit_tree` appelle `leave_room` ; `Sheep`/ennemis : rien (les salles libérées emportent leurs ennemis).
+- [x] Tutoriel : `ui/tutorial/controls_tutorial.tscn/.gd` (`Control` dans un `CanvasLayer` de la salle de départ, ou ajouté par `Run` quand `floor_index == 0` et type START), libellés d'actions depuis `InputMap` (clavier : `as_text_physical_keycode()`, manette : `Input.get_joy_button_string` ou nom d'axe : vérifier l'API avec Context7), `strings.csv`.
+- [x] F1 : « arène (jalon A) » et « étage » ; tests GUT : `tests/integration/run/test_room_travel.gd` (franchir une porte, libération, une seule salle, entrée par la bonne porte, vidée = ouverte et sans ennemis, non vidée = fermée, 10 allers-retours sans fuite de nœuds ni de connexions de signaux), `test_floor_start.gd` (génération, départ calme, tutoriel présent), `tests/unit/run/test_floor_map.gd`, `tests/unit/run/test_room_loader.gd` (état prêt).
+- [x] `run_all.sh` du `.scratch` ; `--quit-after 120` propre.
 
 ## État du code concerné
 
@@ -73,10 +73,26 @@ Hors périmètre : sauvegarde de reprise (`RunSnapshot`, epic 8), carte affiché
 7. **`Events.room_entered`** ajouté (le texte de l'epic ne le cite pas) pour la télémétrie et la carte.
 8. **Aucune sauvegarde d'entrée de salle** (`RunSnapshot`, AR18) : à l'epic 8.
 
+9. **Nouvelles décisions du développement** : (a) `RoomOptions` (`rooms/room_options.gd`, `RefCounted`) porte la cellule, les côtés reliés, `already_cleared` et le côté d'entrée plutôt que quatre paramètres de `Room.setup()` ; une salle sans options reste autonome (arène, mode ROOM, tests de la 4.2). (b) `Tuning.ROOM.player_entry_distance` (3 tuiles du centre de la porte, soit 2,5 tuiles de la case de jeu) sert de distance d'entrée : pas de second champ `entry_offset_tiles`. (c) `Tuning.ROOM.transition_duration` = 0,12 s (chaque moitié du fondu). (d) `Main.default_mode` est de type `RunOptions.Mode` (l'énumération vit dans `RunOptions`, pas dans `Run`) ; la ligne de repli sur l'arène est posée une seule fois dans `th.gd` (base de toutes les scènes qui lancent `main.tscn`), pas dans chacune des 9 scènes. (e) Le validateur vérifie désormais les points d'entrée (deux cases de part et d'autre du point, contre mur, obstacle, trou, meuble) : `onset_combat_001` a vu un bloc d'obstacles bas déplacé (source ASCII et scène reconstruite). (f) Une salle dont aucun marqueur n'a d'ennemi ni de scène n'arme pas de vagues (portes jamais fermées : clôt le deferred « salle bloquée »). (g) Un joueur dans l'embrasure quand les portes se ferment est replacé au point d'entrée de cette porte (`Room._close_doors`). (h) Mode ROOM (F1 R) et arène : les portes restent telles que peintes (ouvertes sur le vide une fois la salle vidée) : outils de debug, pas de voisin à rejoindre. (i) Le départ est chargé en synchrone *avant* les requêtes d'arrière-plan : un `load()` lancé pendant que des chargements threadés tournent a bloqué les tests (interblocage reproduit). (j) F1 : touche A (arène du jalon A) et F (étage). (k) Mi-run, une salle qui ne se charge pas : `Log.error` et repli sur l'arène, la run continue (AR28).
+
 ## Dev Agent Record
 
 ### Agent Model Used
 
+Claude Sonnet 5.5
+
 ### Completion Notes
 
+- Tous les critères sont couverts. `Run` en mode FLOOR joue l'étage : `RoomLoader` demande les 15 autres salles en arrière-plan, la salle de départ se charge d'abord ; `Run.travel(side)` (différé hors de la physique) passe par `Transition` (fondu 2 × 0,12 s en ticks), libère l'ancienne salle (retirée de l'arbre puis `queue_free()`), installe la voisine et place le joueur à l'entrée de la porte opposée, tourné vers l'intérieur, avant l'entrée de la salle dans l'arbre (les portes se ferment autour d'un joueur déjà placé, `snap_camera()` suit).
+- Joueur qui survit aux salles : `equip_bullets()` répétable (même gestionnaire : rien ; gestionnaire détruit ou nul : `Log.error`), `leave_room()` rend les tirs et la source de trous, la salle se désabonne du joueur dans `_exit_tree`, `Player.stop_motion()` annule un dash en vol, `Player.face()`. Dix allers-retours : nombre de nœuds et de connexions de signaux inchangés, deux `BulletManager` dans le groupe, hurtbox inscrite une fois.
+- Deferred 4.8 traités : porte ouverte vers le vide (portes sans voisin scellées par `RoomOptions`), porte qui se ferme sur un corps (joueur replacé ; ennemis et renforts jamais si près : validateur 4.2), salle sans vague valide (plus de portes fermées pour toujours), `RoomNav.origin` (suivi par `NOTIFICATION_TRANSFORM_CHANGED`), point d'entrée contre les bloqueurs (validateur), `snap_camera()` après placement, `equip_bullets()` répétable, joueur qui survit aux salles, charge sans fin (portes fermées en combat, distance maximale de la 4.3). Cohérence par salle : `begin_room()` de la jauge à chaque entrée (le palier de salle repart du palier vivant), `danger` propre à chaque salle, pas de `room_cleared` pour une salle déjà vidée.
+- Tutoriel des contrôles dans la salle de départ du premier étage (touches de l'`InputMap`, clavier-souris ou manette selon le dernier périphérique). `FloorMap`, `Events.room_entered` (après `run_started` pour la première salle), journal `room entered`.
+- Vérifications : `tools/run_tests.sh` vert (GUT, 263 tests), `run_all.sh` en mode normal ALL PASS avec la nouvelle scène `t_floor_main` (jeu complet : fondu réel, 16 allers-retours sans fuite de nœud, mort puis relance, arène par requête), `--quit-after 120` propre. NON ÉVALUÉ (humain) : sensation du fondu et de l'arrivée, lisibilité du tutoriel, libellés de manette (RB/LB/RT/LT), sur une vraie manette.
+
+### Change Log
+
+- 2026-11-24 : implémentation de la story 4.8.
+
 ### File List
+
+`game/run/{run,run_options,floor_map,room_loader}.gd`, `game/main/{main.gd,main.tscn,transition.gd}`, `game/rooms/{room,door,room_options}.gd`, `game/rooms/validator/room_validator.gd`, `game/rooms/pool/onset/onset_combat_001.tscn`, `art_source/rooms/onset_combat_001.txt`, `game/player/{player,dash}.gd`, `game/autoloads/events.gd`, `game/core/{constants,room_tuning}.gd`, `game/data/tuning/room_tuning.tres`, `game/ui/tutorial/controls_tutorial.{gd,tscn}`, `game/localization/strings.csv`, `game/debug/debug_panel.gd`, `game/tests/**` (`test_room_travel`, `test_floor_start`, `test_player_rooms`, `test_floor_map`, `test_room_loader`, `test_controls_tutorial`, `room_harness`, `test_run_requested`), `game/.scratch/{th.gd,t_floor_main.*,run_all.sh}` (hors dépôt).
