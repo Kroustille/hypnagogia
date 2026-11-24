@@ -92,8 +92,13 @@ static func cell_rect(cell: Vector2i, bounds: Rect2i, area: Rect2) -> Rect2:
 	return Rect2(Vector2(top_left), Vector2(pitch - GAP, pitch - GAP))
 
 
+## The darkened area: everything under the HUD band, so the HUD stays readable while the map is held.
+static func backdrop_rect(view_size: Vector2) -> Rect2:
+	return Rect2(0.0, float(Const.HUD_BAND_HEIGHT), view_size.x, view_size.y - float(Const.HUD_BAND_HEIGHT))
+
+
 func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), COLOR_BACKDROP)
+	draw_rect(backdrop_rect(size), COLOR_BACKDROP)
 	var font: Font = get_theme_default_font()
 	var title: String = tr(&"UI_MAP_TITLE")
 	draw_string(font, Vector2(0, 40), title, HORIZONTAL_ALIGNMENT_CENTER, size.x, 16, COLOR_TEXT)

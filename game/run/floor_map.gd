@@ -82,6 +82,8 @@ func discovered() -> Dictionary[Vector2i, bool]:
 func bounds() -> Rect2i:
 	if layout == null or layout.cells.is_empty():
 		return Rect2i()
+	if layout.grid.has_area():
+		return layout.grid # the whole grid: stable and it does not reveal the floor extent
 	var rect: Rect2i = Rect2i(layout.start, Vector2i.ONE)
 	for cell: Vector2i in layout.cells:
 		rect = rect.expand(cell).expand(cell + Vector2i.ONE)

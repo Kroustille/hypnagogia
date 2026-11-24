@@ -127,3 +127,14 @@ func test_a_missing_floor_def_gives_an_invalid_layout() -> void:
 	assert_false(run.log_floor_map())
 	assert_engine_error_count(2)
 	assert_push_error_count(2)
+
+
+func test_a_failed_floor_start_leaves_the_map_empty() -> void:
+	var run: Run = _start(_options(RunOptions.Mode.ARENA, 5, true))
+	run.floor_map.layout = FloorLayout.new() # a stale floor
+	var broken: FloorLayout = FloorLayout.new()
+	broken.failure = "test failure"
+	run.floor_layout = broken
+	assert_false(run._start_floor())
+	assert_push_error("floor is invalid (test failure)")
+	assert_null(run.floor_map.layout)

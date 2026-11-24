@@ -28,6 +28,8 @@ var failure: String = ""
 var attempts: int = 0
 var floor_index: int = 0
 var start: Vector2i = Vector2i.ZERO
+## The grid rectangle the floor was generated in (set by FloorGenerator; empty for a hand-built layout).
+var grid: Rect2i = Rect2i()
 var cells: Dictionary[Vector2i, Placement] = {}
 var _links: Dictionary[Vector2i, Array] = {}
 

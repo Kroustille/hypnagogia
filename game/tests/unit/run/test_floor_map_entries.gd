@@ -114,3 +114,10 @@ func test_the_entries_are_sorted_by_row_then_column() -> void:
 
 func test_the_bounds_cover_the_whole_floor() -> void:
 	assert_eq(_map.bounds(), Rect2i(0, 0, 3, 2))
+
+
+func test_the_bounds_are_the_fixed_generation_grid() -> void:
+	_map.layout.grid = Rect2i(-1, -1, 7, 5)
+	assert_eq(_map.bounds(), Rect2i(-1, -1, 7, 5))
+	_map.mark_entered(B)
+	assert_eq(_map.bounds(), Rect2i(-1, -1, 7, 5), "stable while the map fills up")

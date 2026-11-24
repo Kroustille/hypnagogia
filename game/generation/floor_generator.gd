@@ -39,6 +39,7 @@ static func _attempt(def: FloorDef, pool: Array[RoomInfo], rng: RunRng, floor_in
 	layout.floor_index = floor_index
 	var shape: RandomNumberGenerator = rng.stream(RunRng.LAYOUT, floor_index)
 	var bounds: Rect2i = Rect2i(0, 0, def.grid_width, def.grid_height)
+	layout.grid = bounds
 	layout.start = Vector2i(def.grid_width / 2, def.grid_height / 2)
 	layout.add_cell(layout.start, Room.RoomType.START)
 	if not _grow(layout, bounds, def.combat_rooms, shape):

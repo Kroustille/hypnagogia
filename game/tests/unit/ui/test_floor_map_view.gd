@@ -34,3 +34,8 @@ func test_a_single_cell_is_capped() -> void:
 	var rect: Rect2 = FloorMapView.cell_rect(Vector2i.ZERO, Rect2i(0, 0, 1, 1), AREA)
 	assert_lte(rect.size.x, float(FloorMapView.MAX_PITCH))
 	assert_true(AREA.encloses(rect))
+
+func test_the_backdrop_starts_below_the_hud_band() -> void:
+	var rect: Rect2 = FloorMapView.backdrop_rect(Vector2(Const.VIEWPORT))
+	assert_eq(rect.position.y, float(Const.HUD_BAND_HEIGHT))
+	assert_eq(rect.end, Vector2(Const.VIEWPORT))

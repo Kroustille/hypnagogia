@@ -101,6 +101,7 @@ func _start_floor() -> bool:
 	if not layout.valid:
 		Log.error("run", "floor is invalid (%s): playing the arena" % layout.failure)
 		floor_layout = null
+		floor_map.layout = null
 		return false
 	var start_path: String = layout.cells[layout.start].info.path
 	var others: PackedStringArray = PackedStringArray()
@@ -117,6 +118,7 @@ func _start_floor() -> bool:
 	Log.error("run", "start room cannot be entered: playing the arena")
 	_loader.drain()
 	_loader = null
+	floor_map.layout = null # the map must not show a floor that is not played
 	return false
 
 
@@ -270,6 +272,7 @@ func _end_travel() -> void:
 func _fall_back_to_arena(reason: String) -> void:
 	Log.error("run", "%s: playing the arena" % reason)
 	floor_layout = null
+	floor_map.layout = null
 	if _loader != null:
 		_loader.drain() # no pending request left for a later load()
 		_loader = null

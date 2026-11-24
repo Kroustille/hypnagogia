@@ -190,7 +190,11 @@ func _show_scene(scene: PackedScene) -> bool:
 func _on_events_run_started() -> void:
 	if not is_inside_tree():
 		return # a Main already removed from the tree still hears the bus
-	var run: Run = get_tree().get_first_node_in_group(Const.GROUP_RUN) as Run
+	var run: Run = null
+	for child: Node in _active_scene.get_children():
+		if child is Run:
+			run = child as Run
+			break
 	_map_view.bind(run.floor_map if run != null else null)
 
 

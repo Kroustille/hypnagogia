@@ -147,6 +147,7 @@ func test_the_arena_fallback_cleans_the_loader_the_dash_and_the_layout() -> void
 	assert_null(_run.floor_layout)
 	assert_false(_player.is_dashing())
 	assert_true(_run.current_room() is Arena)
+	assert_null(_run.floor_map.layout, "the map shows nothing over the arena")
 
 
 func test_a_loader_load_waits_for_the_pending_requests_first() -> void:

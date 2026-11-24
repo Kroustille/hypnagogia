@@ -2,6 +2,7 @@ extends GutTest
 ## The map is held, not toggled, and never pauses the game (story 4.9, AC 1, 6, 7).
 
 const MAIN_SCENE: PackedScene = preload("res://main/main.tscn")
+const RUN_SCENE: PackedScene = preload("res://run/run.tscn")
 
 var _main: Main
 var _view: FloorMapView
@@ -75,3 +76,18 @@ func test_the_map_stays_hidden_in_the_arena() -> void:
 	await wait_physics_frames(2)
 	assert_false(_view.visible)
 	Main.default_mode = RunOptions.Mode.FLOOR
+
+
+func test_main_binds_the_run_of_its_active_scene() -> void:
+	var other: Run = RUN_SCENE.instantiate() as Run
+	add_child(other) # a stray Run outside this Main, in the Run group
+	await wait_physics_frames(2)
+	var active: Node = _main.find_child("ActiveScene", true, false)
+	var own: Run = null
+	for child: Node in active.get_children():
+		if child is Run:
+			own = child as Run
+	assert_not_null(own)
+	_main._on_events_run_started()
+	assert_same(_view._map, own.floor_map)
+	other.queue_free()
