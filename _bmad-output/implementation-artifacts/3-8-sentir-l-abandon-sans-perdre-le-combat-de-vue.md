@@ -1,6 +1,6 @@
 # Story 3.8 : Sentir l'abandon, sans perdre le combat de vue
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -109,6 +109,25 @@ Claude Sonnet 5.5
 12. **`Telemetry._prune_old_sessions` prend un dossier** — Raison : permet de tester le plafond sans partager `user://telemetry/` avec les scènes parallèles.
 13. **`run_all.sh` ignore les avertissements de lecture de `Settings` de `t_lucidity_fx`** — Raison : la scène force des valeurs invalides pour tester l'assainissement.
 
+### Décisions prises sans Kroustille (revue de code, à valider en fin d'epic)
+
+14. **Les signes de combat (anneaux, signe de renfort) restent à z 0 avec les entités ; `Z_INDEX_COMBAT` ne sert qu'aux projectiles ennemis** — Question : l'AC1 place « projectiles ennemis et signes de combat » sur la couche de combat. Choix : ne pas déplacer les signes, l'AC1 est lue comme « au-dessus de la copie déformée ». Raison : rien au-dessus de -1 n'est déformé (le pilier lisibilité tient) ; un anneau d'Éveil à z 10 pourrait masquer des balles ennemies.
+15. **Valeurs par palier en pixels réellement affichés** (remplace la décision 7 pour l'onde et l'aberration, et la décision 9) — Question : avec l'arrondi entier, 0 / 0,5 / 1 / 1,5 / 2 px donnent la même image à deux paliers voisins et le plafond photosensible de 0,5 px s'affiche à 1 px. Choix : onde 0 / 0,75 / 1,25 / 1,75 / 2,25 (au plus ±2 px, plus de lignes décalées à chaque palier), aberration 0 / 1 / 2 / 3 / 4 px, plafond photosensible 1 px. Raison : l'AC2 demande une hausse visible à chaque palier ; le plafond doit être la valeur affichée. Toujours NON ÉVALUÉ en fenêtre.
+16. **La musique reste étouffée derrière l'écran de réveil** — Question : remettre le filtre à l'ouverture à la mort ? Choix : non, l'arène reste vivante derrière l'écran ; la relance repart filtre ouvert (AC6). Raison : cohérent avec l'état figé du rêve ; à juger au playtest.
+17. **Tâche « capture fenêtrée WSLg » cochée sans capture** — Choix : accepté, l'aspect est NON ÉVALUÉ et noté dans `deferred-work.md` (jugement humain, jamais bloquant selon le brief du pipeline).
+18. **`Audio._exit_tree` et `Telemetry._prune_old_sessions(directory)` dans le diff de la 3.8** — Choix : gardés (décisions 11 et 12) ; la boucle musicale de la 3.8 rend la vidange à la sortie nécessaire.
+
+### Review Findings
+
+Revue de code 2026-11-24 (trois couches : Blind Hunter, Edge Case Hunter, Acceptance Auditor). Couches vérifiées propres : aucun nœud du monde sous 0 hors décor et `PostFx` (réticule 100, HUD en `CanvasLayer`), stretch `viewport` 640×360 entier (un pixel d'écran = un pixel de jeu), filtre ajouté une seule fois, boucle non empilée à la relance, flux `cosmetic` semé par nom (aucun effet sur `combat`), réglages assainis et sauvegarde atomique, trois clés dans `strings.csv`.
+
+- [ ] [Review][Patch] Arrondi de l'onde asymétrique (à 1,5 px : +2 px à droite, -1 px à gauche) [game/vfx/shaders/lucidity_distortion.gdshader:16] — remplacer par `float w = sin(row * ROW_FREQUENCY + time * WAVE_SPEED) * wave_amount;` puis `float wave_px = sign(w) * floor(abs(w) + 0.5);`.
+- [ ] [Review][Patch] Paliers sans différence visible et plafond photosensible dépassé (0,5 px affiché à 1 px) [game/data/tuning/lucidity_tuning.tres:22-23, game/core/lucidity_tuning.gd:47,49,55] — décision 15 : `fx_wave = (0, 0.75, 1.25, 1.75, 2.25)`, `fx_aberration = (0, 1, 2, 3, 4)`, `fx_photosensitive_cap = 1.0` (dans le `.tres` et les valeurs par défaut du script) ; mettre à jour la ligne 3-8 de `deferred-work.md` et le contrôle de plafond de `t_lucidity_fx` s'il fige 0,5.
+- [ ] [Review][Patch] Copie d'écran active alors que rien n'est dessiné (intensité faible, fin d'ease vers Lucide) [game/vfx/lucidity_fx.gd:119] — `_postfx.visible = _wave >= 0.5 or _aberration >= 0.5` (seuil où l'arrondi du shader décale d'un pixel).
+- [ ] [Review][Patch] `shake()` écrase l'amplitude avant de décider : un appel à 0 % / photosensible pendant un tremblement en cours laisse `randi_range(1, 0)` tirer 1 px [game/rooms/arena/arena.gd:621-626] — `var amplitude: int = roundi(pixels * Settings.shake_intensity)` ; retour anticipé si `Settings.photosensitive or amplitude <= 0 or duration <= 0.0` ; seulement ensuite `_shake_amplitude = amplitude`. Dans `_process_shake` (l.634), si `Settings.photosensitive or Settings.shake_intensity <= 0.0` : `_shake_ticks_left = 0.0`, `_camera.offset = Vector2.ZERO`, retour (réglage changé depuis la pause pendant un tremblement figé).
+- [ ] [Review][Patch] L'attente de sortie compte les `delay_msec`, pas le temps réel (300 ms mesurés à chaque sortie headless ; au-delà de 600 ms si le sommeil déborde) [game/autoloads/audio.gd:62-72] — `var deadline: int = Time.get_ticks_msec() + EXIT_FLUSH_MSEC` et `while passes < EXIT_FLUSH_PASSES and Time.get_ticks_msec() < deadline:` ; supprimer `waited`.
+- [ ] [Review][Patch] Chemin d'erreur de `_ready` : `_physics_process` déréférence ensuite `_material` nul à chaque tick (assert retiré en release) [game/vfx/lucidity_fx.gd:42-45] — `set_physics_process(false)` avant le `return`.
+
 ### File List
 
 `game/core/constants.gd`, `game/core/lucidity_tuning.gd`, `game/data/tuning/lucidity_tuning.tres`, `game/vfx/shaders/lucidity_distortion.gdshader`, `game/vfx/lucidity_fx.gd`, `game/autoloads/audio.gd`, `game/audio/music/music_placeholder.wav` (+ `.import`), `game/autoloads/settings.gd`, `game/ui/menus/settings_menu.{gd,tscn}`, `game/localization/strings.csv`, `game/rooms/arena/arena.gd`, `game/telemetry/telemetry.gd`, `_bmad-output/implementation-artifacts/deferred-work.md`, `.scratch/t_lucidity_fx.*`, `.scratch/t_telemetry.gd` et `.scratch/run_all.sh` (non versionnés).
@@ -116,3 +135,4 @@ Claude Sonnet 5.5
 ### Change Log
 
 - 2026-11-24 : implémentation de la 3.8 (distorsions, passe-bas, réglages, tremblement d'Éveil), passage en `review`.
+- 2026-11-24 : revue de code (6 correctifs à appliquer, 4 reports, décisions 14 à 18), retour en `in-progress`.
