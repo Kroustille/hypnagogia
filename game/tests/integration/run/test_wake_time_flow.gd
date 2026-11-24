@@ -4,12 +4,14 @@ extends GutTest
 
 const MAIN_SCENE: PackedScene = preload("res://main/main.tscn")
 
+var _dir: SaveDir
 var _harness: RoomHarness
 var _log: Array[String] = []
 var _minutes: Array[int] = []
 
 
 func before_each() -> void:
+	_dir = SaveDir.new()
 	_log.clear()
 	_minutes.clear()
 	Events.wake_time_set.connect(_on_wake_time_set)
@@ -17,6 +19,7 @@ func before_each() -> void:
 
 
 func after_each() -> void:
+	_dir.restore()
 	Events.wake_time_set.disconnect(_on_wake_time_set)
 	Events.run_ended.disconnect(_on_run_ended)
 	GameClock.paused = false

@@ -69,3 +69,14 @@ func test_a_root_that_is_not_an_object_is_corrupt() -> void:
 	var path: String = _put("a.json", "[1, 2]")
 	assert_true(SaveService.read_json(path) == null)
 	assert_true(FileAccess.file_exists(path + ".corrupt"))
+
+
+func test_a_quarantine_that_fails_leaves_the_file_and_reads_as_unreadable() -> void:
+	var path: String = _put("q.json", "{ not json")
+	DirAccess.make_dir_recursive_absolute(path + ".corrupt/inner") # a folder that cannot be replaced by a file
+	assert_true(SaveService.read_json(path) == null)
+	assert_eq(SaveService.last_read_status, SaveService.Status.UNREADABLE, "not CORRUPT: nothing was set aside")
+	assert_push_error("cannot quarantine")
+	assert_true(FileAccess.file_exists(path), "the damaged file stays where it is")
+	DirAccess.remove_absolute(path + ".corrupt/inner")
+	DirAccess.remove_absolute(path + ".corrupt")

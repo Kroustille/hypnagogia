@@ -105,8 +105,7 @@ static func load_file(path: String) -> Profile:
 		var dict: Dictionary = data
 		profile = from_dict(dict)
 		if profile == null:
-			SaveService.quarantine(path)
-			status = SaveService.Status.CORRUPT
+			status = SaveService.Status.CORRUPT if SaveService.quarantine(path) else SaveService.Status.UNREADABLE
 	if profile == null:
 		profile = Profile.new()
 		profile.was_corrupt = status == SaveService.Status.CORRUPT
@@ -145,7 +144,7 @@ static func _entries_of(value: Variant) -> Dictionary[String, Dictionary]:
 ## One entry read back: the integers are integers again.
 static func _clean_entry(entry: Dictionary) -> Dictionary:
 	var cleaned: Dictionary = entry.duplicate(true)
-	for key: String in ["seed", "duration", "wake_minute"]:
+	for key: String in ["duration", "wake_minute"]:
 		if cleaned.has(key):
 			cleaned[key] = _int_of(cleaned[key], -1)
 	return cleaned

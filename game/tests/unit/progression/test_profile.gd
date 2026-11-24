@@ -12,7 +12,7 @@ func test_a_profile_survives_json_with_its_integers() -> void:
 	profile.victories = 2
 	profile.deaths = 3
 	profile.last_wake_minute = 1405
-	profile.first_victories["professor"] = {"seed": 123, "duration": 400, "items": ["a", "b"], "wake_minute": 17, "date": "x"}
+	profile.first_victories["professor"] = {"seed": "WXYZ", "duration": 400, "items": ["a", "b"], "wake_minute": 17, "date": "x"}
 	profile.achievements["synergy_three"] = {"seed": 9, "duration": 10, "items": [], "wake_minute": -1, "date": "y"}
 	var back: Profile = _round_trip(profile)
 	assert_eq(back.runs, 5)
@@ -20,7 +20,7 @@ func test_a_profile_survives_json_with_its_integers() -> void:
 	assert_eq(back.last_wake_minute, 1405)
 	assert_eq(typeof(back.last_wake_minute), TYPE_INT)
 	var entry: Dictionary = back.first_victories["professor"]
-	assert_eq(JsonView.n(entry["seed"]), 123)
+	assert_eq(JsonView.s(entry["seed"]), "WXYZ")
 	assert_eq(typeof(entry["duration"]), TYPE_INT)
 	assert_eq(JsonView.a(entry["items"]), ["a", "b"])
 	assert_true(back.achievements.has("synergy_three"))

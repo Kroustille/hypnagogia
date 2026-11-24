@@ -35,7 +35,12 @@ func write_json(path: String, data: Dictionary) -> bool:
 	if file == null:
 		Log.error("save", "cannot write %s (error %d)" % [tmp_path.get_file(), FileAccess.get_open_error()])
 		return false
-	file.store_string(JSON.stringify(data, "\t"))
+	if not file.store_string(JSON.stringify(data, "\t")):
+		var write_error: Error = file.get_error()
+		file.close()
+		DirAccess.remove_absolute(tmp_path) # a partial file never replaces the good one
+		Log.error("save", "cannot write %s (error %d)" % [tmp_path.get_file(), write_error])
+		return false
 	file.close() # flushed before the rename
 	var err: Error = DirAccess.rename_absolute(tmp_path, path)
 	if err != OK:
@@ -63,8 +68,7 @@ func read_json(path: String) -> Variant:
 	var parsed: Variant = json.data if json.parse(text) == OK else null # parse() reports without an engine error
 	if typeof(parsed) != TYPE_DICTIONARY:
 		Log.warn("save", "%s is not a JSON object" % path.get_file())
-		quarantine(path)
-		last_read_status = Status.CORRUPT
+		last_read_status = Status.CORRUPT if quarantine(path) else Status.UNREADABLE
 		return null
 	last_read_status = Status.OK
 	return parsed
@@ -73,8 +77,8 @@ func read_json(path: String) -> Variant:
 ## Renames path to <path>.corrupt, replacing an older quarantined file. Returns true when the file was moved.
 func quarantine(path: String) -> bool:
 	var corrupt_path: String = path + ".corrupt"
-	if FileAccess.file_exists(corrupt_path):
-		DirAccess.remove_absolute(corrupt_path)
 	var err: Error = DirAccess.rename_absolute(path, corrupt_path)
+	if err != OK:
+		Log.error("save", "cannot quarantine %s (error %d): the file is left where it is" % [path.get_file(), err])
 	Log.warn("save", "%s quarantined as %s (rename error %d)" % [path.get_file(), corrupt_path.get_file(), err])
 	return err == OK
