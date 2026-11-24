@@ -88,3 +88,74 @@ func bounds() -> Rect2i:
 	for cell: Vector2i in layout.cells:
 		rect = rect.expand(cell).expand(cell + Vector2i.ONE)
 	return rect
+
+
+## What the player did, as saved in run.json: the current cell, the cells entered and the cells cleared, as [x, y] pairs
+## (the layout itself is not saved: the seed makes it again).
+func to_dict() -> Dictionary:
+	return {
+		"current": cell_to_array(current),
+		"visited": _cells_to_array(visited),
+		"cleared": _cells_to_array(cleared),
+	}
+
+
+## The map of a saved dictionary (no layout), null when a cell is not an [x, y] pair of integers.
+static func from_dict(data: Dictionary) -> FloorMap:
+	var map: FloorMap = FloorMap.new()
+	var current_cell: Vector2i = cell_from_variant(data.get("current"))
+	if current_cell == NO_CELL:
+		return null
+	map.current = current_cell
+	for field: String in ["visited", "cleared"]:
+		var list: Variant = data.get(field)
+		if typeof(list) != TYPE_ARRAY:
+			return null
+		var entries: Array = list
+		for entry: Variant in entries:
+			var cell: Vector2i = cell_from_variant(entry)
+			if cell == NO_CELL:
+				return null
+			if field == "visited":
+				map.visited[cell] = true
+			else:
+				map.cleared[cell] = true
+	return map
+
+
+## Returned by cell_from_variant() for what is not a cell.
+const NO_CELL: Vector2i = Vector2i(-2147483648, -2147483648)
+
+
+static func cell_to_array(cell: Vector2i) -> Array:
+	return [cell.x, cell.y]
+
+
+## The cell of an [x, y] array of two whole numbers (JSON gives floats), NO_CELL for anything else.
+static func cell_from_variant(value: Variant) -> Vector2i:
+	if typeof(value) != TYPE_ARRAY:
+		return NO_CELL
+	var pair: Array = value
+	if pair.size() != 2:
+		return NO_CELL
+	var numbers: Array[int] = []
+	for part: Variant in pair:
+		if typeof(part) == TYPE_INT:
+			numbers.append(part)
+		elif typeof(part) == TYPE_FLOAT:
+			var number: float = part
+			if not is_finite(number) or absf(number) > 1.0e6 or floorf(number) != number:
+				return NO_CELL
+			numbers.append(int(number))
+		else:
+			return NO_CELL
+	return Vector2i(numbers[0], numbers[1])
+
+
+static func _cells_to_array(cells: Dictionary[Vector2i, bool]) -> Array:
+	var list: Array = []
+	var keys: Array[Vector2i] = cells.keys()
+	keys.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y < b.y or (a.y == b.y and a.x < b.x))
+	for cell: Vector2i in keys:
+		list.append(cell_to_array(cell))
+	return list

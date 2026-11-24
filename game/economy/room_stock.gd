@@ -101,3 +101,90 @@ func apply_no_armor(tuning: EconomyTuning) -> int:
 		offer.price = tuning.heart_price
 		changed += 1
 	return changed
+
+
+## The offers as saved in run.json: objects are referenced by id, never stored (architecture D12).
+func to_dict() -> Dictionary:
+	var list: Array = []
+	for offer: Offer in offers:
+		list.append({
+			"kind": int(offer.kind),
+			"id": String(offer.id()),
+			"position": [offer.position.x, offer.position.y],
+			"taken": offer.taken,
+			"price": offer.price,
+			"armed": offer.armed,
+			"amount": offer.amount,
+			"charge": offer.charge,
+		})
+	return {"offers": list}
+
+
+## The stock of a saved dictionary. An offer whose item or consumable no longer exists (removed from the game) is skipped
+## and logged; one that is malformed makes the whole stock unreadable (null).
+static func from_dict(data: Dictionary) -> RoomStock:
+	var list: Variant = data.get("offers")
+	if typeof(list) != TYPE_ARRAY:
+		return null
+	var stock: RoomStock = RoomStock.new()
+	var entries: Array = list
+	for entry: Variant in entries:
+		if typeof(entry) != TYPE_DICTIONARY:
+			return null
+		var fields: Dictionary = entry
+		var offer: Offer = _offer_from(fields)
+		if offer == null:
+			return null
+		if offer.kind == Kind.ITEM and offer.item == null or offer.kind == Kind.CONSUMABLE and offer.consumable == null:
+			Log.warn("save", "offer %s no longer exists: skipped" % fields.get("id"))
+			continue
+		stock.offers.append(offer)
+	return stock
+
+
+static func _offer_from(fields: Dictionary) -> Offer:
+	var kind_value: Variant = fields.get("kind")
+	var position_value: Variant = fields.get("position")
+	var id_value: Variant = fields.get("id")
+	if typeof(kind_value) != TYPE_FLOAT and typeof(kind_value) != TYPE_INT:
+		return null
+	if typeof(id_value) != TYPE_STRING or typeof(position_value) != TYPE_ARRAY:
+		return null
+	var coordinates: Array = position_value
+	if coordinates.size() != 2:
+		return null
+	var kind_index: int = RunState.whole(kind_value)
+	if kind_index < 0 or kind_index > int(Kind.SHARDS):
+		return null
+	var offer: Offer = Offer.new()
+	offer.kind = kind_index as Kind
+	for part: Variant in coordinates:
+		if typeof(part) != TYPE_FLOAT and typeof(part) != TYPE_INT:
+			return null
+	offer.position = Vector2(_float_of(coordinates[0]), _float_of(coordinates[1]))
+	offer.taken = fields.get("taken") == true
+	offer.armed = fields.get("armed") != false
+	offer.price = maxi(_int_field(fields, "price"), 0)
+	offer.amount = maxi(_int_field(fields, "amount"), 0)
+	offer.charge = _int_field(fields, "charge", -1)
+	var id: StringName = StringName(_text_of(id_value))
+	if offer.kind == Kind.ITEM:
+		offer.item = ItemCatalog.by_id(id)
+	elif offer.kind == Kind.CONSUMABLE:
+		offer.consumable = ConsumableCatalog.by_id(id)
+	return offer
+
+
+static func _int_field(fields: Dictionary, key: String, default: int = 0) -> int:
+	var value: Variant = fields.get(key, default)
+	return RunState.whole(value, default) if typeof(value) == TYPE_FLOAT or typeof(value) == TYPE_INT else default
+
+
+static func _float_of(value: Variant) -> float:
+	var number: float = value
+	return number
+
+
+static func _text_of(value: Variant) -> String:
+	var text: String = value
+	return text

@@ -72,3 +72,51 @@ static func code_to_seed(code: String) -> int:
 			return -1
 		value = (value << BITS_PER_CHAR) | digit
 	return value
+
+
+## The state of every stream created so far, "name:floor" -> state as a decimal string. A state is a 64-bit integer: JSON
+## writes numbers as floats and would lose the bits above 2^53, so it is kept as text. A stream never created has nothing to
+## save: it starts from (seed, name, floor) like the first time.
+func export_states() -> Dictionary:
+	var states: Dictionary = {}
+	for key: String in _streams:
+		var generator: RandomNumberGenerator = _streams[key]
+		states[key] = str(generator.state)
+	return states
+
+
+## Puts the streams back where export_states() left them (creating the ones that do not exist yet). Call it after the draws
+## that depend on the seed alone (the floor): the saved states are later than those. Entries that are not a "name:floor"
+## key with a decimal state are skipped. Returns how many streams were restored.
+func restore_states(states: Dictionary) -> int:
+	var restored: int = 0
+	for key: Variant in states:
+		var value: Variant = states[key]
+		if typeof(key) != TYPE_STRING or typeof(value) != TYPE_STRING:
+			continue
+		var cache_key: String = key
+		var text: String = value
+		var split: int = cache_key.rfind(":")
+		if split <= 0 or not text.is_valid_int() or not cache_key.substr(split + 1).is_valid_int():
+			continue
+		var generator: RandomNumberGenerator = stream(StringName(cache_key.substr(0, split)), cache_key.substr(split + 1).to_int())
+		generator.state = text.to_int()
+		restored += 1
+	return restored
+
+
+## True when states has the shape export_states() makes.
+static func states_are_valid(states: Variant) -> bool:
+	if typeof(states) != TYPE_DICTIONARY:
+		return false
+	var dict: Dictionary = states
+	for key: Variant in dict:
+		var value: Variant = dict[key]
+		if typeof(key) != TYPE_STRING or typeof(value) != TYPE_STRING:
+			return false
+		var cache_key: String = key
+		var text: String = value
+		var split: int = cache_key.rfind(":")
+		if split <= 0 or not text.is_valid_int() or not cache_key.substr(split + 1).is_valid_int():
+			return false
+	return true

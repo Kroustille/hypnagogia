@@ -1,5 +1,5 @@
 extends Node
-## Reads and writes the JSON save files (profile.json now, run.json in story 6.8). Atomic write (temporary file, then
+## Reads and writes the JSON save files (profile.json, run.json). Atomic write (temporary file, then
 ## rename), quarantine of an unreadable file as <name>.corrupt. Never saves a .tres or a .res.
 ## The data folder is injectable so that the tests never touch the player's real user:// folder.
 
@@ -82,3 +82,39 @@ func quarantine(path: String) -> bool:
 		Log.error("save", "cannot quarantine %s (error %d): the file is left where it is" % [path.get_file(), err])
 	Log.warn("save", "%s quarantined as %s (rename error %d)" % [path.get_file(), corrupt_path.get_file(), err])
 	return err == OK
+
+
+## --- run.json (story 6.8): the night in progress, written at the entry of each room, erased when the night is over ---
+
+## Writes the snapshot atomically. False (logged by write_json) when it fails: the run goes on without a save.
+func write_run(snapshot: RunSnapshot) -> bool:
+	return write_json(path_of(RunSnapshot.FILE_NAME), snapshot.to_dict())
+
+
+## The saved night, null when there is none or it cannot be read. A file that is not a readable snapshot (invalid JSON,
+## unknown or newer version, wrong shape) is quarantined as run.json.corrupt and last_read_status says CORRUPT.
+func read_run() -> RunSnapshot:
+	var path: String = path_of(RunSnapshot.FILE_NAME)
+	var data: Variant = read_json(path)
+	if not data is Dictionary:
+		return null
+	var dict: Dictionary = data
+	var snapshot: RunSnapshot = RunSnapshot.from_dict(dict)
+	if snapshot == null:
+		quarantine(path)
+		last_read_status = Status.CORRUPT
+	return snapshot
+
+
+func has_run() -> bool:
+	return FileAccess.file_exists(path_of(RunSnapshot.FILE_NAME))
+
+
+## Erases the saved night. A file that cannot be removed is logged, nothing else.
+func delete_run() -> void:
+	var path: String = path_of(RunSnapshot.FILE_NAME)
+	if not FileAccess.file_exists(path):
+		return
+	var err: Error = DirAccess.remove_absolute(path)
+	if err != OK:
+		Log.error("save", "cannot erase %s (error %d)" % [path.get_file(), err])

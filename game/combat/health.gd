@@ -228,3 +228,40 @@ func can_heal() -> bool:
 ## True when add_armor() would add something (alive and under the cap).
 func can_add_armor() -> bool:
 	return not _dead and not armor_blocked and _cap_half_hearts - max_half_hearts - armor > 0
+
+
+## The persistent part of the state (story 6.8): hearts, max, armor and the max lost to items. The post-hit invulnerability
+## is not saved: a room replayed starts clean.
+func export_state() -> Dictionary:
+	return {"half_hearts": half_hearts, "max_half_hearts": max_half_hearts, "armor": armor, "max_lost": _max_lost}
+
+
+## True when state has the shape export_state() makes (whole numbers, hearts above 0).
+static func is_valid_state(state: Variant) -> bool:
+	if typeof(state) != TYPE_DICTIONARY:
+		return false
+	var dict: Dictionary = state
+	for key: String in ["half_hearts", "max_half_hearts", "armor", "max_lost"]:
+		var value: Variant = dict.get(key)
+		if typeof(value) != TYPE_INT and typeof(value) != TYPE_FLOAT:
+			return false
+		var number: float = value
+		if not is_finite(number) or floorf(number) != number or number < 0.0 or number > 1.0e6:
+			return false
+	return RunState.whole(dict["half_hearts"]) >= 1 and RunState.whole(dict["max_half_hearts"]) >= MIN_MAX_HALF_HEARTS
+
+
+## Puts the state back (after the items were added again: they apply their max cost, this overwrites it). Values are
+## bounded by the cap. Emits changed, never died. Returns false when the state is not valid.
+func restore_state(state: Dictionary) -> bool:
+	if not is_valid_state(state):
+		Log.error("combat", "Health.restore_state() got an invalid state")
+		return false
+	max_half_hearts = clampi(RunState.whole(state["max_half_hearts"]), MIN_MAX_HALF_HEARTS, _cap_half_hearts)
+	half_hearts = clampi(RunState.whole(state["half_hearts"]), 1, max_half_hearts)
+	armor = clampi(RunState.whole(state["armor"]), 0, maxi(_cap_half_hearts - max_half_hearts, 0))
+	_max_lost = RunState.whole(state["max_lost"])
+	_hit_ticks_left = 0.0
+	_dead = false
+	changed.emit()
+	return true

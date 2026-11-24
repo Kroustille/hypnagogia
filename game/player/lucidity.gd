@@ -109,3 +109,11 @@ func tier_for(of_value: int) -> Tier:
 		if of_value >= floors[i]:
 			return i as Tier
 	return Tier.TOTAL_ABANDON
+
+
+## Puts the gauge back where a saved run had it (story 6.8): the value and its tier, listeners told as set_value() does, but
+## no room danger is raised: the room starts again with this tier as its own.
+func restore_value(saved_value: int) -> void:
+	room_tier = (Tier.size() - 1) as Tier # nothing is deeper: set_value() raises no room danger
+	set_value(saved_value)
+	room_tier = live_tier
