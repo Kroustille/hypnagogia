@@ -7,9 +7,13 @@ extends RefCounted
 
 ## Emitted when the computed value of a stat changes (never on a set that changes nothing).
 signal changed(stat: int)
+## The base value of a stat changed (a base is not a modifier: whatever is derived from it must be recomputed).
+signal base_changed(stat: int)
 
-## PIT_DAMAGE: half-hearts lost by a fall. CAN_FLY_OVER_PITS: a boolean carried by a float (active when > 0).
-enum Stat { DAMAGE, SHOT_SPEED, HURTBOX_SIZE, PIT_DAMAGE, CAN_FLY_OVER_PITS }
+## PIT_DAMAGE: half-hearts lost by a fall. MOVE_SPEED: tiles per second. FIRE_RATE: shots per second.
+## CAN_FLY_OVER_PITS, PIERCE and REAR_SHOT: booleans carried by a float (active when > 0).
+## New stats are appended at the end: the values may be stored.
+enum Stat { DAMAGE, SHOT_SPEED, HURTBOX_SIZE, PIT_DAMAGE, CAN_FLY_OVER_PITS, MOVE_SPEED, FIRE_RATE, PIERCE, REAR_SHOT }
 enum Kind { ADD_FLAT, ADD_PERCENT, MULTIPLY }
 
 ## stat -> { source: Object -> Modifier }
@@ -27,6 +31,8 @@ var _modifiers: Dictionary = {}
 var _bases: Dictionary[int, float] = {}
 ## stat -> last computed value (to emit changed only on a real variation)
 var _values: Dictionary[int, float] = {}
+## stat -> Vector2(min, max) of the bounds set by set_bounds()
+var _bounds: Dictionary[int, Vector2] = {}
 
 
 func base_of(stat: Stat) -> float:
@@ -34,10 +40,21 @@ func base_of(stat: Stat) -> float:
 
 
 func set_base(stat: Stat, value: float) -> void:
+	var previous: float = _bases.get(stat, NAN)
 	_bases[stat] = value
+	_refresh(stat)
+	if is_nan(previous) or not is_equal_approx(previous, value):
+		base_changed.emit(stat)
+
+
+## Limits of the computed value of a stat (inclusive). Use -INF or INF for no limit on one side.
+func set_bounds(stat: Stat, minimum: float, maximum: float) -> void:
+	assert(minimum <= maximum, "StatBlock bounds are inverted")
+	_bounds[stat] = Vector2(minimum, maximum)
 	_refresh(stat)
 
 
+## The computed value, within its bounds.
 func value_of(stat: Stat) -> float:
 	return _values.get(stat, 0.0)
 
@@ -78,7 +95,11 @@ func _compute(stat: Stat) -> float:
 				percent += entry.value
 			Kind.MULTIPLY:
 				product *= entry.value
-	return (base_of(stat) + flat) * (1.0 + percent) * product
+	var result: float = (base_of(stat) + flat) * (1.0 + percent) * product
+	if _bounds.has(stat):
+		var limits: Vector2 = _bounds[stat]
+		result = clampf(result, limits.x, limits.y)
+	return result
 
 
 func _refresh(stat: Stat) -> void:

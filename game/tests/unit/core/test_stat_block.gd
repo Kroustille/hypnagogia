@@ -79,3 +79,39 @@ func test_changed_is_not_emitted_when_nothing_changes() -> void:
 	_stats.set_modifier(_b, DAMAGE, StatBlock.Kind.ADD_PERCENT, 0.0)
 	_stats.set_base(DAMAGE, 10.0)
 	assert_signal_not_emitted(_stats, "changed")
+
+
+func test_bounds_clamp_the_computed_value_and_signal_the_clamped_change() -> void:
+	_stats.set_bounds(DAMAGE, 0.0, 12.0)
+	assert_eq(_stats.value_of(DAMAGE), 10.0)
+	_stats.set_modifier(_a, DAMAGE, StatBlock.Kind.ADD_PERCENT, 0.5)
+	assert_eq(_stats.value_of(DAMAGE), 12.0, "capped")
+	watch_signals(_stats)
+	_stats.set_modifier(_b, DAMAGE, StatBlock.Kind.ADD_PERCENT, 0.5)
+	assert_signal_not_emitted(_stats, "changed", "still 12: nothing changed")
+	_stats.set_modifier(_a, DAMAGE, StatBlock.Kind.ADD_PERCENT, -5.0)
+	assert_eq(_stats.value_of(DAMAGE), 0.0, "floored")
+
+
+func test_bounds_apply_when_set_after_the_modifiers() -> void:
+	_stats.set_modifier(_a, DAMAGE, StatBlock.Kind.ADD_FLAT, 100.0)
+	_stats.set_bounds(DAMAGE, 0.0, 50.0)
+	assert_eq(_stats.value_of(DAMAGE), 50.0)
+
+
+func test_base_changed_only_on_a_real_change_of_the_base() -> void:
+	watch_signals(_stats)
+	_stats.set_base(DAMAGE, 10.0)
+	assert_signal_not_emitted(_stats, "base_changed")
+	_stats.set_base(DAMAGE, 12.0)
+	assert_signal_emit_count(_stats, "base_changed", 1)
+	_stats.set_modifier(_a, DAMAGE, StatBlock.Kind.ADD_FLAT, 1.0)
+	assert_signal_emit_count(_stats, "base_changed", 1, "a modifier is not a base")
+
+
+func test_new_stats_come_after_the_existing_ones() -> void:
+	assert_eq(StatBlock.Stat.CAN_FLY_OVER_PITS, 4)
+	assert_eq(StatBlock.Stat.MOVE_SPEED, 5)
+	assert_eq(StatBlock.Stat.FIRE_RATE, 6)
+	assert_eq(StatBlock.Stat.PIERCE, 7)
+	assert_eq(StatBlock.Stat.REAR_SHOT, 8)
