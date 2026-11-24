@@ -28,6 +28,12 @@ static var waves_enabled: bool = true
 ## Technical pool size of the enemy bullets, same as the load test (F5).
 const ENEMY_BULLET_CAPACITY: int = 512
 
+## Placeholder Awakening ring, until epic 7: color and lifetime in seconds (visual, not GDD values).
+const AWAKENING_RING_COLOR: Color = Color(0.75, 0.88, 1.0)
+const AWAKENING_RING_DURATION: float = 0.35
+## Centers closer than this (px²) have no usable direction: the push goes to the right.
+const KNOCKBACK_MIN_OFFSET_SQ: float = 1e-6
+
 ## Technical margin between the playable area and a spawn position, in tiles: no body against a wall.
 const SPAWN_MARGIN_TILES: int = 1
 ## Rounding tolerance when comparing a spawn distance to the minimal one, in pixels (exactly 3 tiles is accepted).
@@ -212,6 +218,31 @@ func _setup_enemy_bullets() -> void:
 		bullets.enable_graze(_player.hurtbox, Tuning.LUCIDITY.graze_radius)
 		bullets.grazed.connect(_player.on_bullet_grazed)
 		bullets.dodged.connect(_player.on_bullet_dodged)
+		_player.awakening_used.connect(_on_awakening_used)
+
+
+## Awakening (story 3.3): wipes the enemy bullets, pushes the close enemies back, shows a ring. origin: global.
+func _on_awakening_used(origin: Vector2) -> void:
+	var tuning: AwakeningTuning = Tuning.AWAKENING
+	var cleared: int = _enemy_bullets.clear_all()
+	var radius_px: float = tuning.effect_radius * Const.TILE_SIZE
+	var push_px: float = tuning.knockback_distance * Const.TILE_SIZE
+	var pushed: int = 0
+	for child: Node in _enemies.get_children():
+		var enemy: Enemy = child as Enemy
+		if enemy == null or enemy.is_dead():
+			continue
+		var offset: Vector2 = enemy.global_position - origin
+		if offset.length() >= radius_px:
+			continue
+		var direction: Vector2 = offset.normalized() if offset.length_squared() >= KNOCKBACK_MIN_OFFSET_SQ else Vector2.RIGHT
+		enemy.knock_back(direction, push_px)
+		pushed += 1
+	var ring: RingPulse = RingPulse.new()
+	ring.setup(radius_px, AWAKENING_RING_COLOR, AWAKENING_RING_DURATION)
+	ring.position = to_local(origin)
+	add_child(ring)
+	Log.debug("combat", "awakening cleared=%d pushed=%d" % [cleared, pushed])
 
 
 ## Playable area in pixels (cells 1 to 36 by 1 to 19), shrunk by SPAWN_MARGIN_TILES so a body never appears

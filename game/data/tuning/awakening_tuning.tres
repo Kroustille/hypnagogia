@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="AwakeningTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/awakening_tuning.gd" id="1_tuning"]
+
+[resource]
+script = ExtResource("1_tuning")
+cost = 30
+cooldown = 1.0
+effect_radius = 3.0
+knockback_distance = 2.0

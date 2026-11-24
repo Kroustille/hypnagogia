@@ -71,7 +71,9 @@ func _lucidity_text() -> String:
 	var player: Player = get_tree().get_first_node_in_group(Const.GROUP_PLAYER) as Player
 	if player == null:
 		return "Lucidity -"
-	return "Lucidity %d (%s)" % [player.lucidity.value, Lucidity.Tier.find_key(player.lucidity.live_tier)]
+	return "Lucidity %d (%s) | Awakening %d%%" % [
+		player.lucidity.value, Lucidity.Tier.find_key(player.lucidity.live_tier),
+		roundi(player.awakening_cooldown_progress() * 100.0)]
 
 
 ## Sum of (active, refused) over every BulletManager, found by node group. Called at 2 Hz only.
