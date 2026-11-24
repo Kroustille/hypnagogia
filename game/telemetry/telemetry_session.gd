@@ -4,11 +4,16 @@ extends RefCounted
 ## the caller passes the elapsed seconds, so it can be checked headless.
 
 const VERSION: int = 1
+## Outcomes written in "run_end" (Run.Outcome names; "abandoned": a run cut by a restart or the end of the session).
+const OUTCOME_DEATH: String = "death"
+const OUTCOME_VICTORY: String = "victory"
+const OUTCOME_ABANDONED: String = "abandoned"
 
 var id: String = ""
 var events: Array[Dictionary] = []
 var runs: int = 0
 var deaths: int = 0
+var victories: int = 0
 var yes: int = 0
 var no: int = 0
 var no_answer: int = 0
@@ -42,7 +47,7 @@ func start(at: float) -> void:
 
 func run_started(at: float) -> void:
 	_close_death(at) # restarting without answering is an absence of answer
-	_close_tiers(at) # a run that never reported its end (restart from the debug panel)
+	_close_tiers(at, OUTCOME_ABANDONED) # a run that never reported its end (restart from the debug panel)
 	runs += 1
 	_tier = 0
 	_tier_since = at
@@ -111,12 +116,20 @@ func item_taken(item_id: String) -> void:
 	items[item_id] = items.get(item_id, 0) + 1
 
 
-## Run end: the time in each tier of this run, as a "run_end" event. Returns that run's seconds per tier.
-func run_ended(at: float) -> Array[float]:
+## Run end: the time in each tier of this run, as a "run_end" event carrying the outcome ("death" or "victory").
+## Returns that run's seconds per tier.
+func run_ended(at: float, outcome: String = OUTCOME_DEATH) -> Array[float]:
 	if _tier == -1:
 		return []
-	_close_tiers(at)
+	_close_tiers(at, outcome)
 	return _run_tier_seconds.duplicate()
+
+
+## The night was won (the run ended by victory): no death, no question to answer.
+func victory(at: float) -> void:
+	_close_death(at)
+	victories += 1
+	_add("victory", at)
 
 
 ## cause: DamageInfo.Source name of the lethal hit, "unknown" when no hit was seen.
@@ -142,7 +155,7 @@ func answer(at: float, just: bool) -> bool:
 
 func end(at: float) -> void:
 	_close_death(at)
-	_close_tiers(at)
+	_close_tiers(at, OUTCOME_ABANDONED)
 	play_seconds = at
 	_add("session_end", at)
 
@@ -163,6 +176,7 @@ func to_dict(at: float) -> Dictionary:
 			"play_seconds": maxf(play_seconds, at),
 			"runs": runs,
 			"deaths": deaths,
+			"victories": victories,
 			"yes": yes,
 			"no": no,
 			"no_answer": no_answer,
@@ -181,12 +195,12 @@ func _credit(at: float) -> void:
 
 
 ## Ends the tier tracking of the run in progress, if any; records its seconds per tier as a "run_end" event.
-func _close_tiers(at: float) -> void:
+func _close_tiers(at: float, outcome: String) -> void:
 	if _tier == -1:
 		return
 	_credit(at)
 	_tier = -1
-	_add("run_end", at, {"tier_seconds": tier_dict(_run_tier_seconds), "spends": _run_spends.duplicate(true), "items": _run_items.duplicate(), "shards": _run_shards})
+	_add("run_end", at, {"outcome": outcome, "tier_seconds": tier_dict(_run_tier_seconds), "spends": _run_spends.duplicate(true), "items": _run_items.duplicate(), "shards": _run_shards})
 
 
 ## Tier name (Lucidity.Tier key, lower case) to seconds, rounded to 10 ms.

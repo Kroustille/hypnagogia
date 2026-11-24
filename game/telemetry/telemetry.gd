@@ -128,13 +128,20 @@ func _on_events_item_acquired(item_id: StringName, _copies: int) -> void:
 	_write()
 
 
-func _on_events_run_ended(_outcome: int) -> void:
-	var tiers: Array[float] = _session.run_ended(_now())
+## Only a defeat is a death: the cause and the question "was it fair?" belong to it. A victory is its own event.
+## An outcome unknown to this build is a defeat, as for the wake screen.
+func _on_events_run_ended(outcome: int) -> void:
+	var victory: bool = outcome == Run.Outcome.VICTORY
+	var outcome_name: String = TelemetrySession.OUTCOME_VICTORY if victory else TelemetrySession.OUTCOME_DEATH
+	var tiers: Array[float] = _session.run_ended(_now(), outcome_name)
 	if not tiers.is_empty():
 		Log.info("lucidity", "time per tier (s) %s" % [TelemetrySession.tier_dict(tiers)])
-	var key: Variant = DamageInfo.Source.find_key(_last_hit_source)
-	var cause: String = str(key).to_lower() if key != null else "unknown"
-	_session.death(_now(), cause)
+	if victory:
+		_session.victory(_now())
+	else:
+		var key: Variant = DamageInfo.Source.find_key(_last_hit_source)
+		var cause: String = str(key).to_lower() if key != null else "unknown"
+		_session.death(_now(), cause)
 	_write()
 
 
