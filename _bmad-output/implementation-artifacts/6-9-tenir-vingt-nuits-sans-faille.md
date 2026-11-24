@@ -1,6 +1,6 @@
 # Story 6.9 : Tenir vingt nuits sans faille
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -26,11 +26,11 @@ Hors périmètre : jouer les 20 nuits à la main (l'humain les consigne, voir d�
 
 ## Tâches
 
-- [ ] `telemetry/telemetry_session.gd` : `runs_detail`, `boss_attempts`, durées par run (ticks ou secondes de session, mêmes sources que `tier_seconds`), parts sous Lucide ; `telemetry.gd` écoute `Events.boss_engaged`, `boss_health_changed`, `boss_phase_changed`, `boss_defeated`, `wake_time_set`, `run_ended(outcome)` (6.4) et `Events.floor_ready` si créé ; `to_dict` : sections `runs_detail`, `boss_attempts`, `summary.below_lucid_*`.
-- [ ] `run/run.gd` : mesure `startup_ms` et journalise ; `main/main.gd` : durée de la demande à `run_started`.
-- [ ] `debug/soak_runner.gd` + `.tscn`, `tools/soak.sh` (lance Godot en `--fixed-fps 60` plus rapide que le temps réel, comme `FAST=1`, et affirme les critères 2 et 3, code de sortie non nul en cas d'échec) ; résultat texte dans `tools/` sorti, **non versionné**.
-- [ ] Tests GUT : télémétrie, déterminisme de 10 seeds, seuil de chargement.
-- [ ] Consigner dans cette story les résultats du soak (20 lignes) et ce qui reste NON VÉRIFIÉ.
+- [x] `telemetry/telemetry_session.gd` : `runs_detail`, `boss_attempts`, durées par run (ticks ou secondes de session, mêmes sources que `tier_seconds`), parts sous Lucide ; `telemetry.gd` écoute `Events.boss_engaged`, `boss_health_changed`, `boss_phase_changed`, `boss_defeated`, `wake_time_set`, `run_ended(outcome)` (6.4) et `Events.floor_ready` si créé ; `to_dict` : sections `runs_detail`, `boss_attempts`, `summary.below_lucid_*`.
+- [x] `run/run.gd` : mesure `startup_ms` et journalise ; `main/main.gd` : durée de la demande à `run_started`.
+- [x] `debug/soak_runner.gd` + `.tscn`, `tools/soak.sh` (lance Godot en `--fixed-fps 60` plus rapide que le temps réel, comme `FAST=1`, et affirme les critères 2 et 3, code de sortie non nul en cas d'échec) ; résultat texte dans `tools/` sorti, **non versionné**.
+- [x] Tests GUT : télémétrie, déterminisme de 10 seeds, seuil de chargement.
+- [x] Consigner dans cette story les résultats du soak (20 lignes) et ce qui reste NON VÉRIFIÉ.
 
 ## État du code concerné
 
@@ -71,12 +71,56 @@ epics.md (Story 6.9) ; GDD, Indicateurs de réussite (techniques et gameplay) ; 
 3. **Une tentative contre Le Professeur commence à `boss_engaged`** (le boss apparaît), pas à l'entrée de la salle : mourir avant qu'il apparaisse n'en est pas une.
 4. **Seuil de 2 s mesuré en headless** ; il ne remplace pas la mesure sur la machine de référence (disque, GPU), NON VÉRIFIÉ.
 5. **Marge de fuite fixe** pour les objets et nœuds (pas d'exigence d'égalité exacte) : les caches de ressources grossissent légitimement à la première run.
-6. **Le soak n'est pas dans la suite GUT** (trop long) : script dédié, lancé à la main et par l'orchestrateur à la fin de l'epic.
+6. **Le soak n'est pas dans la suite GUT** : script dédié, lancé à la main et par l'orchestrateur à la fin de l'epic.
+
+7. **Part sous Lucide = temps sous Lucide / somme des secondes de paliers de la run** (pas / `duration_seconds`) : `tier_seconds` suit l'horloge murale de la télémétrie (pause comprise), `duration_seconds` le temps de jeu ; les diviser l'un par l'autre mélangerait deux horloges. Les deux chiffres sont écrits ; sans pause, ils coïncident.
+8. **Durée de run = temps de jeu compté en images** : `Telemetry._process` additionne `delta` hors `GameClock.paused` (pause et écran de réveil exclus) ; la session reste pure (`advance_play`), sans horloge.
+9. **Nouveau signal `Events.floor_ready(startup_ms, load_ms)`**, émis par `Main` à `run_started` (durée de `Run._ready()` jusqu'à `run_started`, et durée depuis la demande de nuit) ; écrit dans `run_start` et `runs_detail`. Seuils 2 000 ms (chargement) et 3 000 ms (relance) en données du test et du soak.
+10. **Le soak n'est pas dans `tools/run_tests.sh`** : il a besoin du vrai `Main` et d'un code de sortie propre ; il dure une dizaine de secondes seulement (20 nuits, `--fixed-fps 60`), donc `tools/soak.sh` à part (opt-in, lancé par l'orchestrateur en fin d'epic), `SOAK_RUNS` / `SOAK_MAX_SECONDS` pour le raccourcir.
+11. **Les 20 nuits mêlent quatre départs** (lit, « Se rendormir », seed saisie depuis la chambre, seed saisie depuis l'écran de réveil) : le lit et « Se rendormir » tirent une seed au hasard (consignée dans le tableau, rejouable en la saisissant) ; les deux autres prennent la liste du script. Fins : 10 victoires, 4 morts en salle, 3 pendant l'annonce, 3 au combat. L'Interro surprise est forcée (jauge à 0) une nuit de boss sur deux.
+12. **Marges de fuite** : objets ± 300, nœuds ± 20, orphelins + 5 par rapport à la première nuit du même type de départ (depuis la chambre / relance directe) ; mémoire statique : pas plus de 1,5× d'écart entre le premier et le dernier cinquième.
 
 ## Dev Agent Record
 
 ### Notes de complétion
 
+- Télémétrie (`TelemetrySession`, `Telemetry`) : sections `runs_detail` (run, seed, issue, `duration_seconds`, `wake`, `below_lucid_seconds/share`, `startup_ms`, `load_ms`) et `boss_attempts` (boss, issue `victory`/`death`/`abandoned`, PV restants, phase la plus profonde, durée) ; `summary.below_lucid_seconds/share`. Une tentative commence à `boss_engaged`, se clôt à `boss_defeated` (victoire), `run_ended` (issue de la run) ou au `run_started` / `end` suivant (abandon). Aucune clé existante ne change de sens. `Telemetry.session()` donne la session en mémoire.
+- `Run.startup_msec()` et `Main` : `Events.floor_ready` ; le journal dit « floor ready in N ms » (`run`) et « … since the request » (`Main`).
+- Soak : `game/debug/soak_runner.tscn/.gd` + `tools/soak.sh` (rapport dans `tools/soak-result.txt`, ignoré par git). 20 nuits en une dizaine de secondes ; code de sortie 1 sur toute erreur du moteur ou du jeu, fuite, délai dépassé, jeton `ResourceLoader` ouvert, pool de projectiles qui refuse un tir, télémétrie incohérente.
+- Tests GUT : `unit/telemetry/test_session_summary` (11), `integration/telemetry/test_boss_attempts` (4), `integration/generation/test_seed_determinism` (10 seeds, plan, offres trésor/boutique, ennemis des salles traversées), `integration/run/test_floor_load_time` (2). Suite : 848 réussis. `run_all.sh` en mode normal : toutes les scènes PASS ; `--quit-after 120` propre (zéro SCRIPT ERROR, zéro Parse Error).
+- **Résultat du soak (une exécution, `bash tools/soak.sh`, 20 nuits, 10 victoires / 10 morts, 16 combats contre Le Professeur dont 7 Interros)** : PASSED, zéro erreur, zéro fuite ; nœuds constants à 187, orphelins 0, objets 2 501 à 2 586 (cache de salles), mémoire statique 58 à 59 Mo, chargement 95 à 109 ms depuis le lit au premier passage, 6 à 15 ms ensuite.
+
+| nuit | départ | seed | issue | temps de jeu (s) | réveil | objets |
+|---|---|---|---|---|---|---|
+| 1 | lit | ZHXBPB2K | victoire | 12,0 | 00:18 | 2511 |
+| 2 | relance | 46K5JDTN | mort en salle | 1,1 | 23:06 | 2521 |
+| 3 | seed (chambre) | 00000D8B | victoire | 11,2 | 00:18 | 2530 |
+| 4 | seed (réveil) | 000031MZ | mort au combat | 8,1 | 23:45 | 2529 |
+| 5 | lit | 0ZN55CKS | victoire | 11,6 | 00:18 | 2532 |
+| 6 | relance | BNVXVJ4V | mort à l'annonce | 3,5 | 23:32 | 2533 |
+| 7 | seed (chambre) | 00088QZD | victoire | 11,7 | 00:18 | 2548 |
+| 8 | seed (réveil) | 00041EZR | mort en salle | 1,1 | 23:06 | 2541 |
+| 9 | lit | ZKQ85A49 | victoire | 11,3 | 00:18 | 2565 |
+| 10 | relance | A8EG4YAB | victoire | 11,7 | 00:18 | 2562 |
+| 11 | seed (chambre) | 00003RJ0 | mort au combat | 6,8 | 23:26 | 2565 |
+| 12 | seed (réveil) | 0000KYZH | victoire | 11,6 | 00:18 | 2563 |
+| 13 | lit | 8F58WS0X | mort en salle | 0,7 | 23:00 | 2571 |
+| 14 | relance | HCXAW1EX | victoire | 11,6 | 00:18 | 2580 |
+| 15 | seed (chambre) | 0000RN2H | mort à l'annonce | 2,6 | 23:19 | 2552 |
+| 16 | seed (réveil) | 00000YK9 | victoire | 11,2 | 00:18 | 2552 |
+| 17 | lit | GGKXZCRW | mort au combat | 7,2 | 23:32 | 2581 |
+| 18 | relance | SHJAFE2W | mort en salle | 1,5 | 23:13 | 2567 |
+| 19 | seed (chambre) | 0001HC3H | mort à l'annonce | 2,5 | 23:19 | 2562 |
+| 20 | seed (réveil) | 0002JYJ9 | victoire | 11,7 | 00:18 | 2586 |
+
+- **NON VÉRIFIÉ (humain)** : les 20 nuits jouées à la main sur la machine de référence ; chargement < 2 s et relance < 3 s sur cette machine (disque, GPU) ; durée médiane 12 à 18 min, ≥ 25 % de la run sous Lucide, 30 à 50 % de victoires contre Le Professeur dès la 5e tentative (aucune mesure automatique n'a de sens : le soak simule des coups) ; le temps de jeu des nuits du soak (≈ 11 s) vient des coups simulés, pas du jeu réel.
+
 ### Liste des fichiers
 
+- `game/telemetry/telemetry_session.gd`, `game/telemetry/telemetry.gd`, `game/autoloads/events.gd` (`floor_ready`), `game/run/run.gd`, `game/main/main.gd`
+- `game/debug/soak_runner.tscn`, `game/debug/soak_runner.gd`, `tools/soak.sh`, `.gitignore`
+- `game/tests/unit/telemetry/test_session_summary.gd`, `game/tests/integration/telemetry/test_boss_attempts.gd`, `game/tests/integration/generation/test_seed_determinism.gd`, `game/tests/integration/run/test_floor_load_time.gd`
+
 ### Journal des modifications
+
+- 2026-11-24 : télémétrie des indicateurs du jalon B, mesure du chargement d'étage, soak de 20 nuits, tests de déterminisme sur 10 seeds. Statut : review.

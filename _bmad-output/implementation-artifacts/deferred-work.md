@@ -591,6 +591,11 @@
 - **Seed d'une run normale non rejouable une fois des déblocages acquis** (acte 1, premier vrai déblocage) : une run normale tire son étage dans le pool filtré par `profile.unlocks`, mais la même seed saisie ignore les déblocages (décision 11) ⇒ la seed affichée sur l'écran de réveil ne redonne plus la même nuit. Encoder l'ensemble de déblocages dans le code de seed, ou toujours tirer l'étage sur le pool sans déblocage et n'ajouter le contenu débloqué qu'ensuite.
 - **`pre_run.gd` : dossier temporaire jamais nettoyé, repli silencieux sur `user://`** (story 6.8, qui ajoute `run.json` aux tests) : `DirAccess.create_temp("hypnagogia_suite", true)` laisse un dossier dans `/tmp` à chaque lancement de la suite ; s'il rend `null`, la suite écrit dans `user://` (sans danger sous `tools/run_tests.sh` qui isole `XDG_DATA_HOME`, mais pas depuis l'éditeur). `push_error` et arrêt si `null` ; supprimer le dossier en fin de suite (post-run hook). **Résolu par la story 6.8** : arrêt sans repli sur `user://`, `post_run.gd` supprime le dossier.
 
+## Deferred from: story 6-9-tenir-vingt-nuits-sans-faille (2026-11-24)
+
+- **NON VÉRIFIÉ (humain) : les 20 nuits jouées à la main** sur la machine de référence (aucun crash), chargement d'étage < 2 s et relance < 3 s mesurés à la main (le soak mesure en headless), durée médiane 12 à 18 min, ≥ 25 % de la run sous Lucide, Le Professeur 30 à 50 % de victoires dès la 5e tentative (lire `runs_detail` et `boss_attempts` dans `telemetry/*.json`).
+- **Le soak simule les coups sur le boss** : il prouve la stabilité, pas l'équilibre ni la lisibilité ; `tools/soak.sh` reste à lancer en fin d'epic et avant chaque jalon.
+
 ## Deferred from: code review of 6-8-sauvegarder-quitter-et-reprendre (2026-11-24)
 
 - **Télémétrie d'une nuit reprise** (story 6.9, résumés de session) : la reprise émet `run_started` comme une nouvelle nuit (un `run_start` sans marque `resumed` dans la session du nouveau lancement) et réémet chaque objet restauré sur `item_acquired`, donc le total `items` de la session les compte une seconde fois. Ajouter `resumed` au `run_start` (par exemple via `RunOptions.resume != null`) et ne pas compter les objets réémis dans les totaux par id.
