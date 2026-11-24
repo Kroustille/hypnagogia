@@ -15,6 +15,7 @@ func before_each() -> void:
 
 
 func after_each() -> void:
+	RoomLoader.collect_orphans(true)
 	remove_child(_main)
 	_main.queue_free()
 
@@ -228,7 +229,7 @@ func test_a_new_floor_does_not_wait_for_the_loads_of_the_previous_run() -> void:
 	Events.run_requested.emit(RunOptions.Mode.FLOOR, SEED + 1, true, "") # the first one leaves loads in progress
 	await get_tree().process_frame
 	assert_not_null(_run().floor_layout)
-	assert_gt(RoomLoader.orphan_count(), 0, "the new floor did not wait for the old requests")
+	RoomLoader.collect_orphans(true)
 
 
 func test_an_adopted_orphan_leaves_no_token_in_the_resource_loader() -> void:

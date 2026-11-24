@@ -57,11 +57,15 @@ func scene_for(path: String) -> PackedScene:
 	return scene
 
 
+## Test seam: how drain() reads the status of a load.
+var status_of: Callable = ResourceLoader.load_threaded_get_status
+
+
 ## Lets go of the requests still pending (the run ends before the player went everywhere). Never waits: the finished
 ## ones are collected now, the ones still loading are left to a later loader (collect_orphans).
 func drain() -> void:
 	for path: String in _requested.keys():
-		var status: ResourceLoader.ThreadLoadStatus = ResourceLoader.load_threaded_get_status(path)
+		var status: Variant = status_of.call(path)
 		if status == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
 			_orphans.append(path)
 		else:

@@ -39,3 +39,12 @@ func test_a_new_loader_can_ask_again_for_a_room_a_past_run_was_loading() -> void
 	for path: String in paths:
 		assert_not_null(second.scene_for(path), path)
 	second.drain()
+
+
+func test_drain_never_waits_for_a_load_in_progress() -> void:
+	var loader: RoomLoader = RoomLoader.new()
+	loader.request_all(_paths())
+	var pending: int = loader.pending_count()
+	loader.status_of = func(_path: String) -> int: return ResourceLoader.THREAD_LOAD_IN_PROGRESS
+	loader.drain()
+	assert_eq(RoomLoader.orphan_count(), pending, "every request still loading is handed over, none awaited")

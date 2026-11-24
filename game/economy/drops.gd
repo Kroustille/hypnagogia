@@ -21,9 +21,14 @@ static func consumable_for(consumable_roll: int) -> ConsumableDef:
 	return pool[consumable_roll % pool.size()]
 
 
-static func _lay(room: Room, kind: Kind, position: Vector2, consumable_roll: int) -> void:
-	if not is_instance_valid(room) or not room.is_inside_tree():
+## room_ref is a Variant on purpose: a Room (or Object) typed parameter rejects a freed instance before the guard runs.
+static func _lay(room_ref: Variant, kind: Kind, position: Vector2, consumable_roll: int) -> void:
+	if not is_instance_valid(room_ref):
 		return # the room was released meanwhile (the player left or died)
+	@warning_ignore("unsafe_cast")
+	var room: Room = room_ref as Room
+	if room == null or not room.is_inside_tree():
+		return
 	match kind:
 		Kind.HALF_HEART:
 			room.add_drop_offer(RoomStock.Kind.HEART, Tuning.ECONOMY.heart_drop_half_hearts, position)

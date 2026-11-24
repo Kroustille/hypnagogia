@@ -116,10 +116,11 @@ func _on_body_entered(body: Node2D) -> void:
 func _on_body_exited(body: Node2D) -> void:
 	if body == _player:
 		_touching = false
-		_must_leave = false
 		# A pause or a door fade switches the physics off, which also reports the exit: that is not the player stepping off.
-		if not _armed and can_process() and _player.can_process():
-			_arm()
+		if can_process() and _player.can_process():
+			_must_leave = false
+			if not _armed:
+				_arm()
 
 
 ## Whether this player could take what lies here now (armed apart). A heart or armor drop is refused, silently, while
