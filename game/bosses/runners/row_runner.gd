@@ -6,8 +6,9 @@ extends AttackRunner
 ## goes under Tuning.COMBAT.min_telegraph), both freeze when the boss stops ticking its runners (fire_hold).
 
 const TICK_EPSILON: float = 1e-6
-## Where a row is born, below the top edge of the playable area (never inside the wall).
-const SPAWN_OFFSET_TILES: float = 1.5
+## Gap between the top edge of a chalk and the top of the playable area: a row is born flush under the wall, so a
+## player pressed against it is still hit.
+const SPAWN_MARGIN_TILES: float = 0.0625
 const SIGN_SOUND: AudioStream = preload("res://audio/sfx/sfx_enemy_lullaby_telegraph.wav")
 
 ## Center of the gap of the last row announced, in tiles from the left of the playable area (NAN before the first).
@@ -18,10 +19,6 @@ var _sign_ticks_left: float = 0.0
 var _sign_ticks_total: float = 0.0
 var _sign: AttackSign
 var _fired_rows: int = 0
-
-
-func setup(boss: Boss, attack: BossAttack) -> void:
-	super(boss, attack)
 
 
 ## Rows fired so far.
@@ -69,15 +66,19 @@ func _start_sign() -> void:
 	_sign.setup(
 		Vector2(arena.position.x, arena.end.x),
 		Vector2(gap_left, gap_left + _attack.gap_tiles * Const.TILE_SIZE),
-		arena.position.y + SPAWN_OFFSET_TILES * Const.TILE_SIZE
+		_row_y(arena)
 	)
 	_boss.add_sign(_sign)
 	Audio.play_sfx(SIGN_SOUND)
 
 
+func _row_y(arena: Rect2) -> float:
+	return arena.position.y + (Tuning.COMBAT.enemy_bullet_radius + SPAWN_MARGIN_TILES) * Const.TILE_SIZE
+
+
 func _fire_row() -> void:
 	var arena: Rect2 = _boss.arena_px()
-	var y: float = arena.position.y + SPAWN_OFFSET_TILES * Const.TILE_SIZE
+	var y: float = _row_y(arena)
 	var speed: float = _attack.bullet_speed * _boss.danger.enemy_bullet_speed_mult # read now: bullets in flight keep theirs
 	var chalks: Array[Vector2] = ChalkPatterns.row(
 		arena.size.x / Const.TILE_SIZE, _attack.spacing_tiles, last_gap, _attack.gap_tiles, Tuning.COMBAT.enemy_bullet_radius

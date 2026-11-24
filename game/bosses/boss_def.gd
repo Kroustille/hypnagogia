@@ -6,3 +6,5 @@ extends EnemyDef
 @export_range(0.0, 10.0, 0.1, "or_greater") var announce_duration: float = 0.0
 ## Sorted by decreasing hp_from; the first one applies from the start.
 @export var phases: Array[BossPhase] = []
+## Translation key of the name shown on the health bar.
+@export var name_key: StringName = &""

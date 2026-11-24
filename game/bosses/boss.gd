@@ -63,7 +63,7 @@ func _ready() -> void:
 		Log.error("combat", "boss %s got no bullet appearance, it never attacks" % _boss_def.id)
 		_assert_failed("Boss needs a bullet appearance")
 	Events.run_ended.connect(_on_events_run_ended)
-	Events.boss_engaged.emit(_boss_def.id, hp.maximum)
+	Events.boss_engaged.emit(_boss_def.id, _boss_def.name_key, hp.maximum)
 	Events.boss_health_changed.emit(hp.current, hp.maximum)
 	_enter(State.ANNOUNCING)
 

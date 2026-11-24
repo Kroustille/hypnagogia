@@ -75,6 +75,7 @@ script = ExtResource("1_def")
 announce_duration = 1.5
 phases = Array[ExtResource("2_phase")]([SubResource("Resource_dictee"), SubResource("Resource_calcul"), SubResource("Resource_examen")])
 id = &"professor"
+name_key = &"BOSS_PROFESSOR_NAME"
 scene = ExtResource("5_scene")
 max_hp = 2500.0
 body_size = Vector2(2, 2)

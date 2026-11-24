@@ -62,7 +62,7 @@ func test_the_dictee_is_announced_before_the_first_chalk() -> void:
 	await _harness.until(func() -> bool: return _boss() != null, APPEAR_TICKS)
 	var spawned_at: int = _harness.tick_count
 	assert_signal_emitted_with_parameters(Events, "boss_announced", [&"professor", &"BOSS_PROFESSOR_PHASE_1"])
-	assert_signal_emitted(Events, "boss_engaged")
+	assert_signal_emitted_with_parameters(Events, "boss_engaged", [&"professor", &"BOSS_PROFESSOR_NAME", 2500.0])
 	assert_eq(_harness.room.enemy_bullets().active_count, 0)
 	var rows: Array[int] = await _row_ticks(1, 300)
 	assert_eq(rows.size(), 1)
@@ -98,6 +98,27 @@ func test_a_row_is_chalks_with_a_gap_inside_the_visible_room_and_in_the_reserved
 		if manager._flags[i] & BulletManager.FLAG_ACTIVE:
 			assert_eq(manager._appearance_textures[manager._appearances[i]], EnemyBulletLook.texture(), "the reserved enemy look")
 			assert_eq(manager._damages[i], float(Tuning.COMBAT.hit_damage_half_hearts), "half a heart")
+
+
+func test_a_row_hits_a_player_pressed_against_the_north_wall() -> void:
+	var boss: Boss = await _start_and_wait_for_the_boss()
+	await _row_ticks(1, 300)
+	var runner: RowRunner = boss.runners()[0] as RowRunner
+	var arena: Rect2 = boss.arena_px()
+	var gap_center_px: float = arena.position.x + runner.last_gap * Const.TILE_SIZE
+	var body: float = 0.375 * Const.TILE_SIZE
+	var side: float = -1.0 if gap_center_px > arena.get_center().x else 1.0
+	var player_x: float = gap_center_px + side * (2.5 * Const.TILE_SIZE + 4.0 * Const.TILE_SIZE) # well outside the gap
+	var hurtbox: Rect2 = Rect2(Vector2(player_x - body, arena.position.y), Vector2(body * 2.0, body * 2.0)) # flush against the wall
+	var radius_px: float = Tuning.COMBAT.enemy_bullet_radius * Const.TILE_SIZE
+	var manager: BulletManager = _harness.room.enemy_bullets()
+	var hits: int = 0
+	for position: Vector2 in _active(manager):
+		var local: Vector2 = _harness.room.to_local(manager.to_global(position))
+		var nearest: Vector2 = Vector2(clampf(local.x, hurtbox.position.x, hurtbox.end.x), clampf(local.y, hurtbox.position.y, hurtbox.end.y))
+		if nearest.distance_to(local) < radius_px:
+			hits += 1
+	assert_gt(hits, 0, "a chalk overlaps a hurtbox flush against the north wall")
 
 
 func test_the_chalks_fall_at_five_tiles_per_second() -> void:

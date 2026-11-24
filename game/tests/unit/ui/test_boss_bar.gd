@@ -14,13 +14,13 @@ func before_each() -> void:
 
 func test_the_bar_is_hidden_until_a_boss_comes() -> void:
 	assert_false(_bar.visible)
-	Events.boss_engaged.emit(&"professor", 2500.0)
+	Events.boss_engaged.emit(&"professor", &"BOSS_PROFESSOR_NAME", 2500.0)
 	assert_true(_bar.visible)
 	assert_eq(_bar.share(), 1.0)
 
 
 func test_the_bar_follows_the_hit_points() -> void:
-	Events.boss_engaged.emit(&"professor", 2500.0)
+	Events.boss_engaged.emit(&"professor", &"BOSS_PROFESSOR_NAME", 2500.0)
 	Events.boss_health_changed.emit(1250.0, 2500.0)
 	assert_almost_eq(_bar.share(), 0.5, 1e-6)
 	Events.boss_health_changed.emit(25.0, 2500.0)
@@ -29,19 +29,19 @@ func test_the_bar_follows_the_hit_points() -> void:
 
 
 func test_the_bar_hides_at_zero_hit_points_and_with_the_run() -> void:
-	Events.boss_engaged.emit(&"professor", 2500.0)
+	Events.boss_engaged.emit(&"professor", &"BOSS_PROFESSOR_NAME", 2500.0)
 	Events.boss_health_changed.emit(0.0, 2500.0)
 	assert_false(_bar.visible, "the boss is gone")
-	Events.boss_engaged.emit(&"professor", 2500.0)
+	Events.boss_engaged.emit(&"professor", &"BOSS_PROFESSOR_NAME", 2500.0)
 	Events.run_ended.emit(0)
 	assert_false(_bar.visible, "the run is over")
-	Events.boss_engaged.emit(&"professor", 2500.0)
+	Events.boss_engaged.emit(&"professor", &"BOSS_PROFESSOR_NAME", 2500.0)
 	Events.run_started.emit()
 	assert_false(_bar.visible, "a new run")
 
 
 func test_the_bar_shows_the_name_from_the_strings() -> void:
-	Events.boss_engaged.emit(&"professor", 2500.0)
+	Events.boss_engaged.emit(&"professor", &"BOSS_PROFESSOR_NAME", 2500.0)
 	assert_eq((_bar.get_node("Name") as Label).text, tr(&"BOSS_PROFESSOR_NAME"))
 	assert_ne((_bar.get_node("Name") as Label).text, "BOSS_PROFESSOR_NAME", "the key is translated")
 

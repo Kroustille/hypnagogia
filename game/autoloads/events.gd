@@ -126,9 +126,9 @@ signal shop_purchased(item_id: StringName, price: int)
 @warning_ignore("unused_signal")
 signal exam_timer_changed(seconds_left: float)
 
-## A boss came into a room (story 6.1). boss_id: BossDef.id; max_hp: its hit points at full health. Listeners: the health bar.
+## A boss came into a room (story 6.1). boss_id: BossDef.id; name_key: BossDef.name_key; max_hp: its hit points at full health. Listeners: the health bar.
 @warning_ignore("unused_signal")
-signal boss_engaged(boss_id: StringName, max_hp: float)
+signal boss_engaged(boss_id: StringName, name_key: StringName, max_hp: float)
 
 ## The boss's hit points changed (every hit), or the boss left the room (hp 0). Listeners: the health bar, telemetry.
 @warning_ignore("unused_signal")

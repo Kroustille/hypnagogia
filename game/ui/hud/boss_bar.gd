@@ -11,8 +11,6 @@ const FILL_COLOR: Color = Color(0.75, 0.2, 0.25)
 const BORDER_COLOR: Color = Color(0.95, 0.9, 0.8)
 const NAME_COLOR: Color = Color(1.0, 1.0, 1.0)
 const NAME_FONT_SIZE: int = 9
-## Translation key of the name of each boss, by BossDef.id.
-const NAME_KEYS: Dictionary = {&"professor": &"BOSS_PROFESSOR_NAME"}
 
 var _share: float = 1.0
 var _label: Label
@@ -47,9 +45,8 @@ func hide_bar() -> void:
 	visible = false
 
 
-func _on_boss_engaged(boss_id: StringName, _max_hp: float) -> void:
-	var key: StringName = NAME_KEYS.get(boss_id, &"")
-	_label.text = tr(key) if key != &"" else ""
+func _on_boss_engaged(_boss_id: StringName, name_key: StringName, _max_hp: float) -> void:
+	_label.text = tr(name_key) if name_key != &"" else ""
 	_share = 1.0
 	visible = true
 	queue_redraw()
