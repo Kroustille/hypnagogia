@@ -44,6 +44,9 @@ var _run_seeded: bool = false
 var _run_startup_ms: int = -1
 var _run_load_ms: int = -1
 ## One entry per finished run: duration, outcome, wake time, time below Lucid (story 6.9).
+## The run in progress was resumed from a save, and its restored items are being announced (not counted again).
+var _run_resumed: bool = false
+var _restoring: bool = false
 var runs_detail: Array[Dictionary] = []
 ## One entry per finished attempt against a boss (story 6.9).
 var boss_attempts: Array[Dictionary] = []
@@ -74,6 +77,8 @@ func run_started(at: float) -> void:
 	_run_seeded = false
 	_run_startup_ms = -1
 	_run_load_ms = -1
+	_run_resumed = false
+	_restoring = false
 	_add("run_start", at)
 
 
@@ -92,8 +97,24 @@ func run_seeded(seed_code: String, seeded: bool) -> void:
 			return
 
 
+## The run that just started was resumed from a save: written in its "run_start" event and in its runs_detail entry, and the
+## items announced until the first room are not counted again. Ignored outside a run.
+func run_resumed() -> void:
+	if _tier == -1:
+		return
+	_run_resumed = true
+	_restoring = true
+	for index: int in range(events.size() - 1, -1, -1):
+		if events[index]["type"] == "run_end":
+			return
+		if events[index]["type"] == "run_start":
+			events[index]["resumed"] = true
+			return
+
+
 ## The player came into a room of the floor.
 func room_entered(at: float, room_id: String, cell: Vector2i) -> void:
+	_restoring = false # the announce of the restored items is over
 	_add("room_entered", at, {"room_id": room_id, "cell": [cell.x, cell.y]})
 
 
@@ -183,6 +204,8 @@ func item_taken(item_id: String) -> void:
 	if _tier == -1:
 		return
 	_run_items.append(item_id)
+	if _restoring:
+		return # restored from a save, already counted by the night it was taken in
 	items[item_id] = items.get(item_id, 0) + 1
 
 
@@ -303,6 +326,7 @@ func _record_run(outcome: String, wake_minute: int) -> void:
 		"run": runs,
 		"seed": _run_seed,
 		"seeded": _run_seeded,
+		"resumed": _run_resumed,
 		"outcome": outcome,
 		"duration_seconds": snappedf(_run_play_seconds, 0.01),
 		"wake": WakeClock.format(wake_minute) if wake_minute >= 0 else "",

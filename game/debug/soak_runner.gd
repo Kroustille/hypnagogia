@@ -42,11 +42,11 @@ const LOAD_BUDGET_MSEC: int = 2000
 const RESTART_BUDGET_MSEC: int = 3000
 const RESTART_BUDGET_TICKS: int = 180
 ## Margins around what the first run of each kind holds: the resource caches grow legitimately with the rooms met.
-const OBJECT_MARGIN: int = 300
-const NODE_MARGIN: int = 20
+const OBJECT_MARGIN: int = 100
+const NODE_MARGIN: int = 2
 const ORPHAN_MARGIN: int = 5
 ## Static memory may not climb past this share of what the first runs hold, from the first fifth of the soak to the last.
-const MEMORY_GROWTH_LIMIT: float = 1.5
+const MEMORY_GROWTH_LIMIT: float = 1.1
 
 class Sample extends RefCounted:
 	var objects: int = 0
@@ -96,6 +96,10 @@ func _ready() -> void:
 
 
 func _run_soak(count: int) -> void:
+	if OS.get_environment("SOAK_ISOLATED") != "1":
+		push_error("soak: run it with tools/soak.sh (user data must be isolated)")
+		get_tree().quit(1)
+		return
 	_save_dir = DirAccess.create_temp("hypnagogia_soak", true)
 	if _save_dir == null:
 		push_error("soak: cannot create the temporary save folder")
@@ -139,6 +143,7 @@ func _play(night: Night) -> void:
 	night.load_ms = _load_ms
 	await _ticks(3)
 	night.sample = _sample()
+	night.sample.objects -= 2 * night.index # the Night and the Sample of the earlier nights are the soak's own
 	var player: Player = _player()
 	player.health.set_forced_invulnerability(true) # the soak looks for crashes, not for the game balance
 	var path: Array[Vector2i] = _path_to_nightmare(run)
@@ -312,7 +317,9 @@ func _start_night(night: Night) -> void:
 	elif night.start == Start.TYPED_WAKE:
 		await _on_wake_screen()
 		var requested_at: int = Engine.get_physics_frames()
-		Events.run_requested.emit(RunOptions.Mode.FLOOR, SEEDS[night.index % SEEDS.size()], true, "")
+		_wake().new_seed_requested.emit()
+		await _ticks(2)
+		_type_seed(night)
 		await _until(func() -> bool: return _started, RESTART_BUDGET_TICKS + 60)
 		night.start_ticks = Engine.get_physics_frames() - requested_at
 	else:
@@ -330,9 +337,20 @@ func _start_night(night: Night) -> void:
 			await _until(func() -> bool: return _started, 30)
 			_press(&"interact", false)
 		else:
-			Events.run_requested.emit(RunOptions.Mode.FLOOR, SEEDS[night.index % SEEDS.size()], true, "")
+			bedroom.seed_entry_requested.emit()
+			await _ticks(2)
+			_type_seed(night)
 			await _until(func() -> bool: return _started, 30)
 	await _ticks(2)
+
+
+## Submits the seed of the night through the seed window opened by the desk or by the wake screen.
+func _type_seed(night: Night) -> void:
+	var windows: Array[Node] = _main.find_children("*", "SeedEntry", true, false)
+	if windows.is_empty():
+		_fail(night, "no seed window")
+		return
+	(windows[0] as SeedEntry).seed_submitted.emit(SEEDS[night.index % SEEDS.size()])
 
 
 ## Waits until the wake screen takes input (its guard of a few ticks is over).

@@ -11,6 +11,7 @@ cd "$(dirname "$0")/.."
 OUT="tools/soak-result.txt"
 DATA_DIR="$(mktemp -d)"
 export XDG_DATA_HOME="$DATA_DIR"
+export SOAK_ISOLATED=1 # the runner refuses to run on the real user data
 trap 'rm -rf "$DATA_DIR"' EXIT
 
 if [ ! -d game/.godot ]; then

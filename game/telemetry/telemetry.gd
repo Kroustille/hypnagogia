@@ -37,6 +37,7 @@ func _ready() -> void:
 	_session.start(0.0)
 	Events.player_hit.connect(_on_events_player_hit)
 	Events.run_started.connect(_on_events_run_started)
+	Events.run_resumed.connect(_on_events_run_resumed)
 	Events.run_seeded.connect(_on_events_run_seeded)
 	Events.floor_ready.connect(_on_events_floor_ready)
 	Events.boss_engaged.connect(_on_events_boss_engaged)
@@ -113,6 +114,11 @@ func _on_events_player_hit(_damage: int, source: int) -> void:
 func _on_events_run_started() -> void:
 	_last_hit_source = -1
 	_session.run_started(_now())
+	_write()
+
+
+func _on_events_run_resumed() -> void:
+	_session.run_resumed()
 	_write()
 
 

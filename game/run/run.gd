@@ -97,6 +97,7 @@ func _ready() -> void:
 	Events.run_seeded.emit(rng.seed_code(), state.seeded) # after run_started: the telemetry run exists
 	Events.shards_changed.emit(state.shards) # 0: the HUD and the telemetry start the run from it
 	if playing_floor and _options.resume != null:
+		Events.run_resumed.emit() # before the items are announced: the telemetry does not count them again
 		_announce_restored_items()
 	if playing_floor:
 		_announce_room() # after run_started: the telemetry session exists

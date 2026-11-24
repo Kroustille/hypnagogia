@@ -49,6 +49,11 @@ signal player_health_changed(half_hearts: int, max_half_hearts: int, armor: int)
 @warning_ignore("unused_signal")
 signal run_started
 
+## The run that just started is a resumed night: its items and state were restored from a save (story 6.9). Emitted by Run
+## right after run_started, before the restored items are announced. Listener: telemetry.
+@warning_ignore("unused_signal")
+signal run_resumed
+
 ## The floor of the run is ready to be played (story 6.9, NFR3). startup_ms: what the run took to set up; load_ms: from the
 ## request of the player (the bed, "sleep again", a typed seed) to now. Listeners: telemetry.
 @warning_ignore("unused_signal")
