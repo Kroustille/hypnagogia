@@ -451,14 +451,23 @@ func _update_shooting(clock_scale: float) -> void:
 		_fire()
 
 
-## One shot from the center of the torso, exactly along the aim. No recoil or sound if the pool refuses it.
+## One shot from the center of the torso, along the aim (and the opposite way with the Mirror). No recoil or sound if the pool refuses it.
 func _fire() -> void:
 	if _bullets == null:
 		if not _unequipped_reported:
 			_unequipped_reported = true
 			Log.error("combat", "player cannot shoot: no BulletManager (equip_bullets() not called)")
 		return
-	if not _bullets.fire(_shot_params, _bullets.to_local(global_position), _aim.direction):
+	# The pattern gives the front shot first (story 5.10): recoil and sound follow it alone; a refused rear shot costs nothing.
+	var origin: Vector2 = _bullets.to_local(global_position)
+	var front_fired: bool = false
+	var is_front: bool = true
+	for direction: Vector2 in ShotPattern.directions(_aim.direction, stats):
+		var fired: bool = _bullets.fire(_shot_params, origin, direction)
+		if is_front:
+			front_fired = fired
+			is_front = false
+	if not front_fired:
 		return
 	var tuning: ShotTuning = Tuning.SHOT
 	_recoil.kick(-_aim.direction, tuning.recoil_distance * Const.TILE_SIZE, tuning.recoil_duration)
