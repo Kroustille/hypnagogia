@@ -1,6 +1,6 @@
 # Story 5.6 : Les objets de la Chute : Ailes de papier et Chute libre
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -28,11 +28,11 @@ Hors périmètre : onde de choc et synergies (5.7).
 
 ## Tâches
 
-- [ ] `items/effects/paper_wings_effect.gd`, `items/effects/free_fall_effect.gd` (sans valeur littérale : tout dans `ItemDef.params`), `data/items/paper_wings.tres`, `free_fall.tres`.
-- [ ] `BuildCarrier` : appelle `effect.tick(delta × GameClock.scale(PLAYER))` pour les effets qui le demandent (`wants_tick`), ne le fait pas quand le joueur est mort.
-- [ ] `BuildCarrier.hit_incoming` émis par `Player._on_hurtbox_damage_received` **avant** `health.apply_damage(info)` (5.1 pose le signal ; câblage vérifié ici).
-- [ ] `Player.fall_if_over_pit()` + paramètre de dégâts de `_fall`.
-- [ ] Pools, `strings.csv`, tests.
+- [x] `items/effects/paper_wings_effect.gd`, `items/effects/free_fall_effect.gd` (sans valeur littérale : tout dans `ItemDef.params`), `data/items/paper_wings.tres`, `free_fall.tres`.
+- [x] `BuildCarrier` : appelle `effect.tick(delta × GameClock.scale(PLAYER))` pour les effets qui le demandent (`wants_tick`), ne le fait pas quand le joueur est mort.
+- [x] `BuildCarrier.hit_incoming` émis par `Player._on_hurtbox_damage_received` **avant** `health.apply_damage(info)` (5.1 pose le signal ; câblage vérifié ici).
+- [x] `Player.fall_if_over_pit()` + paramètre de dégâts de `_fall`.
+- [x] Pools, `strings.csv`, tests.
 
 ## État du code concerné
 
@@ -68,3 +68,27 @@ epics.md (Story 5.6) ; GDD « Objets du MVP » (lignes Ailes de papier, Chute li
 3. **Chute sans dégât au retrait du survol** passe par un paramètre de `_fall`, pas par une modification de `PIT_DAMAGE`.
 4. **Chute libre n'est pas cumulable** (`stackable` faux, sans doublon dans la run), comme les autres objets hors Dent.
 5. **Le bonus est dans le temps du groupe `PLAYER`** (pas affecté par le Réveil cassé qui épargne le joueur).
+
+## Dev Agent Record
+
+### Notes de complétion
+
+- `PaperWingsEffect` / `FreeFallEffect` : tout dans `ItemDef.params` ; source des modificateurs = `OwnedItem` (`ItemEffect.modifier_source()`). `ItemEffect` gagne `required_params()`, `param()` ; `ItemCatalog.problem_of` refuse un effet sans ses params ou un script qui n'étend pas `ItemEffect`.
+- Cycle de vie (dette 5.6) : `attach`/`detach` idempotents, `BuildCarrier._enter_tree` rattache (`Loadout.attach_all`), pas de `tick` sur un effet détaché ni quand le joueur est mort, objet non `RefCounted` libéré à la création.
+- `hit_incoming` (dette 5.6) : `Player._on_hurtbox_damage_received` refuse avant l'émission si mort/invulnérable ; si un effet ramène le montant sous 1, le coup est refusé proprement (`refuse_hit`). Un montant invalide venu de dehors passe toujours par `Health` (journal + assert, `t_invalid23`).
+- `Player.fall_if_over_pit()` + `_fall(deal_damage)`. Retirer les Ailes en plein trou fait tomber normalement (`_check_pits`, avec dégâts de chute).
+- Tag des deux objets : `fall` (comme les objets existants). Pools trésor et boutique mis à jour.
+- Checks : GUT 532/532 ; `run_all.sh` : seuls `t_sheep_main` et `t_enemy_main` échouent en parallèle (ok=2 sur la touche F1 9), identique sur HEAD sans mes changements (flake de charge, passent seuls) ; `--quit-after 120` propre.
+
+### Décisions prises sans Kroustille (ajouts)
+
+6. Les Ailes se retirent aussi si l'objet est retiré en plein trou : chute normale avec dégâts (pas de chute gratuite).
+7. Une pré-validation de `required_params` dans le catalogue plutôt qu'un défaut silencieux à 0.
+
+### Liste des fichiers
+
+`items/effects/{paper_wings,free_fall}_effect.gd`, `data/items/{paper_wings,free_fall}.tres`, `data/pools/*.tres`, `items/{item_effect,loadout,build_carrier,item_catalog}.gd`, `player/player.gd`, `localization/strings.csv`, tests GUT `unit/items/test_{paper_wings,free_fall}_effect.gd`, `test_item_catalog.gd`, `integration/items/test_fall_items.gd`.
+
+### Non évalué (humain)
+
+- Ressenti de Chute libre (+5 %/s, ½ cœur de plus) et des 3 s de suspension des Ailes : playtest du jalon A.
