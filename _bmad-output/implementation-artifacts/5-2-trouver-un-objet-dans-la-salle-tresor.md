@@ -1,6 +1,6 @@
 # Story 5.2 : Trouver un objet dans la salle trésor
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -27,12 +27,12 @@ Hors périmètre : pool cauchemar (acte 1), salle de pacte, salle d'oubli.
 
 ## Tâches
 
-- [ ] `economy/item_pool_def.gd`, `economy/item_picker.gd` (fonction statique pure `draw(...) -> ItemDef`, testable sans scène), `data/pools/*.tres`.
-- [ ] `rooms/markers/pickup_spot.gd` (+ groupe `Const.GROUP_PICKUP_SPOT`), `Room.pickup_spots()`, nœud `PickupSpots` dans `room_base.tscn`.
-- [ ] `RoomBuilder` : directive `pickup`, `art_source/rooms/onset_treasure_001.txt` mis à jour, scène regénérée par `tools/build_room.sh` ; `RoomValidator` : règles du critère 7 ; `tools/validate_rooms.sh` vert.
-- [ ] `Run._enter_cell()` : à la première entrée d'une salle `TREASURE` (stock absent), tirage et `Offer`. Le `RoomStock` est créé pour toute cellule (5.1).
-- [ ] `Loadout.owned_ids()` et `ItemDef.can_be_taken(health)` utilisés par le tirage.
-- [ ] Tests.
+- [x] `economy/item_pool_def.gd`, `economy/item_picker.gd` (fonction statique pure `draw(...) -> ItemDef`, testable sans scène), `data/pools/*.tres`.
+- [x] `rooms/markers/pickup_spot.gd` (+ groupe `Const.GROUP_PICKUP_SPOT`), `Room.pickup_spots()`, nœud `PickupSpots` dans `room_base.tscn`.
+- [x] `RoomBuilder` : directive `pickup`, `art_source/rooms/onset_treasure_001.txt` mis à jour, scène regénérée par `tools/build_room.sh` ; `RoomValidator` : règles du critère 7 ; `tools/validate_rooms.sh` vert.
+- [x] `Run._enter_cell()` : à la première entrée d'une salle `TREASURE` (stock absent), tirage et `Offer`. Le `RoomStock` est créé pour toute cellule (5.1).
+- [x] `Loadout.owned_ids()` et `ItemDef.can_be_taken(health)` utilisés par le tirage.
+- [x] Tests.
 
 ## État du code concerné
 
@@ -68,3 +68,31 @@ epics.md (Story 5.2) ; GDD « Pools d'objets » (pools trésor et boutique = 8 o
 3. **Marqueur `PickupSpot` et directive ASCII `pickup`** (pas de position codée en dur) : même mécanisme pour la boutique (5.5).
 4. **Le tirage ne fait qu'un `randi_range` sur la liste filtrée** : un objet exclu change l'objet tiré mais jamais le nombre de tirages.
 5. **Pool filtré vide** : salle sans objet plutôt qu'une erreur bloquante (AR28).
+6. **Pools à 2 objets** (pas 8) : seuls `falling_tooth` et `lead_legs` existent (5.1) ; chaque story d'objet ajoute le sien aux deux `.tres`, un test GUT échoue si l'un manque.
+7. **Catégorie de journal `economy`** ajoutée à `Log.CATEGORIES` (le critère 3 et 8 l'exigent).
+8. **`ItemDef.can_be_taken(max_half_hearts: int)`** prend le maximum de demi-cœurs (entier) plutôt que `Health` : le tirage reste pur et testable sans scène. `BuildCarrier.refusal_of` (5.1) n'est pas modifié (même règle, dupliquée en une ligne).
+9. **Seul l'emplacement `ITEM` est lu par `Run`** ; `CONSUMABLE`, `HEART`, `ARMOR` sont acceptés par la directive et le validateur mais sans effet avant 5.5 et les stories de soin.
+10. **Les autres salles du pool ne sont pas regénérées** pour ajouter le nœud `PickupSpots` (vide) : `Room.pickup_spots()` tolère son absence ; il apparaîtra à leur prochaine regénération.
+11. **Pas de touche ajoutée** (critère 8 : seul le journal `treasure item <id>`).
+
+## Dev Agent Record
+
+### Completion Notes
+
+- `economy/item_pool_def.gd` (`ItemPoolDef`), `economy/item_picker.gd` (`draw` / `candidates_of`, statiques, un seul `randi_range` par appel, aucun tirage si le pool filtré est vide), `data/pools/treasure_pool.tres` et `shop_pool.tres`. `Loadout.owned_ids()`, `ItemDef.can_be_taken()`.
+- `rooms/markers/pickup_spot.gd` (`PickupSpot`, `Slot`, groupe `Const.GROUP_PICKUP_SPOT`), nœud `PickupSpots` dans `room_base.tscn`, `Room.pickup_spots()`. `RoomBuilder` : directive `pickup <slot> x y` (slot ou coordonnées invalides = erreur de texte). `RoomValidator._check_pickups` : trésor = au moins un spot `ITEM`, autres salles = aucun spot, slot valide, case libre, à 3 tuiles au moins d'une porte, accessible. `onset_treasure_001` : `pickup item 17 9`, scène regénérée, `tools/validate_rooms.sh` : 34 salles valides.
+- `Run._enter_cell` : à la première visite d'une cellule `TREASURE` (stock absent), `_stock_treasure` tire dans `rng.stream(TREASURE, floor_index)` et pose l'`Offer` sur le spot ; `Log.info("economy", "treasure item <id>")`. Retour : même stock, donc même offre ou rien.
+- Tests GUT : `unit/economy/test_item_picker.gd`, `test_item_pool_defs.gd`, `unit/rooms/test_room_validator_pickups.gd`, `unit/core/test_run_rng.gd` (étendu), `integration/run/test_treasure_room.gd`. `tools/run_tests.sh` : 405 verts (attention : le test d'intégration éloigne le joueur avant de sauter de salle, la physique garde une position un tick de plus).
+- Scratch (non versionné) : `run_all.sh` autorise `economy/item_picker.gd` dans la règle « pas de `randi` », comme `floor_generator.gd`.
+- NON ÉVALUÉ (humain) : lisibilité du piédestal (placeholder losange doré), position de l'objet au centre de la salle.
+
+### File List
+
+- `game/economy/item_pool_def.gd`, `item_picker.gd`, `game/data/pools/*.tres`, `game/items/item_def.gd`, `loadout.gd`
+- `game/rooms/markers/pickup_spot.gd`, `game/rooms/room.gd`, `room_base.tscn`, `game/rooms/validator/room_builder.gd`, `room_validator.gd`, `game/rooms/pool/onset/onset_treasure_001.tscn`, `art_source/rooms/onset_treasure_001.txt`
+- `game/run/run.gd`, `game/core/constants.gd`, `game/autoloads/log.gd`
+- `game/tests/unit/economy/*`, `game/tests/unit/rooms/test_room_validator_pickups.gd`, `game/tests/unit/core/test_run_rng.gd`, `game/tests/integration/run/test_treasure_room.gd`
+
+### Change Log
+
+- 2026-11-24 : pools d'objets, tirage de la salle trésor à la première entrée, marqueur `PickupSpot`, directive `pickup`, règles du validateur.

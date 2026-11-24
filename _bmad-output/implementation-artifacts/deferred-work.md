@@ -444,3 +444,7 @@
 - **Validation des objets contournée** (5.2 et 5.4) : `ItemCatalog.validate()` n'est appelée que par `ItemCatalog.all()` ; `Room.add_offer` et `BuildCarrier.acquire` prennent n'importe quelle `ItemDef`. Les tirages de pool et les drops doivent passer par le catalogue.
 - **Hurtbox de Lucide et objets** (premier objet qui modifie `HURTBOX_SIZE`) : l'écart `ADD_FLAT` vise 4 px depuis la base, mais un `%` / `×` d'objet s'applique ensuite ; décider si les objets réduisent aussi la hurtbox de Lucide ou si l'écart doit viser la valeur finale.
 - **Test de revisite** (5.2) : `test_an_item_left_on_the_floor_is_still_there_on_the_next_visit` ne repasse pas par `Run._enter_cell` → `Room._setup_pickups` ; le couvrir avec la salle trésor.
+
+## Deferred from: story 5-2-trouver-un-objet-dans-la-salle-tresor (2026-11-24)
+
+- **NON ÉVALUÉ (humain) : piédestal de la salle trésor** (`art_source/rooms/onset_treasure_001.txt`, spot `item` au centre, placeholder losange doré) : lisibilité et emplacement, à juger au playtest du jalon A, avec le décor final de l'epic 7.
