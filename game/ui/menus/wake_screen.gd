@@ -1,6 +1,7 @@
 class_name WakeScreen
 extends Control
-## Wake-up screen shown by Main when a run ends (death). The restart key or the button asks Main for a new run.
+## Wake-up screen shown by Main when a run ends (death or victory; a victory has no "was this death fair?" question).
+## The restart key or the button asks Main for a new run.
 ## Inputs are ignored for a short guard so a held or mashed key at the moment of death cannot skip it.
 ## The game behind is frozen by Main (GameClock.paused): the guard counts raw physics ticks, not GameClock time.
 ## Texts come from tr() (localization/strings.csv), never from the scene.
@@ -17,6 +18,7 @@ const INPUT_GUARD_SECONDS: float = 0.3
 var _guard_ticks_left: float = 0.0
 var _armed: bool = false
 var _answered: bool = false
+var _victory: bool = false
 
 @onready var _title: Label = %Title
 @onready var _seed_label: Label = %SeedLabel
@@ -41,7 +43,10 @@ func _ready() -> void:
 
 
 ## Shows the screen with the inputs guarded and the seed of the run that just ended; the restart button takes the focus.
-func open(seed_code: String) -> void:
+## outcome: Run.Outcome. Anything but VICTORY is a defeat.
+func open(seed_code: String, outcome: int = Run.Outcome.DEATH) -> void:
+	_victory = outcome == Run.Outcome.VICTORY
+	_title.text = tr(&"UI_WAKE_TITLE_VICTORY" if _victory else &"UI_WAKE_TITLE")
 	_seed_label.text = tr(&"UI_WAKE_SEED") % seed_code
 	show()
 	_guard_ticks_left = INPUT_GUARD_SECONDS * Engine.physics_ticks_per_second
@@ -50,6 +55,9 @@ func open(seed_code: String) -> void:
 	_new_seed_button.disabled = true
 	_answered = false
 	_question.text = tr(&"UI_WAKE_QUESTION")
+	_question.visible = not _victory
+	_yes_button.visible = not _victory
+	_no_button.visible = not _victory
 	_set_answers_enabled(false)
 	_restart_button.grab_focus()
 
@@ -121,7 +129,7 @@ func _give_verdict(just: bool) -> void:
 
 
 func _set_answers_enabled(enabled: bool) -> void:
-	var active: bool = enabled and not _answered
+	var active: bool = enabled and not _answered and not _victory
 	_yes_button.disabled = not active
 	_no_button.disabled = not active
 	# Disabled buttons must not take the focus (a stick still pushed at death would land on Yes)

@@ -247,14 +247,18 @@ func _on_events_run_started() -> void:
 	_map_view.bind(run.floor_map if run != null else null)
 
 
-## The run ended (death): freeze the game and show the wake screen. Synchronous, in the tick of the lethal hit.
-func _on_events_run_ended(_outcome: int) -> void:
+## The run ended (death or victory): freeze the game and show the wake screen of that outcome. Synchronous, in the tick
+## of the lethal hit (or the last tick of the victory delay). An outcome Run does not know is a defeat.
+func _on_events_run_ended(outcome: int) -> void:
 	if _run_over:
 		return
 	_run_over = true
 	_run_ended_msec = Time.get_ticks_msec()
 	_freeze(true)
-	_wake_screen.open(_seed_code())
+	if outcome != Run.Outcome.DEATH and outcome != Run.Outcome.VICTORY:
+		Log.warn("run", "unknown run outcome %d: treated as a defeat" % outcome)
+		outcome = Run.Outcome.DEATH
+	_wake_screen.open(_seed_code(), outcome)
 
 
 func _on_wake_screen_restart_requested() -> void:

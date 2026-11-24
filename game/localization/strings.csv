@@ -17,6 +17,7 @@ UI_SETTINGS_PHOTOSENSITIVE,Mode photosensibilité
 UI_SETTINGS_BACK,Retour
 UI_SETTINGS_PERCENT,%d %%
 UI_WAKE_TITLE,Tu te réveilles.
+UI_WAKE_TITLE_VICTORY,Tu te réveilles de toi-même.
 UI_WAKE_RESTART,Se rendormir (%s)
 UI_HUD_SHARDS,%d
 UI_WAKE_QUESTION,Cette mort était-elle juste ?
