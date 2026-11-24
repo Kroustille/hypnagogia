@@ -43,14 +43,27 @@ func test_the_tooth_is_excluded_with_one_heart_max() -> void:
 	assert_eq(three.size(), 2, "two hearts max can pay one heart")
 
 
-func test_an_empty_filtered_pool_gives_null_and_draws_nothing() -> void:
+func test_an_empty_filtered_pool_gives_null_and_still_draws_once() -> void:
 	var owned: Array[StringName] = [&"lead_legs"]
 	var rng: RandomNumberGenerator = RunRng.new(5).stream(RunRng.TREASURE)
-	var before: int = rng.state
+	var reference: RandomNumberGenerator = RunRng.new(5).stream(RunRng.TREASURE)
 	assert_null(ItemPicker.draw(_pool([LEGS]), owned, FULL_HEARTS, rng))
 	assert_null(ItemPicker.draw(null, _none, FULL_HEARTS, rng))
 	assert_null(ItemPicker.draw(_pool([]), _none, FULL_HEARTS, rng))
-	assert_eq(rng.state, before)
+	for i: int in 3:
+		reference.randi()
+	assert_eq(rng.state, reference.state, "one draw per call, even with nothing to offer (decision 12)")
+
+
+func test_one_candidate_draws_like_eight() -> void:
+	var many: Array[ItemDef] = []
+	for i: int in 8:
+		many.append(_copy("item_%d" % i))
+	var rng_many: RandomNumberGenerator = RunRng.new(31).stream(RunRng.TREASURE)
+	var rng_one: RandomNumberGenerator = RunRng.new(31).stream(RunRng.TREASURE)
+	ItemPicker.draw(_pool(many), _none, FULL_HEARTS, rng_many)
+	assert_eq(ItemPicker.draw(_pool([many[0]]), _none, FULL_HEARTS, rng_one), many[0])
+	assert_eq(rng_one.state, rng_many.state, "a single candidate advances the stream too")
 
 
 func test_one_draw_per_call_whatever_the_number_of_candidates() -> void:
