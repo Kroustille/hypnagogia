@@ -405,6 +405,17 @@ func _hits_solid(pos: Vector2) -> bool:
 	return false
 
 
+## Frees every active bullet at once (Awakening): no hit, no graze, no dodge. Returns how many were freed.
+## Never call it from a signal of this manager (it would run inside its own loop).
+func clear_all() -> int:
+	var cleared: int = 0
+	for i: int in _high_water:
+		if _flags[i] & FLAG_ACTIVE != 0:
+			_free(i)
+			cleared += 1
+	return cleared
+
+
 func _free(i: int) -> void:
 	assert(_flags[i] & FLAG_ACTIVE != 0, "Slot freed twice")
 	_flags[i] = 0

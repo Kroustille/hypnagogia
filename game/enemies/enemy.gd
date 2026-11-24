@@ -147,6 +147,16 @@ func _target_position() -> Vector2:
 	return _target.global_position if is_instance_valid(_target) else global_position
 
 
+## Pushes the body back along direction (unit vector) by up to distance_px, stopped by the first wall or body.
+## Instant, interrupts no attack in progress. Returns the distance really covered.
+func knock_back(direction: Vector2, distance_px: float) -> float:
+	if _dead or distance_px <= 0.0 or direction.length_squared() < 1e-6:
+		return 0.0
+	var start: Vector2 = global_position
+	move_and_collide(direction.normalized() * distance_px)
+	return start.distance_to(global_position)
+
+
 ## Center to center. Infinite when the target is gone: the enemy neither triggers nor moves.
 func _distance_to_target() -> float:
 	if not is_instance_valid(_target):
