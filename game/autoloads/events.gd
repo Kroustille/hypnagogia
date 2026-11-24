@@ -18,6 +18,11 @@ signal enemy_damaged(world_position: Vector2, amount: float)
 @warning_ignore("unused_signal")
 signal run_ended(outcome: int)
 
+## Something asks for a new Run (F1 panel now, menus later). mode: RunOptions.Mode as an int (0 arena, 1 room);
+## seed_value: used when seeded is true; room_path: scene of the room in room mode. Listener: Main.
+@warning_ignore("unused_signal")
+signal run_requested(mode: int, seed_value: int, seeded: bool, room_path: String)
+
 ## The last enemy of a wave died: the room has no enemy left. room: the room (Node: autoloads/ depends on no
 ## feature folder). lowest_tier: the room tier, the deepest Lucidity.Tier (int) reached during the wave.
 ## Listeners: player (lucidity), loot and item effects (epic 5).

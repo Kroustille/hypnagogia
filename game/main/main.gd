@@ -22,6 +22,7 @@ var _load_test_active: bool = false
 ## True while the wake screen is open (the run is over, the game is frozen behind it).
 var _run_over: bool = false
 var _run_ended_msec: int = 0
+var _run_options: RunOptions = RunOptions.new()
 var _wake_screen: WakeScreen
 var _pause_menu: PauseMenu
 var _settings_menu: SettingsMenu
@@ -45,6 +46,7 @@ func _ready() -> void:
 			_ui.add_child(panel_scene.instantiate())
 	_setup_menus()
 	Events.run_ended.connect(_on_events_run_ended)
+	Events.run_requested.connect(_on_run_requested)
 	_start_run()
 	_check_window_scale()
 
@@ -138,14 +140,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-## Starts a new run: the old Run (if any) is destroyed, a fresh one is instantiated (AR20).
-func _start_run() -> void:
+## Starts a new run: the old Run (if any) is destroyed, a fresh one is instantiated (AR20). Without options the run
+## repeats the last ones (restart, F5 back from the load test): the arena unless a room was asked for.
+func _start_run(options: RunOptions = null) -> void:
+	if options != null:
+		_run_options = options
 	_wake_screen.hide()
 	_run_over = false
 	# Remove the old run while still frozen, unfreeze, then add the new one: it must enter an enabled tree.
 	_clear_active_scene()
 	_freeze(false)
-	_active_scene.add_child(RUN_SCENE.instantiate())
+	var run: Run = RUN_SCENE.instantiate() as Run
+	run.setup(_run_options) # before add_child()
+	_active_scene.add_child(run)
 	_load_test_active = false
 
 
@@ -197,6 +204,11 @@ func _on_pause_menu_quit_requested() -> void:
 func _on_settings_menu_back_requested() -> void:
 	_settings_menu.hide()
 	_pause_menu.open(true)
+
+
+## A new run was requested on the bus. The game is unfrozen first (the pause menu may be what asked).
+func _on_run_requested(mode: int, seed_value: int, seeded: bool, room_path: String) -> void:
+	_start_run(RunOptions.from_request(mode, seed_value, seeded, room_path))
 
 
 ## Window size polled each frame: size_changed only fires when the root viewport changes, and the viewport
