@@ -88,3 +88,5 @@ ITEM_NAKED_IN_PUBLIC_BONUS,"Les ennemis ne tirent pas pendant 1,5 s au début de
 ITEM_NAKED_IN_PUBLIC_COST,"Perd toute l'armure, et plus aucune armure ensuite"
 BOSS_PROFESSOR_NAME,Le Professeur
 BOSS_PROFESSOR_PHASE_1,Dictée
+BOSS_PROFESSOR_PHASE_2,Calcul mental
+BOSS_PROFESSOR_PHASE_3,Examen final
