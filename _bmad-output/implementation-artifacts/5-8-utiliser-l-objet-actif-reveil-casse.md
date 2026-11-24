@@ -1,6 +1,6 @@
 # Story 5.8 : Utiliser l'objet actif : Réveil cassé
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -28,11 +28,11 @@ Hors périmètre : autres objets actifs (acte 1).
 
 ## Tâches
 
-- [ ] `GameClock` : `_slows` (liste de `Slow` : token, groupes, facteur, secondes restantes), `_physics_process`, `apply_slow`, `clear_slow`, `reset_slows`, tests.
-- [ ] `Loadout.active`, `Loadout.set_active()` qui renvoie l'ancien ; `OwnedItem.charge` / `charge_max` ; `Offer.charge` ; `BuildCarrier` recharge sur `room_cleared`.
-- [ ] `items/effects/broken_alarm_effect.gd` : `activate(player) -> bool` (dépense, ralenti, vide la charge).
-- [ ] `Player._try_use_active()`, action `use_active` dans `project.godot` (E et bouton X = 2), `ui/hud/hud.gd` : `active_item_changed`, barre de charge dans `HudSlot` (`set_charge`).
-- [ ] `strings.csv` (nom, bonus, coût), pools (5.2), tests.
+- [x] `GameClock` : `_slows` (liste de `Slow` : token, groupes, facteur, secondes restantes), `_physics_process`, `apply_slow`, `clear_slow`, `reset_slows`, tests.
+- [x] `Loadout.active`, `Loadout.set_active()` qui renvoie l'ancien ; `OwnedItem.charge` / `charge_max` ; `Offer.charge` ; `BuildCarrier` recharge sur `room_cleared`.
+- [x] `items/effects/broken_alarm_effect.gd` : `activate(player) -> bool` (dépense, ralenti, vide la charge).
+- [x] `Player._try_use_active()`, action `use_active` dans `project.godot` (E et bouton X = 2), `ui/hud/hud.gd` : `active_item_changed`, barre de charge dans `HudSlot` (`set_charge`).
+- [x] `strings.csv` (nom, bonus, coût), pools (5.2), tests.
 
 ## État du code concerné
 
@@ -70,3 +70,26 @@ epics.md (Story 5.8) ; GDD « Objet actif » (un seul, dépôt avec charge, règ
 4. **Objet actif neuf = chargé** à la prise ; un objet déposé garde sa charge, un objet repris la retrouve.
 5. **Touches** : E / X, `use_active` ; F1 `U` recharge.
 6. **Barre de charge à segments** dans l'emplacement (graphisme final à l'epic 7).
+7. **Écart à la lettre des tâches** : la dépense de lucidité, le test de charge et le vidage de la charge sont faits par `BuildCarrier.use_active()` (générique, réutilisable par les futurs actifs) ; `BrokenAlarmEffect.activate(player)` ne fait que le ralenti, le son et l'anneau (la signature de la base devient `activate(player: Player)`, sans valeur de retour : les refus sont décidés avant). Un `lucidity_cost` de 0 ne dépense rien.
+8. **Objet actif aussi dans `Loadout.items()`** : ses tags (« time ») et son effet comptent comme ceux des autres objets ; `Loadout.active` le désigne. Remplacer retire l'ancien (effet détaché) et ajoute le nouveau.
+9. **Jeton du ralenti = l'instance de l'effet** (un `RefCounted` propre à l'exemplaire). Un objet lâché pendant le ralenti ne l'annule pas (il s'éteint seul ou à `run_started` / `run_ended`).
+10. **Pas de ligne dans l'aide des touches** (`controls_tutorial`) : hors périmètre de la story. Objet ajouté aux deux pools (trésor et boutique, test existant qui exige le catalogue entier).
+11. **Son** `sfx_broken_alarm.wav` : provisoire, généré par script (epic 7). Anneau : `Room.add_ring` (public, rayon 6 tuiles, groupe FX donc non ralenti).
+
+## Dev Agent Record
+
+### Notes de complétion
+
+- `GameClock` : `Slow`, `apply_slow` / `clear_slow` / `reset_slows` / `slow_count`, `_scales` recalculé à chaque changement (le produit des ralentis), durée décomptée dans `_physics_process` (delta × `global_multiplier`, gelée en pause) ; `reset_slows` sur `run_started` et `run_ended`.
+- `OwnedItem.charge/charge_max`, `Loadout.active/set_active/add_charge/set_charge/active_changed`, `RoomStock.Offer.charge` (-1 = neuf), `BuildCarrier.use_active` + recharge sur `room_cleared` + relais `Events.active_item_changed`, `Pickup.active_replaced` → `Room._on_active_replaced` (dépose l'ancien, non armé, avec sa charge ; achat en boutique inclus).
+- `Player._update_active_input` (action `use_active`, E / bouton X = 2, libres vérifiés dans `project.godot` et `debug_panel.gd`), refus sonore. HUD : `ActiveItemSlot` icône + barre de segments (`HudSlot.set_charge`), vidé à `run_started`. F1 : `I` donne l'objet (catalogue), `U` le recharge.
+- Chaînes `ITEM_BROKEN_ALARM_{NAME,BONUS,COST}` ; `data/items/broken_alarm.tres` dans les deux pools.
+- Checks : GUT 571/571 (`unit/autoloads/test_game_clock_slow`, `unit/items/test_active_item`, `integration/items/test_broken_alarm`) ; `run_all.sh` et `--quit-after 120` : voir le rapport.
+
+### Liste des fichiers
+
+`autoloads/{game_clock,events}.gd`, `items/{loadout,owned_item,item_effect,build_carrier,pickup}.gd`, `items/effects/broken_alarm_effect.gd`, `economy/room_stock.gd`, `rooms/room.gd`, `player/player.gd`, `ui/hud/{hud,hud_slot}.gd`, `debug/debug_panel.gd`, `project.godot`, `data/items/broken_alarm.tres`, `data/pools/{treasure,shop}_pool.tres`, `localization/strings.csv`, `audio/sfx/sfx_broken_alarm.wav`, tests GUT listés ci-dessus.
+
+### Non évalué (humain)
+
+- Ressenti du ralenti à 50 % pendant 4 s (lisibilité, coût de 15, recharge en 3 salles), son et anneau provisoires, barre de charge du HUD, manette X non testée.
