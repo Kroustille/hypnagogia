@@ -80,7 +80,8 @@ func until(condition: Callable, max_ticks: int) -> bool:
 ## The enemies of the room still alive, in the order of the tree.
 func living_enemies() -> Array[Enemy]:
 	var found: Array[Enemy] = []
-	for child: Node in room.get_node("Enemies").get_children():
+	var active: Room = run.current_room() if run != null and run.current_room() != null else room # follows the trips of the run
+	for child: Node in active.get_node("Enemies").get_children():
 		var enemy: Enemy = child as Enemy
 		if enemy != null and not enemy.is_dead() and not enemy.is_queued_for_deletion():
 			found.append(enemy)
@@ -129,3 +130,20 @@ func fire_shot(manager: BulletManager, origin: Vector2, direction: Vector2, spee
 	params.damage = 1.0
 	params.appearance = manager.add_appearance(ImageTexture.create_from_image(Image.create(4, 4, false, Image.FORMAT_RGBA8)))
 	return manager.fire(params, origin, direction)
+
+
+## Starts a Run in FLOOR mode that continues a saved night (story 6.8): the seed, the unlocks and the state come from the
+## snapshot. The player cannot be hit.
+func start_resume(snapshot: RunSnapshot) -> void:
+	var options: RunOptions = RunOptions.new()
+	options.mode = RunOptions.Mode.FLOOR
+	options.seeded = snapshot.state.seeded
+	options.seed_value = snapshot.state.run_seed
+	options.unlocks.assign(snapshot.unlocks)
+	options.resume = snapshot
+	run = RUN_SCENE.instantiate() as Run
+	run.setup(options) # before add_child()
+	add_child(run)
+	room = run.current_room()
+	player = run.get_node("Player") as Player
+	player.health.set_forced_invulnerability(true)

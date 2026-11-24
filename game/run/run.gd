@@ -65,8 +65,12 @@ func setup(options: RunOptions) -> void:
 
 func _ready() -> void:
 	add_to_group(Const.GROUP_RUN)
-	state.seeded = _options.seeded and _options.seed_value >= 0
-	rng = RunRng.new(_options.seed_value if state.seeded else RunRng.draw_seed())
+	if _options.resume != null:
+		state = _options.resume.state # the seed, whether it was typed, the floor, the shards, the wake time
+		rng = RunRng.new(state.run_seed)
+	else:
+		state.seeded = _options.seeded and _options.seed_value >= 0
+		rng = RunRng.new(_options.seed_value if state.seeded else RunRng.draw_seed())
 	state.run_seed = rng.run_seed # masked to the bits the generator keeps
 	# First, so that the end of the run is notified even when the room below fails to load (AR28).
 	_player.died.connect(_on_player_died)
@@ -88,6 +92,8 @@ func _ready() -> void:
 	Events.run_started.emit()
 	Events.run_seeded.emit(rng.seed_code(), state.seeded) # after run_started: the telemetry run exists
 	Events.shards_changed.emit(state.shards) # 0: the HUD and the telemetry start the run from it
+	if playing_floor and _options.resume != null:
+		_announce_restored_items()
 	if playing_floor:
 		_announce_room() # after run_started: the telemetry session exists
 
@@ -139,8 +145,8 @@ func room_loader() -> RoomLoader:
 	return _loader
 
 
-## Plays the floor: asks for every room in the background, enters the start room at once. False (the run falls back to
-## the arena, AR28) when the floor is invalid or the start room does not load.
+## Plays the floor: asks for every room in the background, enters the first room at once (the start room, or the room of the
+## saved night). False (the run falls back to the arena, AR28) when the floor is invalid or that room does not load.
 func _start_floor() -> bool:
 	var layout: FloorLayout = ensure_floor()
 	if not layout.valid:
@@ -148,17 +154,30 @@ func _start_floor() -> bool:
 		floor_layout = null
 		floor_map.layout = null
 		return false
-	var start_path: String = layout.cells[layout.start].info.path
+	var first_cell: Vector2i = layout.start
+	var first_side: int = -1
+	var resume: RunSnapshot = _options.resume
+	if resume != null:
+		var problem: String = resume.validate(layout)
+		if not problem.is_empty():
+			Log.error("run", "saved night cannot be resumed (%s): playing the arena" % problem)
+			floor_layout = null
+			return false
+		first_cell = resume.cell
+		first_side = resume.entry_side
+	var first_path: String = layout.cells[first_cell].info.path
 	var others: PackedStringArray = PackedStringArray()
 	for cell: Vector2i in layout.sorted_cells():
 		var path: String = layout.cells[cell].info.path
-		if path != start_path and not others.has(path):
+		if path != first_path and not others.has(path):
 			others.append(path)
 	floor_map.layout = layout
+	if resume != null:
+		_restore_from(resume) # after the floor was generated: the saved streams are later than its draws
 	_loader = RoomLoader.new()
-	_loader.scene_for(start_path) # on the spot, before the background requests start: nothing is loading yet
+	_loader.scene_for(first_path) # on the spot, before the background requests start: nothing is loading yet
 	_loader.request_all(others)
-	if _enter_cell(layout.start, -1):
+	if _enter_cell(first_cell, first_side):
 		return true
 	Log.error("run", "start room cannot be entered (seed=%s): playing the arena" % rng.seed_code())
 	_loader.drain()
@@ -167,9 +186,64 @@ func _start_floor() -> bool:
 	return false
 
 
+## Puts a saved night back (story 6.8), once the floor is generated: the random streams, the map, the stocks of the rooms,
+## then the player. The items come first, so that their cost in hearts is paid again and then overwritten by the saved
+## health. Items and offers whose id the game no longer knows are skipped (logged).
+func _restore_from(snapshot: RunSnapshot) -> void:
+	rng.restore_states(snapshot.rng_states)
+	floor_map.current = snapshot.map.current
+	floor_map.visited = snapshot.map.visited
+	floor_map.cleared = snapshot.map.cleared
+	stocks = snapshot.stocks
+	var loadout: Loadout = _player.carrier.loadout
+	for entry: Dictionary in snapshot.items:
+		var item_id: StringName = StringName(RunState.text_of(entry["id"]))
+		var def: ItemDef = ItemCatalog.by_id(item_id)
+		if def == null:
+			Log.warn("save", "item %s no longer exists: skipped" % item_id)
+			continue
+		var owned: OwnedItem = null
+		if def.active:
+			loadout.set_active(def, RunState.whole(entry["charge"]))
+			owned = loadout.active
+		else:
+			owned = loadout.add(def)
+		owned.max_half_hearts_paid = RunState.whole(entry["paid"])
+	if snapshot.consumable != &"":
+		var consumable: ConsumableDef = ConsumableCatalog.by_id(snapshot.consumable)
+		if consumable == null:
+			Log.warn("save", "consumable %s no longer exists: skipped" % snapshot.consumable)
+		else:
+			loadout.set_consumable(consumable)
+	_player.health.restore_state(snapshot.health) # after the items: they lowered the max again
+	_player.lucidity.restore_value(snapshot.lucidity)
+	Log.info("run", "night resumed at cell %s items=%d shards=%d" % [snapshot.cell, loadout.count(), state.shards])
+
+
+## The items of a resumed night are told to the bus once the run has started again: the telemetry session and the
+## achievements of this launch count them in the night.
+func _announce_restored_items() -> void:
+	var loadout: Loadout = _player.carrier.loadout
+	for owned: OwnedItem in loadout.items():
+		Events.item_acquired.emit(owned.def.id, loadout.copies_of(owned.def.id))
+
+
+## True when this run is a floor being played: the one kind of run that is saved (never the arena, a single room, or the
+## arena a floor fell back to).
+func is_resumable() -> bool:
+	return _options.mode == RunOptions.Mode.FLOOR and floor_layout != null and floor_map.layout != null and not _ended
+
+
+## Writes run.json for the room about to be entered (story 6.8): the run as it is before anything of that room is drawn.
+## A failure is logged by the save service and the night goes on.
+func _write_snapshot(cell: Vector2i, entry_side: int) -> void:
+	SaveService.write_run(RunSnapshot.capture(self, _player, cell, entry_side))
+
+
 ## Enters the room of a cell: loads it, sets it up for its place on the floor, puts the player at its entry point.
 ## entry_side: the Door.Side the player comes through, -1 for the middle of the room. False when it cannot be done.
 func _enter_cell(cell: Vector2i, entry_side: int) -> bool:
+	_write_snapshot(cell, entry_side) # first: before the stock, the treasure and the shop of the room draw anything
 	var placement: FloorLayout.Placement = floor_layout.cells[cell]
 	var scene: PackedScene = _loader.scene_for(placement.info.path)
 	if scene == null:
@@ -324,6 +398,7 @@ func _on_player_died() -> void:
 	if _ended:
 		return
 	_ended = true
+	SaveService.delete_run() # the night is over: nothing to resume
 	_set_wake_time(Outcome.DEATH)
 	Log.info("run", "run ended outcome=death")
 	Events.run_ended.emit(Outcome.DEATH)
@@ -344,6 +419,11 @@ func _on_events_boss_defeated(boss_id: StringName) -> void:
 	Log.info("run", "boss %s defeated: victory in %s s" % [boss_id, Tuning.ROOM.boss_victory_delay])
 
 
+## Playing time: the run is disabled (no _process) while the game is paused or frozen behind the wake screen.
+func _process(delta: float) -> void:
+	state.play_seconds += delta
+
+
 func _physics_process(_delta: float) -> void:
 	if not _victory_pending or _ended:
 		return
@@ -358,6 +438,7 @@ func _end_by_victory() -> void:
 	_victory_pending = false
 	set_physics_process(false)
 	_ended = true
+	SaveService.delete_run()
 	_set_wake_time(Outcome.VICTORY)
 	Log.info("run", "run ended outcome=victory")
 	Events.run_ended.emit(Outcome.VICTORY)
@@ -476,20 +557,29 @@ func _on_events_shards_collected(amount: int) -> void:
 func ensure_floor() -> FloorLayout:
 	if floor_layout != null:
 		return floor_layout
-	var def: FloorDef = load(floor_def_path) as FloorDef
-	if def == null:
-		Log.error("gen", "floor def %s cannot be loaded" % floor_def_path)
-		floor_layout = FloorLayout.new()
-		floor_layout.failure = "no floor def"
-		return floor_layout
-	_floor_hp_factor = def.hp_factor
-	var pool: Array[RoomInfo] = RoomCatalog.pool(def.pool_dir, _options.unlocks)
-	floor_layout = FloorGenerator.generate(def, pool, rng, state.floor_index)
-	if floor_layout.valid:
-		Log.info("gen", "floor generated seed=%s attempts=%d" % [rng.seed_code(), floor_layout.attempts])
-	else:
-		Log.error("gen", "floor of seed %s is invalid: %s" % [rng.seed_code(), floor_layout.failure])
+	floor_layout = plan_for(floor_def_path, _options.unlocks, rng, state.floor_index)
+	var def: FloorDef = load(floor_def_path) as FloorDef if floor_layout.valid else null # a missing file was reported by plan_for
+	if def != null:
+		_floor_hp_factor = def.hp_factor
 	return floor_layout
+
+
+## The floor of a seed: from the floor definition, the pool filtered by the unlocks and the layout and rooms streams of rng.
+## Consumes those streams. An invalid floor (or a definition that cannot be loaded) comes back with its failure.
+static func plan_for(def_path: String, unlocks: Array[StringName], rng_of_floor: RunRng, floor_index: int) -> FloorLayout:
+	var def: FloorDef = load(def_path) as FloorDef
+	if def == null:
+		Log.error("gen", "floor def %s cannot be loaded" % def_path)
+		var missing: FloorLayout = FloorLayout.new()
+		missing.failure = "no floor def"
+		return missing
+	var pool: Array[RoomInfo] = RoomCatalog.pool(def.pool_dir, unlocks)
+	var layout: FloorLayout = FloorGenerator.generate(def, pool, rng_of_floor, floor_index)
+	if layout.valid:
+		Log.info("gen", "floor generated seed=%s attempts=%d" % [rng_of_floor.seed_code(), layout.attempts])
+	else:
+		Log.error("gen", "floor of seed %s is invalid: %s" % [rng_of_floor.seed_code(), layout.failure])
+	return layout
 
 
 ## Writes the map of the floor in the journal (F1 panel). False, with an error in the journal, when the floor is invalid.

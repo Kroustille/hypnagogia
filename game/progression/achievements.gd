@@ -107,11 +107,19 @@ func _obtain(id: StringName) -> void:
 func _run_entry() -> Dictionary:
 	return {
 		"seed": _seed_code,
-		"duration": maxi(0, Time.get_ticks_msec() - _started_msec) / 1000,
+		"duration": _duration_seconds(),
 		"items": _items.duplicate(),
 		"wake_minute": _wake_minute,
 		"date": Time.get_datetime_string_from_system(true),
 	}
+
+
+## Seconds played in the night: what the run counted (pauses excluded, a resumed night included), else the wall clock.
+func _duration_seconds() -> int:
+	var run: Run = get_tree().get_first_node_in_group(Const.GROUP_RUN) as Run if is_inside_tree() else null
+	if run != null:
+		return int(run.state.play_seconds)
+	return maxi(0, Time.get_ticks_msec() - _started_msec) / 1000
 
 
 func _save() -> void:

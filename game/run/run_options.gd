@@ -18,6 +18,9 @@ var seeded: bool = false
 ## same seed gives the same floor for the same unlocks, so a typed seed ignores them and stays shareable between profiles.
 ## Empty at the MVP (nothing unlocks yet).
 var unlocks: Array[StringName] = []
+## The saved night to continue (story 6.8), set by Main for a resumed run: the seed, the floor, the player and the map come
+## from it. Null for a new night.
+var resume: RunSnapshot
 
 
 ## Options from the arguments of Events.run_requested (primitive types: the bus knows no feature folder).
