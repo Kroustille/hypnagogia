@@ -89,3 +89,8 @@ func _make_texture(step: int) -> Texture2D:
 	image.fill_rect(SHADE_RECT, SHADE_COLOR)
 	image.fill_rect(BULB_RECT, BULB_OFF_COLOR if step < 0 else BULB_GLOW_COLORS[step])
 	return ImageTexture.create_from_image(image)
+
+
+## A fixed turret: never pushed, not even by the Awakening.
+func knock_back(_direction: Vector2, _distance_px: float) -> float:
+	return 0.0

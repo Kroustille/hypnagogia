@@ -96,7 +96,6 @@ func _on_events_lucidity_tier_changed(tier: int, _previous_tier: int) -> void:
 
 func _on_events_lucidity_spent(power: StringName, _cost: int, tier: int) -> void:
 	_session.spent(String(power), tier)
-	_write()
 
 
 func _on_events_run_ended(_outcome: int) -> void:

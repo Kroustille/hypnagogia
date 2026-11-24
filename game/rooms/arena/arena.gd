@@ -244,16 +244,31 @@ func _on_awakening_used(origin: Vector2) -> void:
 	var radius_px: float = tuning.effect_radius * Const.TILE_SIZE
 	var push_px: float = tuning.knockback_distance * Const.TILE_SIZE
 	var pushed: int = 0
+	# Farthest first, so a close enemy is never blocked by a farther one that has not moved yet.
+	var in_range: Array[Enemy] = []
 	for child: Node in _enemies.get_children():
 		var enemy: Enemy = child as Enemy
 		if enemy == null or enemy.is_dead():
 			continue
+		if enemy.global_position.distance_to(origin) < radius_px:
+			in_range.append(enemy)
+	in_range.sort_custom(func(a: Enemy, b: Enemy) -> bool: return a.global_position.distance_squared_to(origin) > b.global_position.distance_squared_to(origin))
+	# A body moved by the physics server is only seen at its new place on the next physics step: the enemies already
+	# pushed the full distance are ignored by the next ones (they are farther out, so nothing is crossed).
+	var moved_full: Array[Enemy] = []
+	for enemy: Enemy in in_range:
 		var offset: Vector2 = enemy.global_position - origin
-		if offset.length() >= radius_px:
-			continue
 		var direction: Vector2 = offset.normalized() if offset.length_squared() >= KNOCKBACK_MIN_OFFSET_SQ else Vector2.RIGHT
-		enemy.knock_back(direction, push_px)
-		pushed += 1
+		for moved: Enemy in moved_full:
+			enemy.add_collision_exception_with(moved)
+		var covered: float = enemy.knock_back(direction, push_px)
+		if covered > 0.0:
+			pushed += 1
+		if covered >= push_px - 0.01:
+			moved_full.append(enemy)
+	for enemy: Enemy in in_range:
+		for moved: Enemy in moved_full:
+			enemy.remove_collision_exception_with(moved)
 	_add_ring(origin, radius_px, AWAKENING_RING_COLOR, AWAKENING_RING_DURATION)
 	Log.debug("combat", "awakening cleared=%d pushed=%d" % [cleared, pushed])
 
