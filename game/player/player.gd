@@ -56,6 +56,8 @@ var health: Health
 var lucidity: Lucidity
 ## The zone enemy bullets hit. The room registers it with the enemy BulletManager.
 var hurtbox: Hurtbox
+## Damage, shot speed and hurtbox size with their modifiers (D9). Lucidity tiers write their modifiers here.
+var stats: StatBlock
 
 var _motor: PlayerMotor
 var _dash: Dash
@@ -73,6 +75,8 @@ var _recoil: SpriteKick
 var _bullets: BulletManager
 ## Own copy built once from Tuning.SHOT by equip_bullets(), never a shared Resource.
 var _shot_params: BulletParams
+## The hurtbox own rectangle, resized when the HURTBOX_SIZE stat changes.
+var _hurtbox_shape: RectangleShape2D
 ## Viewport mouse position on the previous tick: the mouse takes the aim back only when it moves.
 var _last_mouse_pos: Vector2 = Vector2.ZERO
 var _unequipped_reported: bool = false
@@ -107,6 +111,7 @@ func _ready() -> void:
 
 	_setup_health()
 	_setup_lucidity()
+	_setup_stats()
 	Events.room_cleared.connect(_on_room_cleared)
 
 	_aim = Aim.new()
@@ -141,6 +146,7 @@ func _setup_health() -> void:
 	shape_node.name = "Shape"
 	var shape: RectangleShape2D = RectangleShape2D.new()
 	shape.size = Vector2.ONE * Tuning.PLAYER.hitbox_size * Const.TILE_SIZE
+	_hurtbox_shape = shape
 	shape_node.shape = shape
 	hurtbox.add_child(shape_node) # before add_child(hurtbox): its _ready() looks for the shape
 	add_child(hurtbox)
@@ -158,10 +164,10 @@ func equip_bullets(manager: BulletManager) -> void:
 	var tuning: ShotTuning = Tuning.SHOT
 	_bullets = manager
 	_shot_params = BulletParams.new()
-	_shot_params.speed = tuning.bullet_speed
+	_shot_params.speed = stats.value_of(StatBlock.Stat.SHOT_SPEED)
 	_shot_params.radius = maxf(tuning.hitbox_size, 0.0) / 2.0
 	_shot_params.lifetime = tuning.lifetime
-	_shot_params.damage = maxf(tuning.damage, 0.0)
+	_shot_params.damage = maxf(stats.value_of(StatBlock.Stat.DAMAGE), 0.0)
 	_shot_params.appearance = manager.add_appearance(_make_shot_texture())
 
 
@@ -370,6 +376,7 @@ func _on_lucidity_value_changed(value: int) -> void:
 
 ## Announces a tier change on the bus and by sound (a lower tone down, a rising one up).
 func _on_lucidity_tier_changed(tier: Lucidity.Tier) -> void:
+	_apply_tier_modifiers(tier) # before the relay: bus listeners see the updated stats
 	var previous: int = _announced_tier
 	_announced_tier = tier
 	Events.lucidity_tier_changed.emit(tier, previous)
@@ -450,3 +457,39 @@ func _make_sprite_texture() -> Texture2D:
 		image.set_pixel(0, y, SPRITE_RIM_COLOR)
 		image.set_pixel(SPRITE_SIZE.x - 1, y, SPRITE_RIM_COLOR)
 	return ImageTexture.create_from_image(image)
+
+
+## Builds the stat block from the base tunings and puts on the modifiers of the starting tier.
+func _setup_stats() -> void:
+	stats = StatBlock.new()
+	stats.set_base(StatBlock.Stat.DAMAGE, Tuning.SHOT.damage)
+	stats.set_base(StatBlock.Stat.SHOT_SPEED, Tuning.SHOT.bullet_speed)
+	stats.set_base(StatBlock.Stat.HURTBOX_SIZE, Tuning.PLAYER.hitbox_size)
+	stats.changed.connect(_on_stat_changed)
+	_apply_tier_modifiers(lucidity.live_tier)
+
+
+## One source (the gauge) owns every tier modifier: set_modifier replaces the previous tier's, nothing stacks.
+func _apply_tier_modifiers(tier: Lucidity.Tier) -> void:
+	var tuning: LucidityTuning = Tuning.LUCIDITY
+	var bonus: float = tuning.tier_damage_bonus[tier] if tier < tuning.tier_damage_bonus.size() else 0.0
+	stats.set_modifier(lucidity, StatBlock.Stat.DAMAGE, StatBlock.Kind.ADD_PERCENT, bonus)
+	var lucid: bool = tier == Lucidity.Tier.LUCID
+	stats.set_modifier(lucidity, StatBlock.Stat.SHOT_SPEED, StatBlock.Kind.ADD_PERCENT, tuning.lucid_shot_speed_bonus if lucid else 0.0)
+	# 4 px is an absolute value: a replacement through ADD_FLAT, not a percentage
+	var shrink: float = tuning.lucid_hurtbox_size - stats.base_of(StatBlock.Stat.HURTBOX_SIZE)
+	stats.set_modifier(lucidity, StatBlock.Stat.HURTBOX_SIZE, StatBlock.Kind.ADD_FLAT, shrink if lucid else 0.0)
+
+
+## Pushes a changed stat into what uses it. Bullets already in flight keep their own speed and damage.
+func _on_stat_changed(stat: int) -> void:
+	match stat:
+		StatBlock.Stat.HURTBOX_SIZE:
+			if _hurtbox_shape != null:
+				_hurtbox_shape.size = Vector2.ONE * stats.value_of(StatBlock.Stat.HURTBOX_SIZE) * Const.TILE_SIZE
+		StatBlock.Stat.SHOT_SPEED:
+			if _shot_params != null:
+				_shot_params.speed = stats.value_of(StatBlock.Stat.SHOT_SPEED)
+		StatBlock.Stat.DAMAGE:
+			if _shot_params != null:
+				_shot_params.damage = maxf(stats.value_of(StatBlock.Stat.DAMAGE), 0.0)

@@ -19,3 +19,11 @@ extends Resource
 @export_range(0, 100, 1, "or_greater") var room_cleared_gain: int = 5
 ## Most lucidity grazes can give since Lucidity.begin_room().
 @export_range(0, 1000, 1, "or_greater") var graze_cap_per_room: int = 20
+
+## Damage bonus of the player per tier, in the order of Lucidity.Tier (Lucid, Floating, Drift, Abandon, Total abandon),
+## as a fraction of the base damage (FR18: 0, +10 %, +20 %, +35 %, +35 %).
+@export var tier_damage_bonus: PackedFloat32Array = PackedFloat32Array([0.0, 0.10, 0.20, 0.35, 0.35])
+## Lucid tier precision: bonus on the player's shot speed (fraction of the base, FR18: +30 %).
+@export_range(0.0, 5.0, 0.05, "or_greater") var lucid_shot_speed_bonus: float = 0.30
+## Lucid tier precision: side of the player's hurtbox (tiles, FR18: 4 px).
+@export_range(0.0625, 2.0, 0.0625, "or_greater") var lucid_hurtbox_size: float = 0.25

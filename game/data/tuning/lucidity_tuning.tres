@@ -11,3 +11,6 @@ graze_gain = 2
 perfect_dash_gain = 5
 room_cleared_gain = 5
 graze_cap_per_room = 20
+tier_damage_bonus = PackedFloat32Array(0, 0.1, 0.2, 0.35, 0.35)
+lucid_shot_speed_bonus = 0.3
+lucid_hurtbox_size = 0.25

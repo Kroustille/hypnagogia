@@ -18,4 +18,4 @@ scene = ExtResource("2_scene")
 max_hp = 30.0
 body_size = Vector2(0.625, 0.625)
 hurtbox_size = Vector2(0.75, 1.25)
-contact_size = Vector2(0.75, 0.75)
+contact_size = Vector2(0.875, 0.875)
