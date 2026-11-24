@@ -18,7 +18,7 @@ const LOW_OBSTACLE_COLOR: Color = Color(0.42, 0.40, 0.52)
 const HIGH_OBSTACLE_COLOR: Color = Color(0.20, 0.17, 0.34)
 ## Top-left cell (frame coordinates) of each 2x2 obstacle block, away from the spawn slots and the player start.
 const LOW_OBSTACLE_CELLS: Array[Vector2i] = [Vector2i(8, 12), Vector2i(29, 5), Vector2i(16, 15)]
-const HIGH_OBSTACLE_CELLS: Array[Vector2i] = [Vector2i(11, 3), Vector2i(27, 13)]
+const HIGH_OBSTACLE_CELLS: Array[Vector2i] = [Vector2i(11, 3), Vector2i(24, 15)]
 const OBSTACLE_BLOCK_CELLS: int = 2
 const FLOOR_COLOR: Color = Color(0.09, 0.09, 0.16)
 const FLOOR_ALT_COLOR: Color = Color(0.10, 0.10, 0.18)
