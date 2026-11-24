@@ -8,6 +8,10 @@ func before_each() -> void:
 	RoomCatalog.clear_cache()
 
 
+func after_each() -> void:
+	RoomCatalog.clear_cache() # a test may have changed the cached infos
+
+
 func test_the_real_pool_has_enough_rooms_of_every_kind() -> void:
 	var counts: Dictionary = {}
 	for info: RoomInfo in RoomCatalog.pool(POOL_DIR):

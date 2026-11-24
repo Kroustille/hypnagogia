@@ -16,13 +16,15 @@ const TUTORIAL_SCENE: PackedScene = preload("res://ui/tutorial/controls_tutorial
 
 const FLOOR_DEF_PATH: String = "res://data/floors/onset.tres"
 
+## The floor definition played (a variable so that a check can point it at a missing file).
+var floor_def_path: String = FLOOR_DEF_PATH
 var _ended: bool = false
 var _options: RunOptions = RunOptions.new()
 ## The random streams of this run (D8): a new one for every run.
 var rng: RunRng
 ## The seed, the floor index (story 4.7).
 var state: RunState = RunState.new()
-## The generated floor of a FLOOR run (story 4.7). Null in the other modes.
+## The generated floor (story 4.7): generated in FLOOR mode, or on demand by the F1 map (log_floor_map).
 var floor_layout: FloorLayout
 ## Where the player has been on the floor (story 4.8); read by the map (4.9).
 var floor_map: FloorMap = FloorMap.new()
@@ -47,8 +49,8 @@ func setup(options: RunOptions) -> void:
 func _ready() -> void:
 	add_to_group(Const.GROUP_RUN)
 	state.seeded = _options.seeded and _options.seed_value >= 0
-	state.run_seed = _options.seed_value if state.seeded else RunRng.draw_seed()
-	rng = RunRng.new(state.run_seed)
+	rng = RunRng.new(_options.seed_value if state.seeded else RunRng.draw_seed())
+	state.run_seed = rng.run_seed # masked to the bits the generator keeps
 	Log.info("run", "seed %s" % rng.seed_code())
 	# First, so that the end of the run is notified even when the room below fails to load (AR28).
 	_player.died.connect(_on_player_died)
@@ -266,7 +268,12 @@ func _on_events_room_cleared(room: Node, _lowest_tier: int) -> void:
 func ensure_floor() -> FloorLayout:
 	if floor_layout != null:
 		return floor_layout
-	var def: FloorDef = load(FLOOR_DEF_PATH) as FloorDef
+	var def: FloorDef = load(floor_def_path) as FloorDef
+	if def == null:
+		Log.error("gen", "floor def %s cannot be loaded" % floor_def_path)
+		floor_layout = FloorLayout.new()
+		floor_layout.failure = "no floor def"
+		return floor_layout
 	var pool: Array[RoomInfo] = RoomCatalog.pool(def.pool_dir)
 	floor_layout = FloorGenerator.generate(def, pool, rng, state.floor_index)
 	if floor_layout.valid:
@@ -276,6 +283,11 @@ func ensure_floor() -> FloorLayout:
 	return floor_layout
 
 
-## Writes the map of the floor in the journal (F1 panel).
-func log_floor_map() -> void:
-	Log.info("gen", "floor map seed=%s\n%s" % [rng.seed_code(), ensure_floor().to_text()])
+## Writes the map of the floor in the journal (F1 panel). False, with an error in the journal, when the floor is invalid.
+func log_floor_map() -> bool:
+	var layout: FloorLayout = ensure_floor()
+	if not layout.valid:
+		Log.error("gen", "floor map seed=%s: invalid floor (%s)" % [rng.seed_code(), layout.failure])
+		return false
+	Log.info("gen", "floor map seed=%s\n%s" % [rng.seed_code(), layout.to_text()])
+	return true

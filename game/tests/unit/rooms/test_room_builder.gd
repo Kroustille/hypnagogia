@@ -104,3 +104,40 @@ func test_a_failed_build_writes_nothing() -> void:
 	assert_eq(_builder.run(source, output), 1)
 	assert_false(FileAccess.file_exists(output))
 	DirAccess.remove_absolute(source)
+
+
+func test_a_wave_that_is_not_a_number_is_an_error() -> void:
+	var errors: PackedStringArray = PackedStringArray()
+	_build(TEXT_HEAD + _grid() + "\ndoor N\nspawn sleepwalker abc 5 5\n", errors).free()
+	assert_false(errors.is_empty())
+
+
+func test_two_sub_resources_of_one_type_keep_distinct_ids() -> void:
+	var text: String = '[sub_resource type="RectangleShape2D" id="RectangleShape2D_aaaaa"]\n[sub_resource type="RectangleShape2D" id="RectangleShape2D_bbbbb"]\n' \
+		+ '[node name="A" type="CollisionShape2D" unique_id=1]\nshape = SubResource("RectangleShape2D_aaaaa")\n' \
+		+ '[node name="B" type="CollisionShape2D" unique_id=2]\nshape = SubResource("RectangleShape2D_bbbbb")\n'
+	var stable: String = RoomBuilder.stable_ids(text)
+	var ids: Array[String] = []
+	for line: String in stable.split("\n"):
+		if line.begins_with("[sub_resource"):
+			ids.append(line.get_slice('id="', 1).get_slice('"', 0))
+	assert_eq(ids.size(), 2)
+	assert_ne(ids[0], ids[1])
+	assert_eq(RoomBuilder.stable_ids(text), stable, "still deterministic")
+
+
+func test_publish_leaves_no_temporary_file_and_refuses_an_empty_text() -> void:
+	var source: String = "user://builder_empty_source.tscn"
+	var output: String = "user://builder_publish.tscn"
+	var file: FileAccess = FileAccess.open(source, FileAccess.WRITE)
+	file.close() # empty
+	assert_eq(_builder._publish(source, output), ERR_FILE_CORRUPT)
+	assert_false(FileAccess.file_exists(output))
+	file = FileAccess.open(source, FileAccess.WRITE)
+	file.store_string('[node name="Room" type="Node2D" unique_id=1]\n')
+	file.close()
+	assert_eq(_builder._publish(source, output), OK)
+	assert_true(FileAccess.file_exists(output))
+	assert_false(FileAccess.file_exists(output + ".tmp"))
+	DirAccess.remove_absolute(source)
+	DirAccess.remove_absolute(output)

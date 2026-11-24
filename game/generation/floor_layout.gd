@@ -1,7 +1,8 @@
 class_name FloorLayout
 extends RefCounted
 ## The rooms of one floor and how they connect (story 4.7): one room per grid cell, an edge between two adjacent cells
-## whose rooms both have a door on the shared side. Built by FloorGenerator, read by the floor (4.8) and the map (4.9).
+## whose rooms both have a door on the shared side. The connections are exactly `edges()` / `neighbors()`: a door of a room
+## not in `door_sides(cell)` stays sealed (4.8), even facing another door. Built by FloorGenerator, read by the floor (4.8) and the map (4.9).
 ## Every listing is sorted (y, then x): no result depends on the insertion order of a Dictionary.
 
 ## One room of the floor.

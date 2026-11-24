@@ -30,7 +30,7 @@ const FURNITURE_KINDS: Array[String] = ["bed", "chair", "desk"]
 const GRID_CHARS: String = ".#HLP"
 ## Waves a room may have (a wave number outside 0..MAX_WAVE is a typo).
 const MAX_WAVE: int = 20
-## Where the scene is written before being moved into the pool: a failed build never leaves a half-written room there.
+## Where the scene is saved by Godot before the ids are made stable and the text is written next to its destination.
 const TEMP_SCENE: String = "user://room_builder_tmp.tscn"
 ## Lengths of the generated ids that Godot would otherwise draw at random on every save.
 const ID_SUFFIX_LENGTH: int = 5
@@ -82,9 +82,11 @@ func run(source_path: String, output_path: String) -> int:
 		return 1
 	var saved: Error = ResourceSaver.save(scene, TEMP_SCENE)
 	if saved != OK:
+		DirAccess.remove_absolute(TEMP_SCENE)
 		printerr("build_room: cannot save %s (%s)" % [TEMP_SCENE, error_string(saved)])
 		return 1
 	var written: Error = _publish(TEMP_SCENE, output_path)
+	DirAccess.remove_absolute(TEMP_SCENE)
 	if written != OK:
 		printerr("build_room: cannot write %s (%s)" % [output_path, error_string(written)])
 		return 1
@@ -97,17 +99,23 @@ func run(source_path: String, output_path: String) -> int:
 func _publish(temp_path: String, output_path: String) -> Error:
 	var text: String = FileAccess.get_file_as_string(temp_path)
 	if text.is_empty():
-		return FileAccess.get_open_error()
+		return ERR_FILE_CORRUPT
 	var made: Error = DirAccess.make_dir_recursive_absolute(output_path.get_base_dir())
 	if made != OK:
 		return made
-	var target: FileAccess = FileAccess.open(output_path, FileAccess.WRITE)
+	var partial_path: String = output_path + ".tmp" # same folder: the rename below is atomic
+	var target: FileAccess = FileAccess.open(partial_path, FileAccess.WRITE)
 	if target == null:
 		return FileAccess.get_open_error()
-	target.store_string(stable_ids(text))
+	var stored: bool = target.store_string(stable_ids(text))
 	target.close()
-	DirAccess.remove_absolute(temp_path)
-	return OK
+	if not stored or target.get_error() != OK:
+		DirAccess.remove_absolute(partial_path)
+		return ERR_FILE_CANT_WRITE
+	var moved: Error = DirAccess.rename_absolute(partial_path, output_path)
+	if moved != OK:
+		DirAccess.remove_absolute(partial_path)
+	return moved
 
 
 ## The scene text with deterministic ids: the suffix of every ext_resource and sub_resource id comes from what the
@@ -115,6 +123,7 @@ func _publish(temp_path: String, output_path: String) -> Error:
 static func stable_ids(text: String) -> String:
 	var lines: PackedStringArray = text.split("\n")
 	var renames: Dictionary = {} # old id -> new id
+	var seen: Dictionary = {} # how many resources had each key so far: two of one type must not share an id
 	var unique: Dictionary = {} # unique_id values already given
 	var node_ids: RegEx = RegEx.create_from_string("unique_id=\\d+")
 	var attributes: RegEx = RegEx.create_from_string("(\\w+)=\"([^\"]*)\"")
@@ -128,6 +137,9 @@ static func stable_ids(text: String) -> String:
 			if old_id.is_empty():
 				continue
 			var key: String = found.get("path", found.get("type", "")) + ":" + old_id.get_slice("_", 0)
+			var occurrence: int = seen.get(key, 0)
+			seen[key] = occurrence + 1
+			key += ":%d" % occurrence
 			var base: String = old_id.substr(0, old_id.rfind("_") + 1) if old_id.contains("_") else ""
 			renames[old_id] = base + key.md5_text().substr(0, ID_SUFFIX_LENGTH)
 		elif line.begins_with("[node "):

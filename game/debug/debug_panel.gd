@@ -182,8 +182,10 @@ func _log_floor_map() -> void:
 	if run == null:
 		_log("no run")
 		return
-	run.log_floor_map()
-	_log("floor map of seed %s in the journal" % run.rng.seed_code())
+	if run.log_floor_map():
+		_log("floor map of seed %s in the journal" % run.rng.seed_code())
+	else:
+		_log("invalid floor (seed %s)" % run.rng.seed_code())
 
 
 ## Starts a new run in the arena of milestone A or on a generated floor (story 4.8).

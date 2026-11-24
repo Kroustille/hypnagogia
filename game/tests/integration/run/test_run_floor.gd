@@ -98,3 +98,32 @@ func test_logging_the_map_generates_the_floor_once() -> void:
 	assert_not_null(run.floor_layout)
 	assert_eq(run.floor_layout.signature(), _expected_signature(31337))
 	assert_true(run.floor_layout.to_text().contains("N"), "the map shows the nightmare room")
+	assert_true(run.log_floor_map(), "a valid floor logs its map")
+
+
+func test_a_seed_over_40_bits_is_stored_masked() -> void:
+	var big: int = (1 << 45) + 5
+	var run: Run = _start(_options(RunOptions.Mode.ARENA, big, true))
+	assert_eq(run.state.run_seed, run.rng.run_seed)
+	assert_eq(run.state.run_seed, 5, "the 40 bits the generator keeps")
+	assert_eq(RunRng.new(run.state.run_seed).seed_code(), run.rng.seed_code())
+
+
+func test_the_map_of_an_invalid_floor_is_not_logged() -> void:
+	var run: Run = _start(_options(RunOptions.Mode.ARENA, 5, true))
+	var broken: FloorLayout = FloorLayout.new()
+	broken.failure = "test failure"
+	run.floor_layout = broken
+	assert_false(run.log_floor_map(), "no map for an invalid floor")
+	assert_push_error("invalid floor (test failure)")
+
+
+func test_a_missing_floor_def_gives_an_invalid_layout() -> void:
+	var run: Run = _start(_options(RunOptions.Mode.ARENA, 5, true))
+	run.floor_def_path = "res://data/floors/does_not_exist.tres"
+	var layout: FloorLayout = run.ensure_floor()
+	assert_false(layout.valid)
+	assert_eq(layout.failure, "no floor def")
+	assert_false(run.log_floor_map())
+	assert_engine_error_count(2)
+	assert_push_error_count(2)
