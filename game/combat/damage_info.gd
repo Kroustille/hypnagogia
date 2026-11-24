@@ -4,8 +4,8 @@ extends RefCounted
 ## Always delivered through Hurtbox.receive(), never by calling the target directly.
 
 ## Values are explicit because they travel as ints on Events.player_hit: new sources are appended at the end.
-## Pits come with story 4.3.
-enum Source { PLAYER_SHOT = 0, ENEMY_BULLET = 1, DEBUG = 2, CONTACT = 3 }
+## PIT: a fall into a hole (story 4.3).
+enum Source { PLAYER_SHOT = 0, ENEMY_BULLET = 1, DEBUG = 2, CONTACT = 3, PIT = 4 }
 
 var amount: float = 0.0
 var source: Source = Source.PLAYER_SHOT

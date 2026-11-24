@@ -60,6 +60,10 @@ var hurtbox: Hurtbox
 var stats: StatBlock
 
 var _motor: PlayerMotor
+## Last safe position and fall decision (story 4.3). Replaced by enter_room().
+var _pit_guard: PitGuard = PitGuard.new()
+## The room that answers "is there a pit here"; null outside a room (no fall then).
+var _room: Room
 var _dash: Dash
 ## Recharge of Awakening (power_1), in game ticks of the player group.
 var _awakening_cooldown: PowerCooldown = PowerCooldown.new()
@@ -171,6 +175,17 @@ func equip_bullets(manager: BulletManager) -> void:
 	_shot_params.appearance = manager.add_appearance(_make_shot_texture())
 
 
+## Called by the room once ready: from now on the player reads its pits and floor. The last safe position starts over.
+func enter_room(room: Room) -> void:
+	_room = room
+	_pit_guard = PitGuard.new()
+
+
+## The room goes away: no more pit test.
+func leave_room() -> void:
+	_room = null
+
+
 func _physics_process(delta: float) -> void:
 	var clock_scale: float = GameClock.scale(GameClock.Group.PLAYER)
 	var wish: Vector2 = Input.get_vector(&"move_left", &"move_right", &"move_up", &"move_down")
@@ -191,6 +206,8 @@ func _physics_process(delta: float) -> void:
 		velocity = motor_velocity * clock_scale
 	move_and_slide()
 	_dash.finish_tick()  # after the movement: listeners of dash_ended see the final position
+	if not _dash.is_active():
+		_check_pits() # walking, or the tick the dash ended: a dash in flight never tests a cell
 	_update_dash_tint()
 	_update_blink()
 
@@ -244,9 +261,53 @@ func _try_glide() -> void:
 	global_position = destination
 	reset_physics_interpolation() # the sprite (and the reticle) must not cross the screen in one tick
 	_glide_cooldown.start(tuning.cooldown)
-	_arrival_ticks_left = tuning.arrival_invulnerability * Engine.physics_ticks_per_second
+	# Landing in a pit: no arrival invulnerability, it would refuse the fall hit (story 4.3).
+	var falls: bool = _is_over_pit()
+	_arrival_ticks_left = 0.0 if falls else tuning.arrival_invulnerability * Engine.physics_ticks_per_second
 	Audio.play_sfx(GLIDE_SOUND, 1)
 	glided.emit(from, destination)
+	if falls:
+		_fall()
+
+
+## True when the player can fly over pits (stat CAN_FLY_OVER_PITS > 0).
+func can_fly_over_pits() -> bool:
+	return stats.value_of(StatBlock.Stat.CAN_FLY_OVER_PITS) > 0.0
+
+
+## True when the center of the body is in a pit the player would fall into: a room, no flight, a safe place to return to.
+func _is_over_pit() -> bool:
+	if _room == null or health.is_dead() or can_fly_over_pits():
+		return false
+	return _pit_guard.should_fall(global_position, _room.is_pit_at(global_position))
+
+
+## Remembers the safe position, or falls. After the movement of the tick (never from a physics callback).
+func _check_pits() -> void:
+	if _room == null or health.is_dead():
+		return
+	var on_floor: bool = _room.is_floor_at(global_position)
+	var safe: bool = on_floor and (can_fly_over_pits() or not _room.is_pit_at(global_position))
+	_pit_guard.observe(_room.cell_center_at(global_position), safe)
+	if _is_over_pit():
+		_fall()
+
+
+## The one way to fall: back to the last safe position (the center of its cell) first, then the hit. The hit goes
+## through the hurtbox like any other, so an invulnerable player is returned without damage.
+func _fall() -> void:
+	var from: Vector2 = global_position
+	global_position = _pit_guard.last_safe
+	velocity = Vector2.ZERO
+	reset_physics_interpolation()
+	var amount: int = roundi(stats.value_of(StatBlock.Stat.PIT_DAMAGE))
+	Log.debug("combat", "player fell at %s, back to %s damage=%d" % [from, global_position, amount])
+	if amount < 1:
+		return
+	var info: DamageInfo = DamageInfo.new()
+	info.amount = amount
+	info.source = DamageInfo.Source.PIT
+	hurtbox.receive(info)
 
 
 ## Awakening recharge, 0 just after use, 1 when ready (debug overlay).
@@ -472,6 +533,8 @@ func _setup_stats() -> void:
 	stats.set_base(StatBlock.Stat.DAMAGE, Tuning.SHOT.damage)
 	stats.set_base(StatBlock.Stat.SHOT_SPEED, Tuning.SHOT.bullet_speed)
 	stats.set_base(StatBlock.Stat.HURTBOX_SIZE, Tuning.PLAYER.hitbox_size)
+	stats.set_base(StatBlock.Stat.PIT_DAMAGE, Tuning.COMBAT.pit_damage_half_hearts)
+	stats.set_base(StatBlock.Stat.CAN_FLY_OVER_PITS, 0.0)
 	stats.changed.connect(_on_stat_changed)
 	_apply_tier_modifiers(lucidity.live_tier)
 

@@ -12,3 +12,4 @@ min_telegraph = 0.4
 min_spawn_distance = 3.0
 enemy_bullet_radius = 0.25
 enemy_bullet_lifetime = 10.0
+pit_damage_half_hearts = 1

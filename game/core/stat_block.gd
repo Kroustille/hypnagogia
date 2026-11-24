@@ -8,7 +8,8 @@ extends RefCounted
 ## Emitted when the computed value of a stat changes (never on a set that changes nothing).
 signal changed(stat: int)
 
-enum Stat { DAMAGE, SHOT_SPEED, HURTBOX_SIZE }
+## PIT_DAMAGE: half-hearts lost by a fall. CAN_FLY_OVER_PITS: a boolean carried by a float (active when > 0).
+enum Stat { DAMAGE, SHOT_SPEED, HURTBOX_SIZE, PIT_DAMAGE, CAN_FLY_OVER_PITS }
 enum Kind { ADD_FLAT, ADD_PERCENT, MULTIPLY }
 
 ## stat -> { source: Object -> Modifier }

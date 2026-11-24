@@ -178,6 +178,8 @@ func _ready() -> void:
 		pits.z_index = Const.Z_INDEX_DECOR
 	_build_decor(frame_cells)
 	_setup_doors(frame_cells)
+	if _player != null:
+		_player.enter_room(self) # the player reads the pits through this room
 	_setup_player_bullets() # after the tiles: the BulletManager needs Walls to have a TileSet
 	_setup_enemy_bullets() # drawn above the player's shots
 	_setup_damage_numbers() # after the bullets: drawn above them
@@ -240,7 +242,26 @@ func spawn_enemy(def: EnemyDef, requested: Vector2) -> Enemy:
 	return enemy
 
 
+## True when the cell under this global position holds a pit tile.
+func is_pit_at(global_pos: Vector2) -> bool:
+	var pits: TileMapLayer = get_node_or_null("%Pits") as TileMapLayer
+	return pits != null and pits.get_cell_source_id(pits.local_to_map(pits.to_local(global_pos))) != -1
+
+
+## True when the cell under this global position holds a floor tile.
+func is_floor_at(global_pos: Vector2) -> bool:
+	return _floor.get_cell_source_id(_floor.local_to_map(_floor.to_local(global_pos))) != -1
+
+
+## Global position of the center of the cell under this global position.
+func cell_center_at(global_pos: Vector2) -> Vector2:
+	var cell: Vector2i = _floor.local_to_map(_floor.to_local(global_pos))
+	return _floor.to_global(_floor.map_to_local(cell))
+
+
 func _exit_tree() -> void:
+	if is_instance_valid(_player):
+		_player.leave_room()
 	_clear_pending() # a room torn down never spawns
 
 

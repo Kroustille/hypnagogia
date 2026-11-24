@@ -20,3 +20,5 @@ extends Resource
 @export_range(0.05, 2.0, 0.05, "or_greater") var enemy_bullet_radius: float = 0.25
 ## Safety net of an enemy bullet, in seconds: not a range, walls stop every bullet well before.
 @export_range(0.5, 60.0, 0.5, "or_greater") var enemy_bullet_lifetime: float = 10.0
+## Half-hearts lost by a fall into a pit (story 4.3): the base of the PIT_DAMAGE stat.
+@export_range(0, 48, 1, "or_greater") var pit_damage_half_hearts: int = 1
