@@ -30,6 +30,8 @@ var _auto_fire: bool = false
 var _pool_index: int = 0
 ## Index of the catalog item the I key drops next.
 var _item_index: int = 0
+## Index of the catalog consumable the K key drops next.
+var _consumable_index: int = 0
 ## Values the L key cycles through, built from the tuning: the maximum, then just below each tier floor.
 var _lucidity_presets: PackedInt32Array = _build_lucidity_presets()
 ## Index of the preset the lucidity was last set to (0: the full gauge a run starts with).
@@ -96,6 +98,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			replay_seed_code(DisplayServer.clipboard_get())
 		KEY_I:
 			_drop_next_item()
+		KEY_K:
+			_drop_next_consumable()
 		_:
 			handled = false
 	if handled:
@@ -248,6 +252,28 @@ func _drop_next_item() -> void:
 		_log("item %s dropped" % def.id)
 
 
+## Lays the next catalog consumable next to the player (the C key was already taken by the seed replay).
+func _drop_next_consumable() -> void:
+	var player: Player = _find_player()
+	var room: Room = get_tree().get_first_node_in_group(Const.GROUP_ROOM) as Room
+	var defs: Array[ConsumableDef] = ConsumableCatalog.all()
+	if player == null or room == null or defs.is_empty():
+		_log("no consumable dropped (player, room or catalog missing)")
+		return
+	var def: ConsumableDef = defs[_consumable_index % defs.size()]
+	_consumable_index = (_consumable_index + 1) % defs.size()
+	var spot: Vector2 = player.global_position
+	for offset: Vector2 in [Vector2.RIGHT, Vector2.LEFT, Vector2.DOWN, Vector2.UP]:
+		var candidate: Vector2 = player.global_position + offset * ITEM_DROP_DISTANCE
+		if room.is_floor_at(candidate) and not room.is_pit_at(candidate):
+			spot = candidate
+			break
+	if room.add_consumable_offer(def, room.to_local(spot)) == null:
+		_log("consumable refused")
+	else:
+		_log("consumable %s dropped" % def.id)
+
+
 ## Restarts the run in the next room of the pool (sorted by path), then loops back to the first one.
 func _next_pool_room() -> void:
 	var paths: PackedStringArray = RoomInfo.scene_paths(ROOM_POOL_DIR)
@@ -368,6 +394,7 @@ func _refresh_text() -> void:
 		"C new floor on the current seed",
 		"V new floor on the seed code of the clipboard",
 		"I drop the next catalog item next to the player",
+		"K drop the next catalog consumable next to the player",
 	])
 	if player != null:
 		var health: Health = player.health

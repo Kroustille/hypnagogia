@@ -17,6 +17,8 @@ func test_the_keyboard_help_names_the_keys_of_the_input_map() -> void:
 	assert_string_contains(_tutorial.line_text(2), "Space")
 	assert_string_contains(_tutorial.line_text(3), "Clic droit")
 	assert_string_contains(_tutorial.line_text(4), "Glissement")
+	assert_string_contains(_tutorial.line_text(5), "Consommable")
+	assert_string_contains(_tutorial.line_text(5), "Q")
 
 
 func test_the_gamepad_help_names_the_buttons_and_the_stick() -> void:
@@ -26,6 +28,7 @@ func test_the_gamepad_help_names_the_buttons_and_the_stick() -> void:
 	assert_string_contains(_tutorial.line_text(2), "RB")
 	assert_string_contains(_tutorial.line_text(3), "LT")
 	assert_string_contains(_tutorial.line_text(4), "LB")
+	assert_string_contains(_tutorial.line_text(5), "Y")
 
 
 func test_a_change_of_device_changes_the_help() -> void:

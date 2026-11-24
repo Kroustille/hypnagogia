@@ -1,14 +1,14 @@
 class_name ControlsTutorial
 extends CanvasLayer
-## The controls help of the start room of the first floor (story 4.8): move, shoot, dash and the two powers, each with the
-## keys of the device the player used last (keyboard and mouse, or gamepad), read from the InputMap, never typed here.
+## The controls help of the start room of the first floor (story 4.8): move, shoot, dash, the two powers and the consumable,
+## each with the keys of the device the player used last (keyboard and mouse, or gamepad), read from the InputMap, never typed here.
 ## It follows the player's change of device while it is shown. Texts come from tr() (localization/strings.csv).
 ## It knows the input system only: nothing of the room or the player.
 
 enum Device { KEYBOARD, GAMEPAD }
 
 ## Button names of the gamepad, by JoyButton index (the pad labels are the hardware's, not translated).
-const JOY_BUTTON_NAMES: Dictionary[int, String] = {9: "LB", 10: "RB"}
+const JOY_BUTTON_NAMES: Dictionary[int, String] = {3: "Y", 9: "LB", 10: "RB"}
 ## Axis names of the triggers, by JoyAxis index.
 const JOY_TRIGGER_NAMES: Dictionary[int, String] = {4: "LT", 5: "RT"}
 const JOY_STICK_LEFT_AXES: Array[int] = [0, 1]
@@ -26,6 +26,7 @@ const LINES: Array[Dictionary] = [
 	{"label": &"UI_TUTORIAL_DASH", "actions": [&"dash"]},
 	{"label": &"UI_TUTORIAL_AWAKENING", "actions": [&"power_1"]},
 	{"label": &"UI_TUTORIAL_GLIDE", "actions": [&"power_2"]},
+	{"label": &"UI_TUTORIAL_CONSUMABLE", "actions": [&"use_consumable"]},
 ]
 
 var _device: Device = Device.KEYBOARD

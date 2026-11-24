@@ -17,6 +17,8 @@ const TIER_NAME_KEYS: Array[StringName] = [
 const ITEM_SLOT_SIZE: Vector2 = Vector2(16, 16)
 const ITEM_SLOT_GAP: int = 8
 const SHARD_COLOR: Color = Color(0.85, 0.8, 0.4)
+## Hues a consumable id picks its placeholder icon color from.
+const CONSUMABLE_HUE_STEPS: int = 360
 
 var _shards: int = 0 # static 0 until epic 5 (decision 4), then set from an Events signal
 
@@ -65,6 +67,8 @@ func _ready() -> void:
 	var active_x: float = consumable_x - ITEM_SLOT_GAP - ITEM_SLOT_SIZE.x
 	_consumable_slot = _make_slot("ConsumableSlot", ITEM_SLOT_SIZE, Vector2(consumable_x, slot_y))
 	_active_item_slot = _make_slot("ActiveItemSlot", ITEM_SLOT_SIZE, Vector2(active_x, slot_y))
+	Events.consumable_changed.connect(_on_events_consumable_changed)
+	Events.run_started.connect(_on_events_run_started)
 
 	_shards_label = Label.new()
 	_shards_label.name = "ShardsLabel"
@@ -130,6 +134,21 @@ func _make_slot(slot_name: String, slot_size: Vector2, slot_position: Vector2) -
 
 func _refresh_shards() -> void:
 	_shards_label.text = tr(&"UI_HUD_SHARDS") % _shards
+
+
+## The carried consumable: a colored square (the color follows the id) with the initial of its name; empty id = free slot.
+func _on_events_consumable_changed(id: StringName, name_key: StringName) -> void:
+	if id == &"":
+		_consumable_slot.clear_content()
+		return
+	var name_text: String = tr(name_key)
+	var color: Color = Color.from_hsv(float(id.hash() % CONSUMABLE_HUE_STEPS) / CONSUMABLE_HUE_STEPS, 0.55, 0.45)
+	_consumable_slot.set_content(color, name_text.left(1))
+
+
+## A new run starts with nothing in the slot.
+func _on_events_run_started() -> void:
+	_consumable_slot.clear_content()
 
 
 func _on_events_player_health_changed(half_hearts: int, max_half_hearts: int, armor: int) -> void:
