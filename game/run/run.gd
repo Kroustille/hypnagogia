@@ -51,15 +51,22 @@ func _ready() -> void:
 	state.seeded = _options.seeded and _options.seed_value >= 0
 	rng = RunRng.new(_options.seed_value if state.seeded else RunRng.draw_seed())
 	state.run_seed = rng.run_seed # masked to the bits the generator keeps
-	Log.info("run", "seed %s" % rng.seed_code())
 	# First, so that the end of the run is notified even when the room below fails to load (AR28).
 	_player.died.connect(_on_player_died)
 	Events.room_cleared.connect(_on_events_room_cleared)
 	var playing_floor: bool = _options.mode == RunOptions.Mode.FLOOR and _start_floor()
 	if not playing_floor and not _start_single_room():
-		return
-	Log.info("run", "run started")
+		if _options.mode != RunOptions.Mode.ROOM:
+			return
+		# A room that cannot be played (bad path, root that is not a Room) must not leave the game empty, nor be
+		# replayed by every restart: the arena takes over and Main reads the options actually played.
+		Log.error("run", "room of the options cannot be played: playing the arena")
+		_options = RunOptions.new()
+		if not _start_single_room():
+			return
+	Log.info("run", "run started seed=%s seeded=%s" % [rng.seed_code(), state.seeded])
 	Events.run_started.emit()
+	Events.run_seeded.emit(rng.seed_code(), state.seeded) # after run_started: the telemetry run exists
 	if playing_floor:
 		_announce_room() # after run_started: the telemetry session exists
 
@@ -72,6 +79,11 @@ func _exit_tree() -> void:
 	if _loader != null:
 		_loader.drain() # no background request left behind
 		_loader = null
+
+
+## What this run really plays: the options it was given, or the arena options when its room could not be played.
+func played_options() -> RunOptions:
+	return _options
 
 
 ## The room that is active now, null between two rooms.
@@ -192,15 +204,17 @@ func _start_single_room() -> bool:
 func _make_room() -> Room:
 	var scene: PackedScene = ARENA_SCENE
 	if _options.mode == RunOptions.Mode.ROOM:
+		RoomLoader.collect_orphans(true) # the room may be one a past run still loads
 		scene = load(_options.room_path) as PackedScene
 		if scene == null:
 			Log.error("run", "room scene %s cannot be loaded" % _options.room_path)
-			assert(false, "RunOptions.room_path must be a room scene")
 			return null
-	var room: Room = scene.instantiate() as Room
+	var node: Node = scene.instantiate()
+	var room: Room = node as Room
 	if room == null:
 		Log.error("run", "room scene root is not a Room")
-		assert(false, "A room scene must have a Room root")
+		if node != null:
+			node.free() # never entered the tree
 	return room
 
 

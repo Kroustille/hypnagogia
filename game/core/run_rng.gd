@@ -58,9 +58,9 @@ func seed_code() -> String:
 	return code
 
 
-## The seed of a code typed by the player (case ignored, I and L read as 1, O as 0). -1 when the code is invalid.
+## The seed of a code typed by the player (case ignored, spaces and dashes ignored, I and L read as 1, O as 0). -1 when the code is invalid.
 static func code_to_seed(code: String) -> int:
-	var clean: String = code.strip_edges().to_upper().replace("I", "1").replace("L", "1").replace("O", "0")
+	var clean: String = code.to_upper().replace(" ", "").replace("-", "").replace("\t", "").replace("\n", "").replace("I", "1").replace("L", "1").replace("O", "0")
 	if clean.length() != CODE_LENGTH:
 		return -1
 	var value: int = 0

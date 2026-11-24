@@ -117,3 +117,16 @@ func test_reference_values_of_a_known_seed() -> void:
 	assert_eq([layout.randi_range(0, 99), layout.randi_range(0, 99), layout.randi_range(0, 99)], [98, 37, 44])
 	var combat: RandomNumberGenerator = RunRng.new(12345).stream(RunRng.COMBAT, 1)
 	assert_eq([combat.randi_range(0, 99), combat.randi_range(0, 99), combat.randi_range(0, 99)], [72, 38, 13])
+
+
+func test_a_typed_code_ignores_spaces_and_dashes() -> void:
+	assert_eq(RunRng.code_to_seed("00000C1S"), 12345)
+	assert_eq(RunRng.code_to_seed("0000-0C1S"), 12345)
+	assert_eq(RunRng.code_to_seed(" 0000 0c1s "), 12345)
+	assert_eq(RunRng.code_to_seed("oooo-0cis"), 12345, "O reads as 0, I as 1, case ignored")
+	assert_eq(RunRng.code_to_seed("00000000"), 0, "zero is a valid seed")
+	assert_eq(RunRng.code_to_seed("0000000"), -1, "seven characters")
+	assert_eq(RunRng.code_to_seed("000000000"), -1, "nine characters")
+	assert_eq(RunRng.code_to_seed("0000000U"), -1, "U is not in the alphabet")
+	assert_eq(RunRng.code_to_seed("--  --"), -1)
+	assert_eq(RunRng.code_to_seed(""), -1)

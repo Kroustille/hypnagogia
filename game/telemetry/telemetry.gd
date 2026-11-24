@@ -35,6 +35,7 @@ func _ready() -> void:
 	_session.start(0.0)
 	Events.player_hit.connect(_on_events_player_hit)
 	Events.run_started.connect(_on_events_run_started)
+	Events.run_seeded.connect(_on_events_run_seeded)
 	Events.run_ended.connect(_on_events_run_ended)
 	Events.room_entered.connect(_on_events_room_entered)
 	Events.lucidity_tier_changed.connect(_on_events_lucidity_tier_changed)
@@ -89,6 +90,11 @@ func _on_events_player_hit(_damage: int, source: int) -> void:
 func _on_events_run_started() -> void:
 	_last_hit_source = -1
 	_session.run_started(_now())
+	_write()
+
+
+func _on_events_run_seeded(seed_code: String, seeded: bool) -> void:
+	_session.run_seeded(seed_code, seeded)
 	_write()
 
 

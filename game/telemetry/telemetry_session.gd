@@ -46,6 +46,16 @@ func run_started(at: float) -> void:
 	_add("run_start", at)
 
 
+## The seed of the run that just started, written in its "run_start" event (no event of its own: the order of the events
+## stays what the readers of the file expect); seeded: given by the player. Ignored outside a run.
+func run_seeded(seed_code: String, seeded: bool) -> void:
+	for index: int in range(events.size() - 1, -1, -1):
+		if events[index]["type"] == "run_start":
+			events[index]["seed"] = seed_code
+			events[index]["seeded"] = seeded
+			return
+
+
 ## The player came into a room of the floor.
 func room_entered(at: float, room_id: String, cell: Vector2i) -> void:
 	_add("room_entered", at, {"room_id": room_id, "cell": [cell.x, cell.y]})

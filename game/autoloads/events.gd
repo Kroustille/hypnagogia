@@ -77,3 +77,9 @@ signal lucidity_spent(power: StringName, cost: int, tier: int)
 ## (a StringName like "onset_combat_003"); cell_x, cell_y: its cell of the floor. Listeners: telemetry, the map (4.9).
 @warning_ignore("unused_signal")
 signal room_entered(room_id: StringName, cell_x: int, cell_y: int)
+
+## The seed of the run that just started (story 4.11), emitted right after run_started (whose signature stays as it is).
+## seed_code: the 8 characters of RunRng.seed_code(); seeded: true when the player gave the seed (no unlocks, AR29).
+## Listeners: telemetry.
+@warning_ignore("unused_signal")
+signal run_seeded(seed_code: String, seeded: bool)
