@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ItemPoolDef" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://economy/item_pool_def.gd" id="1_pool"]
+[ext_resource type="Script" path="res://items/item_def.gd" id="2_def"]
+[ext_resource type="Resource" path="res://data/items/falling_tooth.tres" id="3_tooth"]
+[ext_resource type="Resource" path="res://data/items/lead_legs.tres" id="4_legs"]
+
+[resource]
+script = ExtResource("1_pool")
+items = Array[ExtResource("2_def")]([ExtResource("3_tooth"), ExtResource("4_legs")])

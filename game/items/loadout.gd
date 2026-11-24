@@ -33,6 +33,15 @@ func copies_of(id: StringName) -> int:
 	return copies
 
 
+## The ids of the items held, one entry per distinct item (copies of one item count once).
+func owned_ids() -> Array[StringName]:
+	var ids: Array[StringName] = []
+	for owned: OwnedItem in _items:
+		if not ids.has(owned.def.id):
+			ids.append(owned.def.id)
+	return ids
+
+
 ## Takes a new copy of the item. Returns it.
 func add(def: ItemDef) -> OwnedItem:
 	var owned: OwnedItem = OwnedItem.new(def)

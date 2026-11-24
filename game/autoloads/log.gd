@@ -4,7 +4,7 @@ extends Node
 ## Never log from per-frame code: per-frame data goes through the F3 overlay.
 
 const CATEGORIES: PackedStringArray = [
-	"run", "room", "combat", "lucidity", "items", "gen", "save", "input", "audio", "ui",
+	"run", "room", "combat", "lucidity", "items", "economy", "gen", "save", "input", "audio", "ui",
 ]
 
 var _is_debug: bool = false

@@ -23,3 +23,8 @@ extends Resource
 @export var max_half_hearts_delta: int = 0
 ## Numbers an effect script reads (no magic number in the script).
 @export var params: Dictionary[StringName, float] = {}
+
+
+## Whether an owner with this maximum of hearts (in half-hearts) can pay the item's price in hearts.
+func can_be_taken(max_half_hearts: int) -> bool:
+	return max_half_hearts + max_half_hearts_delta >= Health.MIN_MAX_HALF_HEARTS
