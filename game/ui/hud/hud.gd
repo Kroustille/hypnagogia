@@ -68,6 +68,7 @@ func _ready() -> void:
 	_consumable_slot = _make_slot("ConsumableSlot", ITEM_SLOT_SIZE, Vector2(consumable_x, slot_y))
 	_active_item_slot = _make_slot("ActiveItemSlot", ITEM_SLOT_SIZE, Vector2(active_x, slot_y))
 	Events.consumable_changed.connect(_on_events_consumable_changed)
+	Events.active_item_changed.connect(_on_events_active_item_changed)
 	Events.run_started.connect(_on_events_run_started)
 	Events.shards_changed.connect(_on_events_shards_changed)
 
@@ -147,6 +148,17 @@ func _on_events_consumable_changed(id: StringName, name_key: StringName) -> void
 	_consumable_slot.set_content(color, name_text.left(1))
 
 
+## The active item: the same placeholder icon, and a bar of charge segments.
+func _on_events_active_item_changed(id: StringName, charge: int, charge_max: int) -> void:
+	if id == &"":
+		_active_item_slot.clear_content()
+		return
+	var def: ItemDef = ItemCatalog.by_id(id)
+	var initial: String = tr(def.name_key).left(1) if def != null else "?"
+	var color: Color = Color.from_hsv(float(id.hash() % CONSUMABLE_HUE_STEPS) / CONSUMABLE_HUE_STEPS, 0.55, 0.45)
+	_active_item_slot.set_content(color, initial)
+	_active_item_slot.set_charge(charge, charge_max)
+
 ## The total of shards the player holds.
 func _on_events_shards_changed(total: int) -> void:
 	_shards = total
@@ -156,6 +168,7 @@ func _on_events_shards_changed(total: int) -> void:
 ## A new run starts with nothing in the slot.
 func _on_events_run_started() -> void:
 	_consumable_slot.clear_content()
+	_active_item_slot.clear_content()
 
 
 func _on_events_player_health_changed(half_hearts: int, max_half_hearts: int, armor: int) -> void:

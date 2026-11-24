@@ -240,6 +240,7 @@ func _physics_process(delta: float) -> void:
 	_motor.step(wish, delta)
 	_dash.tick(clock_scale, Input.is_action_just_pressed(&"dash"), _facing)
 	_update_consumable_input(clock_scale)
+	_update_active_input(clock_scale)
 	_update_powers(clock_scale)
 	_update_shooting(clock_scale) # before the movement: sees "is the dash active this tick"
 	# velocity is rewritten every tick: move_and_slide() alters it when sliding, never read it back.
@@ -261,6 +262,13 @@ func _physics_process(delta: float) -> void:
 func _update_consumable_input(clock_scale: float) -> void:
 	if clock_scale > 0.0 and Input.is_action_just_pressed(&"use_consumable"):
 		if carrier.use_consumable() == BuildCarrier.UseResult.REFUSED:
+			Audio.play_sfx(POWER_REFUSED_SOUND, 1)
+
+
+## The active item (story 5.8): used on the press, silent without one; a refusal plays the refusal sound only.
+func _update_active_input(clock_scale: float) -> void:
+	if clock_scale > 0.0 and Input.is_action_just_pressed(&"use_active"):
+		if carrier.use_active() == BuildCarrier.UseResult.REFUSED:
 			Audio.play_sfx(POWER_REFUSED_SOUND, 1)
 
 

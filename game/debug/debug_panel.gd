@@ -102,6 +102,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_drop_next_consumable()
 		KEY_Y:
 			_give_fall_items()
+		KEY_U:
+			_recharge_active_item()
 		_:
 			handled = false
 	if handled:
@@ -266,6 +268,15 @@ func _give_fall_items() -> void:
 			given += 1
 	_log("%d fall items given" % given)
 
+
+## Recharges the active item fully (the U key).
+func _recharge_active_item() -> void:
+	var player: Player = _find_player()
+	if player == null or player.carrier == null or player.carrier.loadout.active == null:
+		_log("no active item to recharge")
+		return
+	player.carrier.loadout.set_charge(player.carrier.loadout.active.charge_max)
+	_log("active item recharged")
 
 ## Lays the next catalog consumable next to the player (the C key was already taken by the seed replay).
 func _drop_next_consumable() -> void:
