@@ -36,7 +36,7 @@ func setup(owner_player: Player, stat_block: StatBlock) -> void:
 func _physics_process(delta: float) -> void:
 	var ticks: float = GameClock.scale(GameClock.Group.PLAYER)
 	var dt: float = delta * ticks
-	if dt <= 0.0:
+	if dt <= 0.0 or player.health.is_dead():
 		return
 	for id: StringName in _running.keys():
 		var effect: ConsumableEffect = _running[id]
@@ -44,8 +44,14 @@ func _physics_process(delta: float) -> void:
 		if effect.is_done():
 			_running.erase(id)
 	for owned: OwnedItem in loadout.items():
-		if owned.effect != null and owned.effect.wants_tick:
+		if owned.effect != null and owned.effect.wants_tick and owned.effect.carrier != null:
 			owned.effect.tick(dt)
+
+
+## Back in the tree (reparented): the effects detached on the way out listen again.
+func _enter_tree() -> void:
+	if loadout != null:
+		loadout.attach_all()
 
 
 func _exit_tree() -> void:

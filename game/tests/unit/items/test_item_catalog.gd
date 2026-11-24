@@ -77,3 +77,17 @@ func test_a_duplicate_id_is_detected() -> void:
 	assert_true(ItemCatalog.is_new_id(_valid_def(&"x"), seen))
 	assert_true(ItemCatalog.is_new_id(_valid_def(&"y"), seen))
 	assert_false(ItemCatalog.is_new_id(_valid_def(&"x"), seen))
+
+
+func test_an_effect_without_its_params_is_refused() -> void:
+	var def: ItemDef = _valid_def(&"x")
+	def.effect_script = preload("res://items/effects/free_fall_effect.gd")
+	assert_string_contains(ItemCatalog.problem_of(def), "rate")
+	def.params = {&"rate": 0.05, &"max_bonus": 0.5, &"step_seconds": 1.0}
+	assert_eq(ItemCatalog.problem_of(def), "")
+
+
+func test_an_effect_script_that_is_not_an_item_effect_is_refused() -> void:
+	var def: ItemDef = _valid_def(&"x")
+	def.effect_script = preload("res://items/item_def.gd")
+	assert_ne(ItemCatalog.problem_of(def), "")

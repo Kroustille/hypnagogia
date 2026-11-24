@@ -44,6 +44,16 @@ static func problem_of(def: ItemDef) -> String:
 		if seen.has(modifier.stat):
 			return "two modifiers on the same stat (a source holds one per stat)"
 		seen[modifier.stat] = true
+	if def.effect_script != null:
+		var made: Object = (def.effect_script as GDScript).new() if def.effect_script is GDScript else null
+		var effect: ItemEffect = made as ItemEffect
+		if effect == null:
+			if made != null and not made is RefCounted:
+				made.free()
+			return "effect_script must be a script extending ItemEffect"
+		for key: StringName in effect.required_params():
+			if not def.params.has(key):
+				return "the effect needs the param %s" % key
 	return ""
 
 

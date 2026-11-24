@@ -60,9 +60,11 @@ func add(def: ItemDef) -> OwnedItem:
 	for modifier: ModifierDef in def.modifiers:
 		_carrier.stats.set_modifier(owned, modifier.stat, modifier.kind, modifier.value)
 	if def.effect_script != null:
-		var made: Object = (def.effect_script as GDScript).new()
+		var made: Object = (def.effect_script as GDScript).new() if def.effect_script is GDScript else null
 		var effect: ItemEffect = made as ItemEffect
 		if effect == null:
+			if made != null and not made is RefCounted:
+				made.free()
 			Log.error("items", "effect_script of %s does not extend ItemEffect" % def.id)
 			assert(false, "effect_script must extend ItemEffect")
 		else:
@@ -86,6 +88,13 @@ func remove(owned: OwnedItem) -> bool:
 		owned.effect.detach()
 	item_removed.emit(owned)
 	return true
+
+
+## Attaches again the effects that were detached by detach_all().
+func attach_all() -> void:
+	for owned: OwnedItem in _items:
+		if owned.effect != null and owned.effect.carrier == null:
+			owned.effect.attach(_carrier)
 
 
 ## Detaches every effect without touching the stats or the list (the carrier leaves the tree).

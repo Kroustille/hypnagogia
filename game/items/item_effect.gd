@@ -18,17 +18,34 @@ var _owned_ref: WeakRef
 var carrier: BuildCarrier
 
 
-## The item was added to the loadout.
+## The keys the effect reads in ItemDef.params: the catalog refuses a definition that lacks one.
+func required_params() -> Array[StringName]:
+	return []
+
+
+## The source of the modifiers of this effect: its OwnedItem (so Loadout.remove clears them), itself without one.
+func modifier_source() -> Object:
+	var item: OwnedItem = owned
+	return item if item != null else self
+
+
+## A number of the definition.
+func param(key: StringName) -> float:
+	var item: OwnedItem = owned
+	return item.def.params.get(key, 0.0) if item != null else 0.0
+
+
+## The item was added to the loadout (or the carrier entered the tree again). Does nothing when already attached.
 func attach(new_carrier: BuildCarrier) -> void:
 	carrier = new_carrier
 
 
-## The item was removed (or the carrier left the tree): undo everything attach() connected.
+## The item was removed (or the carrier left the tree): undo everything attach() connected. Safe to call twice.
 func detach() -> void:
 	carrier = null
 
 
-## dt: seconds of game time of the player group (paused: 0).
+## dt: seconds of game time of the player group (never zero). Never called on a detached effect by the carrier.
 func tick(_dt: float) -> void:
 	pass
 
