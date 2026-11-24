@@ -567,3 +567,7 @@
 ## Deferred from: dev of 6-5-s-endormir-dans-la-chambre (2026-11-24)
 
 - **NON ÉVALUÉ (humain) : la chambre au clavier et à la manette** (playtest du jalon A) : ressenti du marcheur, lisibilité de l'invite « Dormir (X) » / « Saisir une seed (X) », bouton A/Croix réel pour `interact`, navigation entre « Se rendormir », « Nouvelle partie avec une seed » et « Retourner dans la chambre » à la manette. La touche `interact` (X) est provisoire jusqu'au remappage (story 1.7, reportée).
+
+## Deferred from: dev of 6-6-lire-l-heure-du-reveil (2026-11-24)
+
+- **NON ÉVALUÉ (humain) : lisibilité de l'heure du réveil** (playtest du jalon A) : la ligne « Réveil : HH:MM » de l'écran de réveil et le `Label` du réveil de la chambre (sprite d'horloge en epic 7) ; ressenti du plafond de la mort à 00:17 (écart au GDD, à valider en fin d'epic).

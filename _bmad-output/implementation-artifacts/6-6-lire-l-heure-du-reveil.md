@@ -1,6 +1,6 @@
 # Story 6.6 : Lire l'heure du réveil
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -28,13 +28,13 @@ Hors périmètre : étage secret (horloge bloquée sur 4:12), phases suivantes, 
 
 ## Tâches
 
-- [ ] `core/wake_tuning.gd`, `data/tuning/wake_tuning.tres`, `core/tuning.gd` (`WAKE`). Valeurs bornées : `phase_minutes > 0`, `0 <= start < 1440`, marge < phase.
-- [ ] `run/wake_clock.gd` : `start_minute()`, `minute_at(...)`, `minute_after_boss(floor_index)`, `minute_at_death(...)` (plafond), `static format()` ; `RunState.wake_minute` ; `Events.wake_time_set(minute: int)`.
-- [ ] `run/run.gd` : `_wake_minute_for(outcome)` : compte les cellules `COMBAT` de `floor_layout` et celles de `floor_map.cleared` ; appelé aux deux émissions de `run_ended` (mort, victoire), avant `run_ended`.
-- [ ] `ui/menus/wake_screen.gd` : ligne d'heure ; `main/main.gd` : lecture de l'heure (via l'`Events.wake_time_set`, pas `Run`), `_last_wake_minute`, passage à `Bedroom.set_clock_minute()`.
-- [ ] `bedroom/bedroom.gd` : `set_clock_minute(minute)` (texte du `AlarmClock`) ; `telemetry` : champs `wake`.
-- [ ] `strings.csv` : `UI_WAKE_TIME`.
-- [ ] Tests.
+- [x] `core/wake_tuning.gd`, `data/tuning/wake_tuning.tres`, `core/tuning.gd` (`WAKE`). Valeurs bornées : `phase_minutes > 0`, `0 <= start < 1440`, marge < phase.
+- [x] `run/wake_clock.gd` : `start_minute()`, `minute_at(...)`, `minute_after_boss(floor_index)`, `minute_at_death(...)` (plafond), `static format()` ; `RunState.wake_minute` ; `Events.wake_time_set(minute: int)`.
+- [x] `run/run.gd` : `_wake_minute_for(outcome)` : compte les cellules `COMBAT` de `floor_layout` et celles de `floor_map.cleared` ; appelé aux deux émissions de `run_ended` (mort, victoire), avant `run_ended`.
+- [x] `ui/menus/wake_screen.gd` : ligne d'heure ; `main/main.gd` : lecture de l'heure (via l'`Events.wake_time_set`, pas `Run`), `_last_wake_minute`, passage à `Bedroom.set_clock_minute()`.
+- [x] `bedroom/bedroom.gd` : `set_clock_minute(minute)` (texte du `AlarmClock`) ; `telemetry` : champs `wake`.
+- [x] `strings.csv` : `UI_WAKE_TIME`.
+- [x] Tests.
 
 ## État du code concerné
 
@@ -76,6 +76,19 @@ epics.md (Story 6.6) ; GDD, Conditions de victoire (l'heure du réveil, exemple 
 
 ### Notes de complétion
 
+Implémenté comme spécifié. Vérifié : `tools/run_tests.sh` 769 verts (dont `test_wake_clock`, `test_wake_time_flow`, `test_outcome_record`), `run_all.sh` normal ALL PASS, `--quit-after 120` propre.
+
+Écarts / décisions de dev :
+- Sans plan d'étage, le message est un `Log.info` et non un `Log.warn` : l'arène et les salles seules n'ont pas de plan par conception, et les scènes de régression (`run_all.sh`) interdisent tout WARNING moteur.
+- Le format `HH:MM` passe par `UI_CLOCK_FORMAT` (strings.csv), avec repli `%02d:%02d` si les traductions ne sont pas chargées. `format()` prend un `int` : le cas « non fini » n'existe pas, seul le négatif est refusé.
+- La télémétrie lit l'heure via `Events.wake_time_set` (champ `_wake_minute`, remis à -1 après `run_end`) ; `run_end` porte `wake_minute` et `wake` (vide si inconnue).
+- Non évalué (humain) : lisibilité de la ligne d'heure sur l'écran de réveil et du réveil (simple `Label`) ; sprite d'horloge en epic 7.
+
 ### Liste des fichiers
 
+Nouveaux : `core/wake_tuning.gd`, `data/tuning/wake_tuning.tres`, `run/wake_clock.gd`, `tests/unit/run/test_wake_clock.gd`, `tests/integration/run/test_wake_time_flow.gd`.
+Modifiés : `core/tuning.gd`, `autoloads/events.gd`, `run/run_state.gd`, `run/run.gd`, `main/main.gd`, `ui/menus/wake_screen.gd/.tscn`, `bedroom/bedroom.gd/.tscn`, `telemetry/telemetry.gd`, `telemetry/telemetry_session.gd`, `localization/strings.csv`, `tests/unit/telemetry/test_outcome_record.gd`.
+
 ### Journal des modifications
+
+- 2026-11-24 : implémentation de la story 6.6 (heure du réveil), passée en review.
