@@ -97,7 +97,7 @@ development_status:
 
   # Epic 5: Construire son build
   epic-5: in-progress
-  5-1-ramasser-un-objet-et-comprendre-son-prix: review
+  5-1-ramasser-un-objet-et-comprendre-son-prix: in-progress
   5-2-trouver-un-objet-dans-la-salle-tresor: ready-for-dev
   5-3-porter-un-consommable: ready-for-dev
   5-4-gagner-des-eclats-et-des-drops-selon-son-palier: ready-for-dev
