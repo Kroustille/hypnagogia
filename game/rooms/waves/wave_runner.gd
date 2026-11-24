@@ -1,16 +1,17 @@
 class_name WaveRunner
 extends Node
 ## Chains the waves of a room (story 2.6, FR32): waits, spawns a wave through room.spawn_enemy(), and when the room
-## has no enemy left emits Events.room_cleared, pauses, then spawns the next wave. The list loops after its last wave.
-## Child of the Arena, created by it. setup() before add_child(). Reads the WaveList only, never writes it.
+## has no enemy left emits Events.room_cleared, pauses, then spawns the next wave. The list loops after its last wave
+## (the arena); a list without loop emits Events.room_cleared once, after its last wave, and the runner is then done.
+## Child of the Room, created by it. setup() before add_child(). Reads the WaveList only, never writes it.
 ## The countdown runs in physics ticks scaled by GameClock (frozen on pause and wake screen, slowed by F4).
 
-enum State { IDLE, WAITING, FIGHTING }
+enum State { IDLE, WAITING, FIGHTING, DONE }
 
 ## Technical ceiling of one wave (enemies at once): keeps the enemy bullet pool (512) and the screen readable.
 const MAX_WAVE_ENEMIES: int = 12
 
-var _room: Arena
+var _room: Room
 var _list: WaveList
 var _state: State = State.IDLE
 var _ticks_left: float = 0.0
@@ -25,7 +26,7 @@ var _waves: Array[Array] = []
 
 
 ## Dependency injection: call before add_child().
-func setup(room: Arena, list: WaveList) -> void:
+func setup(room: Room, list: WaveList) -> void:
 	_room = room
 	_list = list
 
@@ -69,7 +70,7 @@ func state_name() -> String:
 
 ## Debug (F1): kills every enemy without clearing the room, then spawns the next wave at once.
 func force_next_wave() -> void:
-	if _state == State.IDLE:
+	if _state == State.IDLE or _state == State.DONE:
 		return
 	_room.kill_all_enemies()
 	_start_next_wave()
@@ -95,19 +96,33 @@ func _on_room_emptied() -> void:
 	if _state != State.FIGHTING:
 		return # pause, debug spawns or teardown
 	Log.debug("room", "wave %d cleared" % _wave_number)
+	if not _list.loop and _next_index >= _waves.size():
+		_finish()
+		return
 	# state first: a listener that re-enters or tears the room down must see WAITING (or IDLE)
 	_wait(_list.pause_duration)
+	if _list.loop:
+		Events.room_cleared.emit(_room, _room.room_tier())
+
+
+## The last wave of a list without loop is cleared: the doors open, the room is cleared once, nothing appears again.
+func _finish() -> void:
+	_state = State.DONE # first: a listener must see a finished runner
+	_room.end_room()
 	Events.room_cleared.emit(_room, _room.room_tier())
 
 
 ## Spawns the next valid wave. Nothing could appear: the wave is skipped and the pause starts (never a stuck room).
 func _start_next_wave() -> void:
 	var defs: Array = _waves[_next_index % _waves.size()]
-	_next_index = (_next_index + 1) % _waves.size()
+	_next_index = (_next_index + 1) % _waves.size() if _list.loop else _next_index + 1
 	_wave_number += 1
 	var planned: Array[EnemyDef] = []
 	planned.assign(defs)
-	_room.begin_room(planned) # before the apparitions
+	if _list.loop or _wave_number == 1:
+		_room.begin_room(planned) # before the apparitions
+	else:
+		_room.begin_wave(planned)
 	var spawned: int = 0
 	for def: EnemyDef in defs:
 		var slot: Vector2 = _list.spawn_slots[_slot_cursor % _list.spawn_slots.size()] * Const.TILE_SIZE
@@ -116,7 +131,11 @@ func _start_next_wave() -> void:
 			spawned += 1
 	Log.debug("room", "wave %d spawned %d/%d enemies" % [_wave_number, spawned, defs.size()])
 	if spawned == 0:
-		_wait(_list.pause_duration)
+		_room.cancel_pending_reinforcements() # nobody fights this wave: no reinforcement for it either
+		if not _list.loop and _next_index >= _waves.size():
+			_finish()
+		else:
+			_wait(_list.pause_duration)
 	else:
 		_state = State.FIGHTING
 

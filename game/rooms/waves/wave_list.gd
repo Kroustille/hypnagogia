@@ -1,10 +1,13 @@
 class_name WaveList
 extends Resource
-## The waves of a room and their rhythm (story 2.6). The runner loops back to the first wave after the last.
+## The waves of a room and their rhythm (story 2.6). The runner loops back to the first wave after the last, unless
+## `loop` is false (pre-drawn rooms, story 4.2): it then stops once the last wave is cleared.
 ## Durations in seconds, slots in tiles (room coordinates, origin = top-left corner of the wall frame).
 ## Neutral defaults: the values live in the .tres, an empty list makes the runner inert (reported).
 
 @export var waves: Array[WaveDef] = []
+## True: the waves start again after the last one (the arena). False: the fight is won after the last wave.
+@export var loop: bool = true
 ## Delay between the start of the room and the first wave.
 @export_range(0.0, 60.0, 0.1, "or_greater") var start_delay: float = 0.0
 ## Pause between the last enemy of a wave dying and the next wave.

@@ -72,7 +72,7 @@ func _lucidity_text() -> String:
 	if player == null:
 		return "Lucidity -"
 	var danger: String = ""
-	var room: Arena = get_tree().get_first_node_in_group(Const.GROUP_ROOM) as Arena
+	var room: Room = get_tree().get_first_node_in_group(Const.GROUP_ROOM) as Room
 	if room != null:
 		danger = "Room tier %s | bullets x%.2f | telegraphs x%.2f\n" % [Lucidity.Tier.find_key(player.lucidity.room_tier), room.danger.enemy_bullet_speed_mult, room.danger.telegraph_mult]
 	return danger + "Lucidity %d (%s) | Awakening %d%% | Glide %d%%\nDamage %.1f | Shot speed %.1f | Hurtbox %.3f" % [

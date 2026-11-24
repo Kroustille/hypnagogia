@@ -132,7 +132,7 @@ func _hit_player() -> void:
 
 ## Asks the active room for the enemy of the pressed key (6 to 9).
 func _spawn(def: EnemyDef, label: String) -> void:
-	var room: Arena = get_tree().get_first_node_in_group(Const.GROUP_ROOM) as Arena # never cached: F5 and restarts recreate it
+	var room: Room = get_tree().get_first_node_in_group(Const.GROUP_ROOM) as Room # never cached: F5 and restarts recreate it
 	if room == null:
 		_last_message = "no room"
 		return
@@ -145,7 +145,7 @@ func _spawn(def: EnemyDef, label: String) -> void:
 
 ## Kills every living enemy of the active room. During a wave the runner then clears the room (Events.room_cleared), as for player kills.
 func _kill_all() -> void:
-	var room: Arena = get_tree().get_first_node_in_group(Const.GROUP_ROOM) as Arena
+	var room: Room = get_tree().get_first_node_in_group(Const.GROUP_ROOM) as Room
 	if room == null:
 		_last_message = "no room"
 		return
@@ -154,7 +154,7 @@ func _kill_all() -> void:
 
 ## Kills every enemy and spawns the next wave at once.
 func _next_wave() -> void:
-	var room: Arena = get_tree().get_first_node_in_group(Const.GROUP_ROOM) as Arena
+	var room: Room = get_tree().get_first_node_in_group(Const.GROUP_ROOM) as Room
 	var runner: WaveRunner = room.wave_runner() if room != null else null
 	if runner == null:
 		_log("no wave runner")
@@ -268,7 +268,7 @@ func _refresh_text() -> void:
 		lines.append("lucidity %d (%s)" % [player.lucidity.value, Lucidity.Tier.find_key(player.lucidity.live_tier)])
 		lines.append("hearts %d/%d  armor %d  cap %d" % [
 			health.half_hearts, health.max_half_hearts, health.armor, health.cap_half_hearts()])
-	var room: Arena = get_tree().get_first_node_in_group(Const.GROUP_ROOM) as Arena
+	var room: Room = get_tree().get_first_node_in_group(Const.GROUP_ROOM) as Room
 	if room != null:
 		lines.append("enemies alive %d" % room.alive_enemy_count())
 		var runner: WaveRunner = room.wave_runner()
