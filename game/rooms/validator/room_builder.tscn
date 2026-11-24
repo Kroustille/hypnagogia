@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://rooms/validator/room_builder.gd" id="1_builder"]
+
+[node name="RoomBuilder" type="Node"]
+script = ExtResource("1_builder")
