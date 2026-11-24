@@ -1,6 +1,6 @@
 # Story 6.8 : Sauvegarder, quitter et reprendre
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -27,13 +27,13 @@ Hors périmètre : sauvegarde en cours de salle (jamais), plusieurs emplacements
 
 ## Tâches
 
-- [ ] `run/run_snapshot.gd` (`RefCounted`, `to_dict()`, `static from_dict()`, `validate() -> String`, `schema_version`) ; `SaveService.write_run/read_run/delete_run/has_run` (s'appuie sur `write_json/read_json` de 6.7), `run.json.corrupt` ; migration par version (table vide).
-- [ ] `core/run_rng.gd` : `export_states() -> Dictionary` (clé `"nom:étage"` → état en **chaîne décimale**) et `restore_states(d)` ; `run/run_state.gd`, `run/floor_map.gd`, `economy/room_stock.gd` : `to_dict/from_dict` (cellules en `[x, y]`).
-- [ ] `combat/health.gd` : `export_state()` / `restore_state(d)` (demi-cœurs, max, armure, maximum perdu) ; `player/lucidity.gd` : `set_value()` existe, y ajouter la restauration du tier de salle (`begin_room()` se charge du reste).
-- [ ] `run/run.gd` : `_write_snapshot(cell, entry_side)` appelée en tête de `_enter_cell` (avant `stock_of`/`_stock_treasure`/`_stock_shop`/`mark_entered`) ; `_start_floor_from(snapshot)` (voir État du code) ; effacement aux deux fins de run ; `RunOptions.resume: RunSnapshot`.
-- [ ] `main/main.gd` : `_boot()` (invite → reprise ou chambre), `_on_pause_menu_quit_requested()`, effacement dans `_start_run()` pour toute run **non reprise**. `ui/menus/resume_prompt.tscn/.gd` ; `pause_menu` : libellé selon `Main` (`open(seed, focus, in_run)`).
-- [ ] `strings.csv` : `UI_PAUSE_SAVE_QUIT`, `UI_RESUME_TITLE`, `UI_RESUME_YES`, `UI_RESUME_NO`, `UI_RESUME_CORRUPT`.
-- [ ] Tests.
+- [x] `run/run_snapshot.gd` (`RefCounted`, `to_dict()`, `static from_dict()`, `validate() -> String`, `schema_version`) ; `SaveService.write_run/read_run/delete_run/has_run` (s'appuie sur `write_json/read_json` de 6.7), `run.json.corrupt` ; migration par version (table vide).
+- [x] `core/run_rng.gd` : `export_states() -> Dictionary` (clé `"nom:étage"` → état en **chaîne décimale**) et `restore_states(d)` ; `run/run_state.gd`, `run/floor_map.gd`, `economy/room_stock.gd` : `to_dict/from_dict` (cellules en `[x, y]`).
+- [x] `combat/health.gd` : `export_state()` / `restore_state(d)` (demi-cœurs, max, armure, maximum perdu) ; `player/lucidity.gd` : `set_value()` existe, y ajouter la restauration du tier de salle (`begin_room()` se charge du reste).
+- [x] `run/run.gd` : `_write_snapshot(cell, entry_side)` appelée en tête de `_enter_cell` (avant `stock_of`/`_stock_treasure`/`_stock_shop`/`mark_entered`) ; `_start_floor_from(snapshot)` (voir État du code) ; effacement aux deux fins de run ; `RunOptions.resume: RunSnapshot`.
+- [x] `main/main.gd` : `_boot()` (invite → reprise ou chambre), `_on_pause_menu_quit_requested()`, effacement dans `_start_run()` pour toute run **non reprise**. `ui/menus/resume_prompt.tscn/.gd` ; `pause_menu` : libellé selon `Main` (`open(seed, focus, in_run)`).
+- [x] `strings.csv` : `UI_PAUSE_SAVE_QUIT`, `UI_RESUME_TITLE`, `UI_RESUME_YES`, `UI_RESUME_NO`, `UI_RESUME_CORRUPT`.
+- [x] Tests.
 
 ## État du code concerné
 
@@ -86,6 +86,25 @@ epics.md (Story 6.8) ; GDD, Quitter en pleine run (limite acceptée : save-scum)
 
 ### Notes de complétion
 
+Implémenté : `RunSnapshot` (versionné, migrations vides, `validate(layout)`), `SaveService.write_run/read_run/delete_run/has_run`, `to_dict/from_dict` sur `RunState`, `FloorMap`, `RoomStock`, `RunRng.export_states/restore_states` (états en chaînes décimales), `Health.export_state/restore_state`, `Lucidity.restore_value`. `Run` écrit l'instantané en tête de `_enter_cell` (mode `FLOOR` seulement), reprend via `RunOptions.resume` (plan généré, puis flux, carte, stocks, objets, consommable, santé, lucidité), efface `run.json` à la mort et à la victoire. `Main._boot()` lit et valide `run.json` avant la chambre (plan régénéré pour vérifier les cellules), `ResumePrompt` (Reprendre / Nouvelle nuit), « Sauvegarder et quitter » en run flottant.
+
+Vérifié : `tools/run_tests.sh` 829 verts (dont `test_resume` : même plan, même santé/objets/charge/consommable/stocks, mêmes états RNG et mêmes ennemis aux mêmes positions après reprise, tirage trésor identique), `run_all.sh` normal, `--quit-after 120`. NON ÉVALUÉ (humain) : le texte et la lisibilité de l'invite de reprise, le ressenti du retour au début de salle.
+
+Reports traités : stocks de salles sérialisés ; durée et objets d'une run reprise (durée = `RunState.play_seconds`, comptée par `Run._process`, donc hors pause ; objets réémis sur le bus après `run_started`) ; `pre_run.gd` n'ouvre plus `user://` en repli (arrêt de la suite) et `post_run.gd` supprime le dossier temporaire. Correctifs de revue de la 6.7 appliqués dans deux commits à part.
+
+### Décisions prises sans Kroustille (suite)
+
+10. **Cellule `current` de la carte non validée** (c'est (0, 0) avant la première salle) : seule la cellule à rejouer, les visitées, vidées et les stocks sont contrôlées contre le plan.
+11. **Le plan est régénéré deux fois** au lancement avec reprise (validation dans `Main`, puis `Run`) : `Run.plan_for` statique, coût de quelques ms, évite de lancer une run sur un fichier invalide.
+12. **L'invite s'ouvre sur la chambre gelée** (la chambre est le décor), uniquement quand `Main.start_in_bedroom` ; les checks qui démarrent directement une run effacent `run.json` comme toute nouvelle run.
+13. **Durée de la nuit = temps de jeu** (`play_seconds`), plus l'horloge murale : `Achievements` la lit sur la `Run` (repli horloge murale sans run).
+14. **Les objets restaurés sont réémis sur `item_acquired`** (télémétrie et succès de ce lancement) sans bannière.
+15. **L'échec de `store_string` (6.7) n'a pas de test** : impossible à provoquer sans disque plein.
+
 ### Liste des fichiers
 
+`game/run/{run_snapshot,run,run_state,run_options,floor_map}.gd`, `game/core/run_rng.gd`, `game/economy/room_stock.gd`, `game/combat/health.gd`, `game/player/lucidity.gd`, `game/autoloads/save_service.gd`, `game/progression/achievements.gd`, `game/main/main.gd`, `game/ui/menus/{pause_menu,resume_prompt}.gd/.tscn`, `game/localization/strings.csv`, tests (`unit/run/test_run_snapshot`, `unit/save/test_run_file`, `integration/run/{test_resume,test_save_quit}`, `integration/ui/test_resume_prompt`, `support/{room_harness,pre_run,post_run}`, `.gutconfig.json`).
+
 ### Journal des modifications
+
+- 2026-11-24 : instantané de salle, reprise, invite, sauvegarder et quitter ; statut `review`.
