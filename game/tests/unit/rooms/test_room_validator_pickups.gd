@@ -57,6 +57,12 @@ func test_a_spot_near_a_door_is_refused() -> void:
 	assert_true(_has_problem(problems, "tiles from the N door"), str(problems))
 
 
+func test_a_spot_on_the_entry_point_of_a_door_is_refused() -> void:
+	var problems: PackedStringArray = _problems_after(TREASURE, func(room: Room) -> void:
+		_spot(room).position = Vector2(19.0, 3.54) * Const.TILE_SIZE) # just past 3 tiles: where the player arrives
+	assert_true(_has_problem(problems, "tiles from the N door"), str(problems))
+
+
 func test_a_spot_cut_off_from_the_doors_is_refused() -> void:
 	var problems: PackedStringArray = _problems_after(TREASURE, func(room: Room) -> void:
 		var walls: TileMapLayer = room.get_node("Walls") as TileMapLayer

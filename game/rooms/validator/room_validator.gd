@@ -6,6 +6,9 @@ extends RefCounted
 
 ## Enemies never appear closer than this to a door, in tiles (the player may enter there), even when the door ends up sealed.
 const MIN_SPAWN_DOOR_DISTANCE_TILES: float = 3.0
+## A pickup must stay clear of the entry point (Room.entry_position(), 3 tiles from the door): an armed stall under the
+## arriving player would be bought or refused on entry.
+const MIN_PICKUP_DOOR_DISTANCE_TILES: float = 4.0
 ## The stalls of a shop: slot to count.
 const SHOP_SLOTS: Dictionary[int, int] = {
 	PickupSpot.Slot.ITEM: 2, PickupSpot.Slot.CONSUMABLE: 1, PickupSpot.Slot.HEART: 1, PickupSpot.Slot.ARMOR: 1,
@@ -337,7 +340,7 @@ static func _check_triggers(room: Room, playable: Vector2i, problems: PackedStri
 
 ## Pedestals (story 5.2, 5.5): a treasure room has at least one ITEM spot, a shop has exactly 2 ITEM, 1 CONSUMABLE, 1 HEART
 ## and 1 ARMOR spots, no other kind of room has any spot. A spot has a
-## valid slot, stands on free floor and is at least MIN_SPAWN_DOOR_DISTANCE_TILES from every door. Its reachability is
+## valid slot, stands on free floor and is at least MIN_PICKUP_DOOR_DISTANCE_TILES from every door. Its reachability is
 ## checked with the rest.
 static func _check_pickups(room: Room, playable: Vector2i, frame: Vector2i, doors: Array[Door], problems: PackedStringArray) -> void:
 	var spots: Array[PickupSpot] = room.pickup_spots()
@@ -361,9 +364,9 @@ static func _check_pickups(room: Room, playable: Vector2i, frame: Vector2i, door
 		_check_marker_cell(label, at, playable_rect, blockers, problems)
 		for door: Door in doors:
 			var distance: float = at.distance_to(Door.center_for(door.side, frame)) / Const.TILE_SIZE
-			if distance < MIN_SPAWN_DOOR_DISTANCE_TILES:
+			if distance < MIN_PICKUP_DOOR_DISTANCE_TILES:
 				problems.append("%s is %.1f tiles from the %s door (minimum %.0f)" % [
-					label, distance, Door.Side.find_key(door.side), MIN_SPAWN_DOOR_DISTANCE_TILES])
+					label, distance, Door.Side.find_key(door.side), MIN_PICKUP_DOOR_DISTANCE_TILES])
 	if treasure and item_spots == 0:
 		problems.append("treasure room without an ITEM PickupSpot")
 	if shop:
