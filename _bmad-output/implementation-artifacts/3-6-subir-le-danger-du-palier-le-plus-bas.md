@@ -1,6 +1,6 @@
 # Story 3.6 : Subir le danger du palier le plus bas
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -27,13 +27,13 @@ Hors périmètre : renfort (3.7), pattern supplémentaire des cauchemars (`boss_
 
 ## Tâches
 
-- [ ] `LucidityTuning` : `danger_bullet_speed_mult` (par palier : 1, 1, 1.1, 1.1, 1.1), `danger_telegraph_mult` (1, 1, 1, 0.85, 0.85), `reinforcement_from_tier` (`Tier.ABANDON`), `boss_extra_pattern_from_tier` (`Tier.TOTAL_ABANDON`).
-- [ ] `Lucidity` : `room_tier`, `begin_room()` étendu, `is_deeper(a, b)`, signal `room_danger_raised(tier)` ; `room_tier` suit dans `set_value`/`try_spend` (après la mise à jour de `live_tier`).
-- [ ] `combat/danger_profile.gd` ; `Arena.danger` (un seul objet, **muté sur place** par `apply_tier`), `Arena.begin_room()` et `_on_room_danger_raised()` ; `Enemy.setup(def, target, hurtbox, bullets, danger)` (dernier paramètre facultatif, défaut : profil neutre) donné par `Arena.spawn_enemy`.
+- [x] `LucidityTuning` : `danger_bullet_speed_mult` (par palier : 1, 1, 1.1, 1.1, 1.1), `danger_telegraph_mult` (1, 1, 1, 0.85, 0.85), `reinforcement_from_tier` (`Tier.ABANDON`), `boss_extra_pattern_from_tier` (`Tier.TOTAL_ABANDON`).
+- [x] `Lucidity` : `room_tier`, `begin_room()` étendu, `is_deeper(a, b)`, signal `room_danger_raised(tier)` ; `room_tier` suit dans `set_value`/`try_spend` (après la mise à jour de `live_tier`).
+- [x] `combat/danger_profile.gd` ; `Arena.danger` (un seul objet, **muté sur place** par `apply_tier`), `Arena.begin_room()` et `_on_room_danger_raised()` ; `Enemy.setup(def, target, hurtbox, bullets, danger)` (dernier paramètre facultatif, défaut : profil neutre) donné par `Arena.spawn_enemy`.
 - [ ] Ennemis : `Enemy._start_telegraph(base, sound)` appelle `telegraph.start(base, sound, danger.telegraph_mult)` ; remplacer les 5 appels directs (Somnambule, Mouton, Veilleuse/Berceuse via `ShooterEnemy._start_telegraph`) ; `ShooterEnemy._fire_volley()` règle `_bullet_params.speed = base * danger.enemy_bullet_speed_mult` avant `fire()`.
 - [ ] Signalement : son `sfx_danger_raised.wav` (grave, provisoire) et `ring_pulse` rouge sur le joueur (pas de flash plein écran), joués par `Arena._on_room_danger_raised`.
-- [ ] `Events.room_danger_raised` (relais par le joueur), `Events.room_cleared(room, lowest_tier)` ; F3 : `room_tier` et profil (`x1.1`, `x0.85`).
-- [ ] `t_danger` ; mise à jour des scènes existantes qui écoutent `room_cleared` ; `run_all.sh` une fois à la fin.
+- [x] `Events.room_danger_raised` (relais par le joueur), `Events.room_cleared(room, lowest_tier)` ; F3 : `room_tier` et profil (`x1.1`, `x0.85`).
+- [x] `t_danger` ; mise à jour des scènes existantes qui écoutent `room_cleared` ; `run_all.sh` une fois à la fin.
 
 ## État du code concerné
 
@@ -83,6 +83,26 @@ Hors périmètre : renfort (3.7), pattern supplémentaire des cauchemars (`boss_
 
 ### Agent Model Used
 
+Claude Sonnet 5.5
+
 ### Completion Notes
 
+- `DangerProfile` (un objet par `Arena`, muté sur place) ; `Lucidity.room_tier`, `begin_room()` étendu, `is_deeper()`, `room_danger_raised(tier, previous)`. `room_tier` est mis à jour avant tout signal ; `room_danger_raised` part en dernier, une fois par mouvement (saut de plusieurs paliers = un seul signal).
+- `Enemy.setup(..., room_danger)` (profil neutre propre par défaut, jamais statique) ; `Enemy._start_telegraph_of(base, sound)` remplace les appels directs (Somnambule, Mouton, `ShooterEnemy._start_telegraph`). `ShooterEnemy._fire_volley` réécrit `_bullet_params.speed = _base_bullet_speed * mult` avant `fire()`.
+- `Arena._on_room_danger_raised` : recalcule le profil, joue `sfx_danger_raised.wav` et un `RingPulse` rouge autour du joueur. `Arena.room_tier()` alimente `Events.room_cleared(room, lowest_tier)` (WaveRunner). F3 : `Room tier ... | bullets xN | telegraphs xN`.
+- Écouteurs mis à jour : joueur, `t_graze`, `t_waves`, `t_waves_main`. `t_awakening` : 2 anneaux (Éveil + danger) quand 100 -> 70 quitte Lucide. Télémétrie n'écoutait pas `room_cleared` : rien à changer.
+- `t_danger` (55 vérifications) ajouté à `run_all.sh`.
+
+### Décisions prises pendant le développement
+
+9. **`Lucidity.room_danger_raised(tier, previous)`** (deux arguments, la spec en donnait un) — Raison : `Events.room_danger_raised(tier, previous)` a besoin du palier précédent, que le joueur ne peut pas deviner (`begin_room()` change `room_tier` sans signal).
+10. **`Enemy._start_telegraph_of(base, sound)`** au lieu de `_start_telegraph(base, sound)` — Raison : `ShooterEnemy._start_telegraph(sound)` existe déjà avec une autre signature (conflit de surcharge).
+11. **Le signalement se joue à toute aggravation, y compris Lucide -> Flottant** (danger inchangé à ce palier) — Raison : l'AC 2 le dit (« dépense qui amène `live_tier` plus profond que `room_tier` ») ; reporté au playtest.
+
 ### File List
+
+`game/core/lucidity_tuning.gd`, `game/data/tuning/lucidity_tuning.tres`, `game/player/lucidity.gd`, `game/player/player.gd`, `game/combat/danger_profile.gd`, `game/combat/telegraph.gd` (commentaire), `game/enemies/enemy.gd`, `game/enemies/shooter_enemy.gd`, `game/enemies/sleepwalker/sleepwalker.gd`, `game/enemies/sheep/sheep.gd`, `game/rooms/arena/arena.gd`, `game/rooms/waves/wave_runner.gd`, `game/autoloads/events.gd`, `game/debug/perf_overlay.gd`, `game/debug/debug_panel.gd`, `game/audio/sfx/sfx_danger_raised.wav`, `_bmad-output/implementation-artifacts/deferred-work.md`, `.scratch/t_danger.*`, `.scratch/run_all.sh`, scènes `.scratch` mises à jour (non versionnées).
+
+### Change Log
+
+- 2026-11-24 : implémentation de la story 3.6 (danger de salle), passée en review.
