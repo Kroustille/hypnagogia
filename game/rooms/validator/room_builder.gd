@@ -14,6 +14,7 @@ extends Node
 ##   door <N|E|S|W>
 ##   furniture <bed|chair|desk> <x> <y>   (none = no def, for fixtures) the piece covers its size in tiles from (x, y) to the right and down
 ##   trigger <lamp> <x> <y>                 (none = no kind, for fixtures)
+##   pickup <item|consumable|heart|armor> <x> <y>   a pedestal: the Run lays the room's offer there
 ## x and y count playable tiles from 0 at the top-left of the grid; markers sit at the center of their tile.
 
 const BASE_SCENE: PackedScene = preload("res://rooms/room_base.tscn")
@@ -193,6 +194,8 @@ func build(text: String, errors: PackedStringArray) -> Room:
 				_add_furniture(room, words, serial, errors)
 			"trigger":
 				_add_trigger(room, words, serial, errors)
+			"pickup":
+				_add_pickup_spot(room, words, serial, errors)
 			_:
 				errors.append("unknown line: %s" % line)
 	if not _loose_grid:
@@ -346,6 +349,19 @@ func _add_trigger(room: Room, words: PackedStringArray, serial: int, errors: Pac
 		errors.append("unknown trigger: %s" % words[1])
 	trigger.position = _tile_center(words[2], words[3])
 	_adopt(room, "Triggers", trigger, "Trigger_%s_%d" % [words[1], serial])
+
+
+func _add_pickup_spot(room: Room, words: PackedStringArray, serial: int, errors: PackedStringArray) -> void:
+	if words.size() != 4 or not _is_number(words[2]) or not _is_number(words[3]):
+		errors.append("pickup needs: pickup <item|consumable|heart|armor> <x> <y>")
+		return
+	if not PickupSpot.SLOT_NAMES.has(words[1]):
+		errors.append("unknown pickup slot: %s" % words[1])
+		return
+	var spot: PickupSpot = PickupSpot.new()
+	spot.slot = PickupSpot.SLOT_NAMES[words[1]]
+	spot.position = _tile_center(words[2], words[3])
+	_adopt(room, "PickupSpots", spot, "Pickup_%s_%d" % [words[1], serial])
 
 
 ## Center of a playable tile, in pixels from the corner of the wall frame.

@@ -90,3 +90,6 @@ const GROUP_REINFORCEMENT_SPAWN: StringName = &"reinforcement_spawn"
 
 ## Node group of the fade between two rooms (story 4.8): the Transition of Main, found by the Run without a node path.
 const GROUP_TRANSITION: StringName = &"transition"
+
+## Pickup spot markers (story 5.2), children of the room's PickupSpots node.
+const GROUP_PICKUP_SPOT: StringName = &"pickup_spot"

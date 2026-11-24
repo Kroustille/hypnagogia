@@ -44,6 +44,7 @@ static func validate_room(room: Room, id: String) -> PackedStringArray:
 	_check_enemies(room, playable, frame, doors, problems)
 	_check_furniture(room, playable, problems)
 	_check_triggers(room, playable, problems)
+	_check_pickups(room, playable, frame, doors, problems)
 	_check_reinforcements(room, playable, problems)
 	_check_reachability(room, playable, frame, doors, problems)
 	var tagged: PackedStringArray = PackedStringArray()
@@ -236,6 +237,10 @@ static func _check_reachability(room: Room, playable: Vector2i, frame: Vector2i,
 	var player_cell: Vector2i = Vector2i((room.to_local(room.player_spawn_position()) / Const.TILE_SIZE).floor())
 	if walkable.call(player_cell) and not reached.has(player_cell):
 		problems.append("player spawn is cut off from the doors")
+	for spot: PickupSpot in room.pickup_spots():
+		var spot_cell: Vector2i = Vector2i((_local_position(room, spot) / Const.TILE_SIZE).floor())
+		if walkable.call(spot_cell) and not reached.has(spot_cell):
+			problems.append("PickupSpot %s at %s is cut off from the doors" % [spot.name, _local_position(room, spot)])
 	var container: Node = room.get_node_or_null("ReinforcementSpawns")
 	if container != null:
 		for child: Node in container.get_children():
@@ -324,6 +329,35 @@ static func _check_triggers(room: Room, playable: Vector2i, problems: PackedStri
 		elif not Trigger.KNOWN_KINDS.has(element.kind):
 			problems.append("%s has an unknown kind '%s'" % [label, element.kind])
 		_check_marker_cell(label, _local_position(room, element), Rect2i(Vector2i.ONE, playable), blockers, problems)
+
+
+## Pedestals (story 5.2): a treasure room has at least one ITEM spot and no other kind of room has any spot. A spot has a
+## valid slot, stands on free floor and is at least MIN_SPAWN_DOOR_DISTANCE_TILES from every door. Its reachability is
+## checked with the rest.
+static func _check_pickups(room: Room, playable: Vector2i, frame: Vector2i, doors: Array[Door], problems: PackedStringArray) -> void:
+	var spots: Array[PickupSpot] = room.pickup_spots()
+	var treasure: bool = room.room_type == Room.RoomType.TREASURE
+	if not treasure and not spots.is_empty():
+		problems.append("PickupSpot in a room that is not a treasure room")
+	var item_spots: int = 0
+	var playable_rect: Rect2i = Rect2i(Vector2i.ONE, playable)
+	var blockers: Dictionary = _blockers(room)
+	for spot: PickupSpot in spots:
+		var at: Vector2 = _local_position(room, spot)
+		var label: String = "PickupSpot %s at %s" % [spot.name, at]
+		if not PickupSpot.Slot.values().has(int(spot.slot)):
+			problems.append("%s has an invalid slot" % label)
+			continue
+		if spot.slot == PickupSpot.Slot.ITEM:
+			item_spots += 1
+		_check_marker_cell(label, at, playable_rect, blockers, problems)
+		for door: Door in doors:
+			var distance: float = at.distance_to(Door.center_for(door.side, frame)) / Const.TILE_SIZE
+			if distance < MIN_SPAWN_DOOR_DISTANCE_TILES:
+				problems.append("%s is %.1f tiles from the %s door (minimum %.0f)" % [
+					label, distance, Door.Side.find_key(door.side), MIN_SPAWN_DOOR_DISTANCE_TILES])
+	if treasure and item_spots == 0:
+		problems.append("treasure room without an ITEM PickupSpot")
 
 
 ## The tiles a piece covers (frame coordinates). Empty without a def.

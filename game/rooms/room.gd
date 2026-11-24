@@ -678,6 +678,18 @@ func enemy_spawns() -> Array[EnemySpawn]:
 	return found
 
 
+## The PickupSpot markers, in tree order (a room without a PickupSpots node has none).
+func pickup_spots() -> Array[PickupSpot]:
+	var found: Array[PickupSpot] = []
+	var container: Node = get_node_or_null("PickupSpots")
+	if container != null:
+		for child: Node in container.get_children():
+			var spot: PickupSpot = child as PickupSpot
+			if spot != null:
+				found.append(spot)
+	return found
+
+
 ## Lays the offers of the stock that were not taken (the stock of the floor cell, or a room of its own).
 func _setup_pickups() -> void:
 	_stock = _options.stock if _options != null and _options.stock != null else RoomStock.new()

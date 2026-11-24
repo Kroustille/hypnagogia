@@ -42,3 +42,5 @@ process_callback = 0
 [node name="Furnitures" type="Node2D" parent="."]
 
 [node name="Triggers" type="Node2D" parent="."]
+
+[node name="PickupSpots" type="Node2D" parent="."]
