@@ -12,14 +12,18 @@ signal died
 
 ## Margin against floating point rounding when comparing ticks.
 const TICK_EPSILON: float = 1e-6
+## Lowest max an item can leave: one heart (it was one heart the player had to keep to stay alive).
+const MIN_MAX_HALF_HEARTS: int = 2
 
 var half_hearts: int = 0
-## Heart containers, in half-hearts. Fixed in story 2.1 (no item changes them yet).
+## Heart containers, in half-hearts. Items lower it (lose_max) and give it back (restore_max).
 var max_half_hearts: int = 0
 ## Blue half-hearts, lost before the hearts.
 var armor: int = 0
 
 var _cap_half_hearts: int = 0
+## Half-hearts of max taken by lose_max() and not yet given back.
+var _max_lost: int = 0
 var _hit_ticks: float = 0.0
 var _hit_ticks_left: float = 0.0
 var _forced_invulnerable: bool = false
@@ -103,6 +107,35 @@ func add_armor(amount: int) -> bool:
 	armor += mini(amount, room)
 	changed.emit()
 	return true
+
+
+## Lowers the max by this many half-hearts, never below MIN_MAX_HALF_HEARTS; current hearts come down to the new max
+## (no hit, no invulnerability, armor untouched). Returns what was really taken.
+func lose_max(amount: int) -> int:
+	if not _check_amount(amount, "lose_max"):
+		return 0
+	var taken: int = clampi(max_half_hearts - MIN_MAX_HALF_HEARTS, 0, amount)
+	if taken == 0:
+		return 0
+	max_half_hearts -= taken
+	_max_lost += taken
+	half_hearts = mini(half_hearts, max_half_hearts)
+	changed.emit()
+	return taken
+
+
+## Gives back up to this many half-hearts of the max taken by lose_max() (the current hearts do not move: heal for those).
+## Returns what was really given back.
+func restore_max(amount: int) -> int:
+	if not _check_amount(amount, "restore_max"):
+		return 0
+	var given: int = mini(amount, _max_lost)
+	if given == 0:
+		return 0
+	max_half_hearts += given
+	_max_lost -= given
+	changed.emit()
+	return given
 
 
 ## Heals up to max_half_hearts. Returns false when nothing fits (already full, or dead).

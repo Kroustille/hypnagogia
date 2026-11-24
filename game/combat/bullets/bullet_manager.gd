@@ -24,6 +24,8 @@ const FLAG_ACTIVE: int = 1
 const FLAG_COUNTED: int = 2
 ## The bullet already paid its perfect dash: counted per bullet, never per dash. It also sets FLAG_COUNTED.
 const FLAG_DODGED: int = 4
+## The bullet goes through the targets it hits (BulletParams.pierce): see _pierced.
+const FLAG_PIERCE: int = 8
 
 @export var camp: Camp = Camp.ENEMY
 ## Fixed pool size. Set before add_child().
@@ -49,6 +51,8 @@ var _free_top: int = 0
 var _high_water: int = 0
 
 var _damages: PackedFloat32Array = PackedFloat32Array()
+## Piercing bullets only: slot -> instance ids of the targets already hit (never hit twice). Erased when the bullet is freed.
+var _pierced: Dictionary[int, PackedInt64Array] = {}
 
 var _multimeshes: Array[MultiMesh] = []
 ## Texture of each look, same index as _multimeshes: the same texture is never registered twice.
@@ -210,7 +214,8 @@ func fire(params: BulletParams, origin: Vector2, direction: Vector2) -> bool:
 	_velocities[i] = direction * speed
 	_radii[i] = params.radius * Const.TILE_SIZE
 	_lifetimes[i] = params.lifetime
-	_flags[i] = FLAG_ACTIVE
+	_flags[i] = FLAG_ACTIVE | (FLAG_PIERCE if params.pierce else 0)
+	_pierced.erase(i)
 	_appearances[i] = params.appearance
 	_damages[i] = params.damage
 	_high_water = maxi(_high_water, i + 1)
@@ -302,11 +307,14 @@ func _refresh_target_rects() -> void:
 		_graze_zone = _target_rects[_graze_index].grow(_graze_radius_px)
 
 
-## Circle against rectangle, in registration order: one bullet hits at most one target (no pierce before epic 5).
+## Circle against rectangle, in registration order: a bullet hits at most one target, a piercing one (FLAG_PIERCE) every
+## target it overlaps once, and goes on.
 ## Records the hit for _deliver_hits(); never calls a target during the loop.
 func _test_targets(i: int) -> bool:
 	var pos: Vector2 = _positions[i]
 	var radius_sq: float = _radii[i] * _radii[i]
+	var piercing: bool = _flags[i] & FLAG_PIERCE != 0
+	var already: PackedInt64Array = _pierced.get(i, PackedInt64Array()) if piercing else PackedInt64Array()
 	for t: int in _target_rects.size():
 		var rect: Rect2 = _target_rects[t]
 		if rect.size == Vector2.ZERO or not _target_hittable[t]:
@@ -317,11 +325,18 @@ func _test_targets(i: int) -> bool:
 			clampf(pos.x, rect.position.x, rect.end.x), clampf(pos.y, rect.position.y, rect.end.y)
 		)
 		if pos.distance_squared_to(closest) <= radius_sq:
-			_hit_target_ids.append(_targets[t].get_instance_id())
+			var target_id: int = _targets[t].get_instance_id()
+			if piercing and already.has(target_id):
+				continue
+			_hit_target_ids.append(target_id)
 			_hit_amounts.append(_damages[i])
 			_hit_directions.append(_velocities[i].normalized())
 			if _targets[t].one_hit_per_tick:
 				_target_hittable[t] = false # the next bullets of this tick pass through
+			if piercing:
+				already.append(target_id)
+				_pierced[i] = already
+				continue
 			return true
 	if _graze_index != -1:
 		_test_graze(i)
@@ -418,6 +433,7 @@ func clear_all() -> int:
 
 func _free(i: int) -> void:
 	assert(_flags[i] & FLAG_ACTIVE != 0, "Slot freed twice")
+	_pierced.erase(i)
 	_flags[i] = 0
 	_free_slots[_free_top] = i
 	_free_top += 1
