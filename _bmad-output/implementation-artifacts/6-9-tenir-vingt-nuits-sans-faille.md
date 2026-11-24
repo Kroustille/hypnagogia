@@ -1,6 +1,6 @@
 # Story 6.9 : Tenir vingt nuits sans faille
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -78,7 +78,9 @@ epics.md (Story 6.9) ; GDD, Indicateurs de réussite (techniques et gameplay) ; 
 9. **Nouveau signal `Events.floor_ready(startup_ms, load_ms)`**, émis par `Main` à `run_started` (durée de `Run._ready()` jusqu'à `run_started`, et durée depuis la demande de nuit) ; écrit dans `run_start` et `runs_detail`. Seuils 2 000 ms (chargement) et 3 000 ms (relance) en données du test et du soak.
 10. **Le soak n'est pas dans `tools/run_tests.sh`** : il a besoin du vrai `Main` et d'un code de sortie propre ; il dure une dizaine de secondes seulement (20 nuits, `--fixed-fps 60`), donc `tools/soak.sh` à part (opt-in, lancé par l'orchestrateur en fin d'epic), `SOAK_RUNS` / `SOAK_MAX_SECONDS` pour le raccourcir.
 11. **Les 20 nuits mêlent quatre départs** (lit, « Se rendormir », seed saisie depuis la chambre, seed saisie depuis l'écran de réveil) : le lit et « Se rendormir » tirent une seed au hasard (consignée dans le tableau, rejouable en la saisissant) ; les deux autres prennent la liste du script. Fins : 10 victoires, 4 morts en salle, 3 pendant l'annonce, 3 au combat. L'Interro surprise est forcée (jauge à 0) une nuit de boss sur deux.
-12. **Marges de fuite** : objets ± 300, nœuds ± 20, orphelins + 5 par rapport à la première nuit du même type de départ (depuis la chambre / relance directe) ; mémoire statique : pas plus de 1,5× d'écart entre le premier et le dernier cinquième.
+12. **Marges de fuite** : objets ± 300, nœuds ± 20, orphelins + 5 par rapport à la première nuit du même type de départ (depuis la chambre / relance directe) ; mémoire statique : pas plus de 1,5× d'écart entre le premier et le dernier cinquième. *(Revue : resserrées par un patch, voir Review Findings.)*
+13. **(revue) Le soak garde 3 000 ms de chargement pour les relances et les seeds saisies** au lieu des 2 s du CA 1 : le seuil de 2 s de chaque nouvelle nuit est tenu par `test_floor_load_time` (quatre nuits par `run_requested`, le chemin de « Se rendormir ») ; les deux mesures restent en headless (NON VÉRIFIÉ sur la machine de référence).
+14. **(revue) Le contrôle de l'Interro dans le soak reste « au moins une »** (21 Interros pour 24 nuits forcées sur 60 : une mort pendant l'annonce peut précéder le déclenchement) : le soak cherche des plantages, pas un compte exact.
 
 ## Dev Agent Record
 
@@ -121,6 +123,18 @@ epics.md (Story 6.9) ; GDD, Indicateurs de réussite (techniques et gameplay) ; 
 - `game/debug/soak_runner.tscn`, `game/debug/soak_runner.gd`, `tools/soak.sh`, `.gitignore`
 - `game/tests/unit/telemetry/test_session_summary.gd`, `game/tests/integration/telemetry/test_boss_attempts.gd`, `game/tests/integration/generation/test_seed_determinism.gd`, `game/tests/integration/run/test_floor_load_time.gd`
 
+### Review Findings
+
+Revue de `c124053..e1b2bf0` (lignes de `a56c20c` pour `run.gd`). Preuves : `SOAK_RUNS=60 bash tools/soak.sh` sur une copie propre de `e1b2bf0` : PASSED, 4 s, nœuds constants à 187 sur les 60 nuits, orphelins 0, objets 2 515 → 2 655 (+2,3 par nuit, dont 2 sont les `Night` et `Sample` du soak lui-même), mémoire statique 58,0 → 59,7 Mo ; `run_all.sh` en mode normal sur une copie propre de `e1b2bf0` (voir le rapport).
+
+- [ ] [Review][Patch] La reprise d'une nuit reste invisible et ses objets sont recomptés dans la télémétrie (report de la revue 6.8, attribué à 6.9, non traité) : `runs_detail` et `run_start` d'une nuit reprise ressemblent à une nuit neuve, `items` de la session recompte chaque objet restauré [game/run/run.gd:99-100 ; game/telemetry/telemetry.gd:168 ; game/telemetry/telemetry_session.gd:62, 96, 182] — nouveau signal `Events.run_resumed` émis par `Run._ready()` juste avant `_announce_restored_items()` ; `Telemetry` → `_session.run_resumed()` : `"resumed": true` sur le dernier `run_start` et dans l'entrée `runs_detail` de la run (`_run_resumed`, remis à `false` dans `run_started`), et `_restoring = true` ; `item_taken` ajoute à `_run_items` mais pas à `items` tant que `_restoring` ; `room_entered` (émis par `_announce_room()` juste après) remet `_restoring = false` ; test unitaire : reprise avec 2 objets ⇒ `items` inchangé, `resumed` vrai.
+- [ ] [Review][Patch] Marges de fuite du soak trop larges pour attraper une fuite lente (CA 3 « pas de croissance monotone ») : un nœud perdu par nuit passe 20 nuits avec ± 20 (les nœuds sont constants à 187), une fuite de 1 Mo par nuit passe avec 1,5× (≈ + 29 Mo tolérés), et les objets du soak lui-même (+ 2 par nuit) consomment la marge des objets [game/debug/soak_runner.gd:45-49, 116-121, 141] — `NODE_MARGIN = 2`, `MEMORY_GROWTH_LIMIT = 1.1` ; prendre l'échantillon sans compter les objets du soak (`night.sample.objects -= 2 * night.index`, ou créer les 20 `Night` avant la première nuit) puis `OBJECT_MARGIN = 100`.
+- [ ] [Review][Patch] Le soak lancé hors de `tools/soak.sh` (éditeur, F6) écrit dans les vraies données du joueur : seul `SaveService` est redirigé, la session `Telemetry` (créée et élaguée dans son `_ready`, avant le soak) écrit 20 nuits factices de 11 s dans `user://telemetry/` [game/debug/soak_runner.gd:98-104 ; tools/soak.sh:13] — `tools/soak.sh` exporte `SOAK_ISOLATED=1` ; au début de `_run_soak`, si `OS.get_environment("SOAK_ISOLATED") != "1"` : `push_error("soak: run it with tools/soak.sh (user data must be isolated)")`, `get_tree().quit(1)`, `return`.
+- [ ] [Review][Patch] Les nuits « seed saisie » ne passent pas par la fenêtre de saisie : `Events.run_requested` est émis directement, donc le bureau de la chambre (`_freeze(true)` puis la fenêtre) et « Nouvelle seed » de l'écran de réveil ne sont jamais joués (décision 11) [game/debug/soak_runner.gd:312-317, 332-334] — TYPED_BEDROOM : `bedroom.seed_entry_requested.emit()` ; TYPED_WAKE : `_wake().new_seed_requested.emit()` ; puis, dans les deux cas, `(_main.find_children("*", "SeedEntry", true, false)[0] as SeedEntry).seed_submitted.emit(SEEDS[night.index % SEEDS.size()])`.
+
+Points vérifiés sans suite : `floor_ready` mesuré correctement (lit, boutons du réveil, fenêtre de saisie et reprise appellent `_start_run` de façon synchrone ; `run_started` part de `Run._ready()` pendant `add_child`) ; tentative contre le boss : ouverture à `boss_engaged` (avant l'annonce), victoire à `boss_defeated`, mort à `run_ended`, abandon à la relance ou à la fin de session ; part sous Lucide divisée par les secondes de paliers (décision 7) ; durée en images hors `GameClock.paused` (pause, réveil) ; clés existantes intactes (ajouts seulement : `runs_detail`, `boss_attempts`, `summary.below_lucid_*`, `run_start.startup_ms/load_ms`) ; durée bornée (`_until` à ticks bornés, `SOAK_MAX_SECONDS` entre deux nuits, `timeout` de `soak.sh`) ; erreurs moteur détectées par `soak.sh` (`SCRIPT ERROR`, `Parse Error`, `^ERROR:`, `physics`) ; `tools/soak-result.txt` ignoré par git ; une mort « en salle » au 3e combat est toujours possible (nightmare à ≥ 4 liaisons, cellules intermédiaires toutes de combat).
+
 ### Journal des modifications
 
 - 2026-11-24 : télémétrie des indicateurs du jalon B, mesure du chargement d'étage, soak de 20 nuits, tests de déterminisme sur 10 seeds. Statut : review.
+- 2026-11-24 : revue de code : 4 patchs, 3 reports. Statut : in-progress.
