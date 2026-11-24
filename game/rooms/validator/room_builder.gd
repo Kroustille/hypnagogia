@@ -9,7 +9,7 @@ extends Node
 ##   size: screen          screen (36x19 playable tiles) | wide (72x19) | tall (36x38)
 ##   grid: loose           optional, test fixtures only: the grid may differ from the playable area (an error otherwise)
 ##   <grid rows>           the playable area, one row per line: . floor, # wall, H high obstacle, L low obstacle, P pit
-##   spawn <enemy> <wave> <x> <y>     enemy: sleepwalker, night_light, lullaby, sheep (none = no enemy, for fixtures)
+##   spawn <enemy> <wave> <x> <y>     enemy: sleepwalker, night_light, lullaby, sheep, professor (none = no enemy, for fixtures)
 ##   reinforce <x> <y>
 ##   door <N|E|S|W>
 ##   furniture <bed|chair|desk> <x> <y>   (none = no def, for fixtures) the piece covers its size in tiles from (x, y) to the right and down
@@ -25,6 +25,7 @@ const ENEMIES: Dictionary = {
 	"night_light": "res://data/enemies/night_light.tres",
 	"lullaby": "res://data/enemies/lullaby.tres",
 	"sheep": "res://data/enemies/sheep.tres",
+	"professor": "res://data/bosses/professor.tres",
 }
 const FURNITURE_DIR: String = "res://data/furniture/"
 const FURNITURE_KINDS: Array[String] = ["bed", "chair", "desk"]

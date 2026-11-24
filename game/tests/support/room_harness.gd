@@ -25,9 +25,12 @@ func _physics_process(_delta: float) -> void:
 	ticked.emit()
 
 
-## Starts a Run in ROOM mode on the scene. The player cannot be hit (tests are about the room, not the player's death).
-func start(room_path: String) -> void:
+## Starts a Run in ROOM mode on the scene. seed_value >= 0 plays that seed. The player cannot be hit (tests are about the room, not the player's death).
+func start(room_path: String, seed_value: int = -1) -> void:
 	var options: RunOptions = RunOptions.new()
+	if seed_value >= 0:
+		options.seeded = true
+		options.seed_value = seed_value
 	options.mode = RunOptions.Mode.ROOM
 	options.room_path = room_path
 	run = RUN_SCENE.instantiate() as Run
