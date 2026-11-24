@@ -92,3 +92,6 @@ BOSS_PROFESSOR_PHASE_1,Dictée
 BOSS_PROFESSOR_PHASE_2,Calcul mental
 BOSS_PROFESSOR_PHASE_3,Examen final
 BOSS_PROFESSOR_EXTRA,Interro surprise
+UI_BEDROOM_SLEEP,Dormir (%s)
+UI_BEDROOM_SEED,Saisir une seed (%s)
+UI_WAKE_BEDROOM,Retourner dans la chambre

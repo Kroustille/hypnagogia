@@ -1,0 +1,142 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://bedroom/bedroom.gd" id="1_bedroom"]
+[ext_resource type="Script" path="res://bedroom/bedroom_walker.gd" id="2_walker"]
+
+[sub_resource type="RectangleShape2D" id="Wall_h"]
+size = Vector2(608, 16)
+
+[sub_resource type="RectangleShape2D" id="Wall_v"]
+size = Vector2(16, 336)
+
+[sub_resource type="RectangleShape2D" id="Bed_shape"]
+size = Vector2(48, 80)
+
+[sub_resource type="RectangleShape2D" id="Desk_shape"]
+size = Vector2(64, 32)
+
+[sub_resource type="RectangleShape2D" id="Bed_zone_shape"]
+size = Vector2(80, 112)
+
+[sub_resource type="RectangleShape2D" id="Desk_zone_shape"]
+size = Vector2(96, 64)
+
+[sub_resource type="RectangleShape2D" id="Walker_shape"]
+size = Vector2(12, 12)
+
+[node name="Bedroom" type="Node2D"]
+script = ExtResource("1_bedroom")
+
+[node name="Frame" type="ColorRect" parent="."]
+offset_right = 608.0
+offset_bottom = 336.0
+color = Color(0.09, 0.08, 0.15, 1)
+
+[node name="Floor" type="ColorRect" parent="."]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 592.0
+offset_bottom = 320.0
+color = Color(0.22, 0.19, 0.3, 1)
+
+[node name="Walls" type="StaticBody2D" parent="."]
+collision_layer = 1
+collision_mask = 0
+
+[node name="Top" type="CollisionShape2D" parent="Walls"]
+position = Vector2(304, 8)
+shape = SubResource("Wall_h")
+
+[node name="Bottom" type="CollisionShape2D" parent="Walls"]
+position = Vector2(304, 328)
+shape = SubResource("Wall_h")
+
+[node name="Left" type="CollisionShape2D" parent="Walls"]
+position = Vector2(8, 168)
+shape = SubResource("Wall_v")
+
+[node name="Right" type="CollisionShape2D" parent="Walls"]
+position = Vector2(600, 168)
+shape = SubResource("Wall_v")
+
+[node name="Bed" type="StaticBody2D" parent="."]
+position = Vector2(64, 72)
+collision_layer = 8
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Bed"]
+shape = SubResource("Bed_shape")
+
+[node name="Look" type="ColorRect" parent="Bed"]
+offset_left = -24.0
+offset_top = -40.0
+offset_right = 24.0
+offset_bottom = 40.0
+color = Color(0.45, 0.3, 0.5, 1)
+
+[node name="Desk" type="StaticBody2D" parent="."]
+position = Vector2(496, 40)
+collision_layer = 8
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Desk"]
+shape = SubResource("Desk_shape")
+
+[node name="Look" type="ColorRect" parent="Desk"]
+offset_left = -32.0
+offset_top = -16.0
+offset_right = 32.0
+offset_bottom = 16.0
+color = Color(0.4, 0.3, 0.2, 1)
+
+[node name="AlarmClock" type="Label" parent="."]
+unique_name_in_owner = true
+visible = false
+offset_left = 120.0
+offset_top = 32.0
+offset_right = 184.0
+offset_bottom = 48.0
+
+[node name="BedZone" type="Area2D" parent="."]
+unique_name_in_owner = true
+position = Vector2(64, 72)
+collision_layer = 0
+collision_mask = 16
+monitorable = false
+
+[node name="Shape" type="CollisionShape2D" parent="BedZone"]
+shape = SubResource("Bed_zone_shape")
+
+[node name="DeskZone" type="Area2D" parent="."]
+unique_name_in_owner = true
+position = Vector2(496, 48)
+collision_layer = 0
+collision_mask = 16
+monitorable = false
+
+[node name="Shape" type="CollisionShape2D" parent="DeskZone"]
+shape = SubResource("Desk_zone_shape")
+
+[node name="Walker" type="CharacterBody2D" parent="."]
+unique_name_in_owner = true
+position = Vector2(304, 200)
+collision_layer = 16
+collision_mask = 9
+motion_mode = 1
+script = ExtResource("2_walker")
+
+[node name="Shape" type="CollisionShape2D" parent="Walker"]
+shape = SubResource("Walker_shape")
+
+[node name="Prompt" type="Label" parent="."]
+unique_name_in_owner = true
+visible = false
+offset_left = 104.0
+offset_top = 296.0
+offset_right = 504.0
+offset_bottom = 316.0
+horizontal_alignment = 1
+
+[node name="Camera" type="Camera2D" parent="."]
+unique_name_in_owner = true
+process_callback = 0
