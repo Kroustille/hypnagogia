@@ -5,6 +5,7 @@ extends Node
 ##
 ## Source format (blank lines and lines starting with // are ignored):
 ##   type: combat          start | combat | treasure | shop | nightmare
+##   phase: onset          optional, default onset: the scene lands in rooms/pool/<phase>/ (a lowercase word)
 ##   size: screen          screen (36x19 playable tiles) | wide (72x19) | tall (36x38)
 ##   grid: loose           optional, test fixtures only: the grid may differ from the playable area (an error otherwise)
 ##   <grid rows>           the playable area, one row per line: . floor, # wall, H high obstacle, L low obstacle, P pit
@@ -27,6 +28,13 @@ const ENEMIES: Dictionary = {
 const FURNITURE_DIR: String = "res://data/furniture/"
 const FURNITURE_KINDS: Array[String] = ["bed", "chair", "desk"]
 const GRID_CHARS: String = ".#HLP"
+## Waves a room may have (a wave number outside 0..MAX_WAVE is a typo).
+const MAX_WAVE: int = 20
+## Where the scene is written before being moved into the pool: a failed build never leaves a half-written room there.
+const TEMP_SCENE: String = "user://room_builder_tmp.tscn"
+## Lengths of the generated ids that Godot would otherwise draw at random on every save.
+const ID_SUFFIX_LENGTH: int = 5
+const MAX_UNIQUE_ID: int = 0x7FFFFFFF
 const ROOM_TYPES: Dictionary = {
 	"start": Room.RoomType.START, "combat": Room.RoomType.COMBAT, "treasure": Room.RoomType.TREASURE,
 	"shop": Room.RoomType.SHOP, "nightmare": Room.RoomType.NIGHTMARE,
@@ -46,7 +54,8 @@ func _ready() -> void:
 	get_tree().quit(run(args[0], args[1] if args.size() > 1 else ""))
 
 
-## Reads the source file and writes the scene. Returns the exit code.
+## Reads the source file and writes the scene. Returns the exit code. The scene is written only when the text is valid
+## and, for a pool room (no explicit output: test fixtures are invalid on purpose), the built room passes the RoomValidator.
 func run(source_path: String, output_path: String) -> int:
 	var file: FileAccess = FileAccess.open(source_path, FileAccess.READ)
 	if file == null:
@@ -54,6 +63,9 @@ func run(source_path: String, output_path: String) -> int:
 		return 1
 	var errors: PackedStringArray = PackedStringArray()
 	var room: Room = build(file.get_as_text(), errors)
+	var room_name: String = source_path.get_file().get_basename()
+	if room != null and errors.is_empty() and output_path.is_empty() and not _loose_grid:
+		errors.append_array(RoomValidator.validate_room(room, room_name))
 	if not errors.is_empty():
 		for message: String in errors:
 			printerr("%s: %s" % [source_path.get_file(), message])
@@ -61,26 +73,87 @@ func run(source_path: String, output_path: String) -> int:
 			room.free()
 		return 1
 	if output_path.is_empty():
-		var room_name: String = source_path.get_file().get_basename()
-		output_path = "%s/%s/%s.tscn" % [OUTPUT_ROOT, room_name.split("_")[0], room_name]
+		output_path = "%s/%s/%s.tscn" % [OUTPUT_ROOT, room.phase, room_name]
 	var scene: PackedScene = PackedScene.new()
 	var packed: Error = scene.pack(room)
 	room.free()
 	if packed != OK:
 		printerr("build_room: cannot pack the room (%s)" % error_string(packed))
 		return 1
-	var saved: Error = ResourceSaver.save(scene, output_path)
+	var saved: Error = ResourceSaver.save(scene, TEMP_SCENE)
 	if saved != OK:
-		printerr("build_room: cannot save %s (%s)" % [output_path, error_string(saved)])
+		printerr("build_room: cannot save %s (%s)" % [TEMP_SCENE, error_string(saved)])
+		return 1
+	var written: Error = _publish(TEMP_SCENE, output_path)
+	if written != OK:
+		printerr("build_room: cannot write %s (%s)" % [output_path, error_string(written)])
 		return 1
 	Log.info("room", "built %s" % output_path)
 	return 0
 
 
+## Copies the saved scene to its place with the ids Godot draws at random replaced by stable ones: building the same
+## text twice gives the same file, so the diffs of the pool show real changes only.
+func _publish(temp_path: String, output_path: String) -> Error:
+	var text: String = FileAccess.get_file_as_string(temp_path)
+	if text.is_empty():
+		return FileAccess.get_open_error()
+	var made: Error = DirAccess.make_dir_recursive_absolute(output_path.get_base_dir())
+	if made != OK:
+		return made
+	var target: FileAccess = FileAccess.open(output_path, FileAccess.WRITE)
+	if target == null:
+		return FileAccess.get_open_error()
+	target.store_string(stable_ids(text))
+	target.close()
+	DirAccess.remove_absolute(temp_path)
+	return OK
+
+
+## The scene text with deterministic ids: the suffix of every ext_resource and sub_resource id comes from what the
+## resource is, the unique_id of every node from its path in the scene.
+static func stable_ids(text: String) -> String:
+	var lines: PackedStringArray = text.split("\n")
+	var renames: Dictionary = {} # old id -> new id
+	var unique: Dictionary = {} # unique_id values already given
+	var node_ids: RegEx = RegEx.create_from_string("unique_id=\\d+")
+	var attributes: RegEx = RegEx.create_from_string("(\\w+)=\"([^\"]*)\"")
+	for index: int in lines.size():
+		var line: String = lines[index]
+		if line.begins_with("[ext_resource ") or line.begins_with("[sub_resource "):
+			var found: Dictionary = {}
+			for match: RegExMatch in attributes.search_all(line):
+				found[match.get_string(1)] = match.get_string(2)
+			var old_id: String = found.get("id", "")
+			if old_id.is_empty():
+				continue
+			var key: String = found.get("path", found.get("type", "")) + ":" + old_id.get_slice("_", 0)
+			var base: String = old_id.substr(0, old_id.rfind("_") + 1) if old_id.contains("_") else ""
+			renames[old_id] = base + key.md5_text().substr(0, ID_SUFFIX_LENGTH)
+		elif line.begins_with("[node "):
+			var found: Dictionary = {}
+			for match: RegExMatch in attributes.search_all(line):
+				found[match.get_string(1)] = match.get_string(2)
+			var path: String = "%s/%s" % [found.get("parent", ""), found.get("name", "")]
+			var value: int = path.hash() & MAX_UNIQUE_ID
+			while value == 0 or unique.has(value):
+				value = (value + 1) & MAX_UNIQUE_ID
+			unique[value] = true
+			lines[index] = node_ids.sub(line, "unique_id=%d" % value)
+	var result: String = "\n".join(lines)
+	for old_id: String in renames:
+		result = result.replace("\"%s\"" % old_id, "\"%s\"" % renames[old_id])
+	return result
+
+
 ## The room described by the text: an instance of room_base.tscn with its layers, markers and doors filled in. Problems
-## of the text are appended to errors (the room is still returned, as complete as possible).
+## of the text are appended to errors (the room is still returned, as complete as possible). Null when the base scene
+## does not give a Room (a script of the room does not compile).
 func build(text: String, errors: PackedStringArray) -> Room:
 	var room: Room = BASE_SCENE.instantiate() as Room
+	if room == null:
+		errors.append("room_base.tscn does not instantiate a Room (a script error?)")
+		return null
 	_loose_grid = false
 	var grid: Array[String] = []
 	var doors: Array[Door.Side] = []
@@ -92,7 +165,7 @@ func build(text: String, errors: PackedStringArray) -> Room:
 		if _is_grid_row(line):
 			grid.append(line)
 			continue
-		if line.contains(":"):
+		if _is_header(line):
 			_read_header(room, line, errors)
 			continue
 		var words: PackedStringArray = line.split(" ", false)
@@ -116,6 +189,12 @@ func build(text: String, errors: PackedStringArray) -> Room:
 	return room
 
 
+## "key: value", the key a single word: a line holding a colon elsewhere is not a header.
+static func _is_header(line: String) -> bool:
+	var colon: int = line.find(":")
+	return colon > 0 and not line.substr(0, colon).contains(" ")
+
+
 static func _is_grid_row(line: String) -> bool:
 	for i: int in line.length():
 		if not GRID_CHARS.contains(line[i]):
@@ -131,9 +210,13 @@ func _read_header(room: Room, line: String, errors: PackedStringArray) -> void:
 		"type":
 			if ROOM_TYPES.has(value):
 				room.room_type = ROOM_TYPES[value]
-				room.is_nightmare = room.room_type == Room.RoomType.NIGHTMARE
 			else:
 				errors.append("unknown room type: %s" % value)
+		"phase":
+			if value.is_valid_identifier() and value == value.to_lower():
+				room.phase = StringName(value)
+			else:
+				errors.append("invalid phase: %s" % value)
 		"grid":
 			if value == "loose":
 				_loose_grid = true
@@ -197,6 +280,8 @@ func _add_spawn(room: Room, words: PackedStringArray, serial: int, errors: Packe
 	elif words[1] != "none":
 		errors.append("unknown enemy: %s" % words[1])
 	spawn.wave = words[2].to_int()
+	if spawn.wave < 0 or spawn.wave > MAX_WAVE:
+		errors.append("wave %d is outside 0..%d" % [spawn.wave, MAX_WAVE])
 	spawn.position = _tile_center(words[3], words[4])
 	_adopt(room, "EnemySpawns", spawn, "Spawn_%s_%d_%d" % [words[1], spawn.wave, serial])
 

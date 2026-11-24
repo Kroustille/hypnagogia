@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Builds a room scene from its ASCII source. Usage: tools/build_room.sh art_source/rooms/<name>.txt [output.tscn]
-# The scene lands in game/rooms/pool/<phase>/<name>.tscn (phase = first word of the name) unless an output is given.
+# The scene lands in game/rooms/pool/<phase>/<name>.tscn (phase = the `phase:` header, onset by default) unless an output is given.
+# A pool room (no explicit output) must also pass the room validator before it is written.
 set -u
 if [ $# -lt 1 ]; then
 	echo "usage: tools/build_room.sh <source.txt> [output.tscn]" >&2
