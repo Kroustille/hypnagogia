@@ -65,7 +65,7 @@ func _physics_process(_delta: float) -> void:
 
 
 func _process_chase(clock_scale: float) -> void:
-	if _distance_to_target() < _trigger_range_px:
+	if _distance_to_target() < _trigger_range_px and _has_clear_line(_target_position()):
 		_enter(State.TELEGRAPH)
 		return
 	_advance(_walk_speed_px, clock_scale, true)

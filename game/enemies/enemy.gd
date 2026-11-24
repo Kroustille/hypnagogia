@@ -43,6 +43,7 @@ var _nav: RoomNav
 var _path: PackedVector2Array = PackedVector2Array()
 var _path_index: int = 0
 var _path_start: Vector2 = Vector2.INF
+var _last_chase_frame: int = -2
 ## Ticks until the next planning of the path (clock-scaled), -1 before the first one.
 var _plan_ticks_left: float = -1.0
 var _stagger: int = 0
@@ -242,6 +243,13 @@ func _chase(point: Vector2, speed_px: float, clock_scale: float) -> void:
 	if _nav == null:
 		_move_toward(point, speed_px, clock_scale)
 		return
+	# A chase interrupted (dazzle, telegraph, rush...) leaves a stale path: replan as soon as it resumes.
+	var frame: int = Engine.get_physics_frames()
+	if frame != _last_chase_frame + 1:
+		_plan_ticks_left = 0.0
+		_path = PackedVector2Array()
+		_path_index = 0
+	_last_chase_frame = frame
 	_plan_ticks_left -= clock_scale
 	if _plan_ticks_left <= 0.0 and _nav.take_path_slot():
 		_plan_path(point)
@@ -258,7 +266,7 @@ func _plan_path(point: Vector2) -> void:
 	_path = PackedVector2Array()
 	_path_index = 0
 	_path_start = global_position
-	var half_width: float = maxf(_body_size_px().x, _body_size_px().y) / 2.0 + PATH_CLEARANCE_PX
+	var half_width: float = _path_half_width()
 	var from_room: Vector2 = global_position - _nav.origin
 	var to_room: Vector2 = point - _nav.origin
 	if _nav.is_line_clear(from_room, to_room, half_width):
@@ -268,6 +276,15 @@ func _plan_path(point: Vector2) -> void:
 		for i: int in range(1, cells.size()):
 			_path.append(cells[i] + _nav.origin)
 	Log.debug("combat", "%s planned a path of %d waypoints" % [name, _path.size()])
+
+
+func _path_half_width() -> float:
+	return maxf(_body_size_px().x, _body_size_px().y) / 2.0 + PATH_CLEARANCE_PX
+
+
+## True when the body fits along the straight segment to the point (always true without a grid).
+func _has_clear_line(point: Vector2) -> bool:
+	return _nav == null or _nav.is_line_clear(global_position - _nav.origin, point - _nav.origin, _path_half_width())
 
 
 ## The waypoint to head to, skipping the ones reached (closer than 2 px) or passed (pushed beyond along the segment).

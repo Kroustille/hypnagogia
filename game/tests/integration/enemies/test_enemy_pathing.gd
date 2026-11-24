@@ -118,3 +118,37 @@ func test_a_vanished_target_stops_the_chase() -> void:
 	var stopped_at: Vector2 = walker.global_position
 	await _harness.ticks(60)
 	assert_eq(walker.global_position, stopped_at, "no target, no movement")
+
+
+func test_a_dazzled_sleepwalker_does_not_resume_a_stale_path() -> void:
+	await _start(ROOM)
+	var walker: Enemy = _harness.room.spawn_enemy(SLEEPWALKER, Vector2(450.0, 168.0))
+	await _harness.ticks(30) # plans a path through an opening, heading away from the player's x
+	walker.dazzle(2.0)
+	# While dazzled, the player slips to the walker's side of the wall (the path planned before is now wrong).
+	_harness.player.global_position = Vector2(450.0, 60.0)
+	await _harness.until(func() -> bool: return not walker.is_dazzled(), 300)
+	var start: Vector2 = walker.global_position
+	await _harness.ticks(20)
+	var moved: Vector2 = walker.global_position - start
+	var to_player: Vector2 = _harness.player.global_position - start
+	assert_gt(moved.normalized().dot(to_player.normalized()), 0.9, "it heads for the player, not along the old path")
+
+
+func test_a_sleepwalker_does_not_telegraph_through_a_wall() -> void:
+	await _start(ROOM)
+	_harness.player.global_position = Vector2(394.0, 168.0)
+	var walker: Sleepwalker = _harness.room.spawn_enemy(SLEEPWALKER, Vector2(450.0, 168.0)) as Sleepwalker
+	walker.global_position = Vector2(424.0, 168.0) # just across the wall, inside the trigger range
+	var changes: int = 0
+	var last_state: int = walker._state
+	var crossed: bool = false
+	for i: int in WALK_TICKS:
+		await _harness.ticks(1)
+		if walker._state != last_state and not crossed:
+			changes += 1
+			last_state = walker._state
+		if walker.global_position.x < WALL_LEFT_EDGE_X:
+			crossed = true
+	assert_lte(changes, 6, "no TELEGRAPH/RUSH loop against the wall")
+	assert_true(crossed, "it went around to the player's side")
