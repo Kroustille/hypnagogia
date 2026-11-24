@@ -15,6 +15,7 @@ const WAKE_SCREEN_SCENE: PackedScene = preload("res://ui/menus/wake_screen.tscn"
 const PAUSE_MENU_SCENE: PackedScene = preload("res://ui/menus/pause_menu.tscn")
 const SETTINGS_MENU_SCENE: PackedScene = preload("res://ui/menus/settings_menu.tscn")
 const HUD_SCENE: PackedScene = preload("res://ui/hud/hud.tscn")
+const MAP_VIEW_SCENE: PackedScene = preload("res://ui/map/floor_map_view.tscn")
 
 ## What a new game plays: the generated floor (story 4.8). Checks that rely on the arena of milestone A set it back
 ## to ARENA before creating Main. Not a setting: nothing in the game writes it.
@@ -30,6 +31,7 @@ var _run_options: RunOptions
 var _wake_screen: WakeScreen
 var _pause_menu: PauseMenu
 var _settings_menu: SettingsMenu
+var _map_view: FloorMapView
 
 @onready var _active_scene: Node = %ActiveScene
 @onready var _ui: CanvasLayer = %UI
@@ -42,6 +44,9 @@ func _ready() -> void:
 	var hud: Hud = HUD_SCENE.instantiate() as Hud
 	_ui.add_child(hud)
 	_ui.move_child(hud, 0) # below every overlay and menu; added before the run starts, so it gets the first health state
+	_map_view = MAP_VIEW_SCENE.instantiate() as FloorMapView
+	_ui.add_child(_map_view) # over the HUD, under the menus
+	_ui.move_child(_map_view, 1)
 	if OS.is_debug_build():
 		_check_viewport_size()
 		_check_collision_layer_names()
@@ -53,6 +58,7 @@ func _ready() -> void:
 	_setup_menus()
 	Events.run_ended.connect(_on_events_run_ended)
 	Events.run_requested.connect(_on_run_requested)
+	Events.run_started.connect(_on_events_run_started)
 	_start_run()
 	_check_window_scale()
 
@@ -164,6 +170,7 @@ func _start_run(options: RunOptions = null) -> void:
 
 ## Removes every child of ActiveScene.
 func _clear_active_scene() -> void:
+	_map_view.unbind()
 	for child: Node in _active_scene.get_children():
 		# Out of the tree at once, so its node groups (bullet managers, debug shapes) stop counting this frame.
 		_active_scene.remove_child(child)
@@ -175,6 +182,14 @@ func _show_scene(scene: PackedScene) -> bool:
 	_clear_active_scene()
 	_active_scene.add_child(scene.instantiate())
 	return true
+
+
+## A run is ready: the map reads its floor.
+func _on_events_run_started() -> void:
+	if not is_inside_tree():
+		return # a Main already removed from the tree still hears the bus
+	var run: Run = get_tree().get_first_node_in_group(Const.GROUP_RUN) as Run
+	_map_view.bind(run.floor_map if run != null else null)
 
 
 ## The run ended (death): freeze the game and show the wake screen. Synchronous, in the tick of the lethal hit.
