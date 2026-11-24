@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="ItemPoolDef" load_steps=7 format=3]
+[gd_resource type="Resource" script_class="ItemPoolDef" load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://economy/item_pool_def.gd" id="1_pool"]
 [ext_resource type="Script" path="res://items/item_def.gd" id="2_def"]
@@ -6,7 +6,8 @@
 [ext_resource type="Resource" path="res://data/items/lead_legs.tres" id="4_legs"]
 [ext_resource type="Resource" path="res://data/items/paper_wings.tres" id="5_wings"]
 [ext_resource type="Resource" path="res://data/items/free_fall.tres" id="6_fall"]
+[ext_resource type="Resource" path="res://data/items/broken_alarm.tres" id="7_alarm"]
 
 [resource]
 script = ExtResource("1_pool")
-items = Array[ExtResource("2_def")]([ExtResource("3_tooth"), ExtResource("4_legs"), ExtResource("5_wings"), ExtResource("6_fall")])
+items = Array[ExtResource("2_def")]([ExtResource("3_tooth"), ExtResource("4_legs"), ExtResource("5_wings"), ExtResource("6_fall"), ExtResource("7_alarm")])

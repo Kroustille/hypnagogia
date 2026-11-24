@@ -19,6 +19,8 @@ class Offer extends RefCounted:
 	var armed: bool = true
 	## Half-hearts (HEART, ARMOR) or shards (SHARDS) a drop gives.
 	var amount: int = 0
+	## Charge of an active item laid again by the player; -1 = a new one, charged (story 5.8).
+	var charge: int = -1
 
 	## Id of what lies there, whatever its kind.
 	func id() -> StringName:
@@ -38,12 +40,14 @@ var offers: Array[Offer] = []
 
 
 ## Adds an offer and returns it.
-func add_item(def: ItemDef, position: Vector2, price: int = 0) -> Offer:
+func add_item(def: ItemDef, position: Vector2, price: int = 0, armed: bool = true, charge: int = -1) -> Offer:
 	var offer: Offer = Offer.new()
 	offer.kind = Kind.ITEM
 	offer.item = def
 	offer.position = position
 	offer.price = price
+	offer.armed = armed
+	offer.charge = charge
 	offers.append(offer)
 	return offer
 

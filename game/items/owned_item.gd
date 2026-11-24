@@ -12,3 +12,6 @@ var max_half_hearts_paid: int = 0
 
 func _init(item_def: ItemDef) -> void:
 	def = item_def
+## Charge of an active item (story 5.8): rooms cleared since it was used, up to charge_max. Unused by other items.
+var charge: int = 0
+var charge_max: int = 0

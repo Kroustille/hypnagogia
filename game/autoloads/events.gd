@@ -98,6 +98,10 @@ signal banner_requested(title_key: StringName, bonus_key: StringName, cost_key: 
 @warning_ignore("unused_signal")
 signal consumable_changed(id: StringName, name_key: StringName)
 
+## The active item changed (story 5.8): its id (empty = none), charge and maximum, in rooms cleared.
+@warning_ignore("unused_signal")
+signal active_item_changed(id: StringName, charge: int, charge_max: int)
+
 ## The player's shards changed (story 5.4); total: what is held now. Emitted with 0 when a run starts.
 ## Listeners: HUD, telemetry.
 @warning_ignore("unused_signal")

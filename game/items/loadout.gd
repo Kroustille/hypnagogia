@@ -8,12 +8,17 @@ signal item_added(owned: OwnedItem)
 signal item_removed(owned: OwnedItem)
 ## The consumable slot changed (null = emptied).
 signal consumable_changed(def: ConsumableDef)
+## The active item changed (taken, replaced, charged, used); null = none.
+signal active_changed(owned: OwnedItem)
 
 ## The consumable carried, at most one (story 5.3). Null = the slot is free.
 var consumable: ConsumableDef
+## The active item carried, at most one (story 5.8); it is also in items(), so its tags and effect count. Null = none.
+var active: OwnedItem
 
 var _carrier: BuildCarrier
 var _items: Array[OwnedItem] = []
+var _swapping: bool = false
 
 
 func _init(carrier: BuildCarrier) -> void:
@@ -55,8 +60,11 @@ func set_consumable(def: ConsumableDef) -> ConsumableDef:
 	return previous
 
 ## Takes a new copy of the item. Returns it.
-func add(def: ItemDef) -> OwnedItem:
+func add(def: ItemDef, charge: int = -1) -> OwnedItem:
 	var owned: OwnedItem = OwnedItem.new(def)
+	if def.active:
+		owned.charge_max = int(def.params[&"charge_rooms"]) if def.params.has(&"charge_rooms") else 1
+		owned.charge = owned.charge_max if charge < 0 else mini(charge, owned.charge_max)
 	for modifier: ModifierDef in def.modifiers:
 		_carrier.stats.set_modifier(owned, modifier.stat, modifier.kind, modifier.value)
 	if def.effect_script != null:
@@ -73,6 +81,9 @@ func add(def: ItemDef) -> OwnedItem:
 	_items.append(owned)
 	if owned.effect != null:
 		owned.effect.attach(_carrier)
+	if def.active:
+		active = owned
+		active_changed.emit(owned)
 	item_added.emit(owned)
 	return owned
 
@@ -83,9 +94,14 @@ func remove(owned: OwnedItem) -> bool:
 	if index == -1:
 		return false
 	_items.remove_at(index)
+	var was_active: bool = owned == active
+	if was_active:
+		active = null
 	_carrier.stats.clear_source(owned) # a freed source would stay a key of the stat block
 	if owned.effect != null:
 		owned.effect.detach()
+	if was_active and not _swapping:
+		active_changed.emit(null)
 	item_removed.emit(owned)
 	return true
 
@@ -102,3 +118,32 @@ func detach_all() -> void:
 	for owned: OwnedItem in _items:
 		if owned.effect != null:
 			owned.effect.detach()
+
+
+## Puts an active item in the slot (the former one is removed). charge < 0: a new item, fully charged. Returns the former
+## active item (null when the slot was free), already removed: the caller lays it down with its charge.
+func set_active(def: ItemDef, charge: int = -1) -> OwnedItem:
+	var previous: OwnedItem = active
+	_swapping = true
+	if previous != null:
+		remove(previous)
+	add(def, charge)
+	_swapping = false
+	return previous
+
+
+## Adds rooms of charge to the active item, up to its maximum. True when the charge changed.
+func add_charge(amount: int) -> bool:
+	if active == null or active.charge >= active.charge_max:
+		return false
+	active.charge = clampi(active.charge + amount, 0, active.charge_max)
+	active_changed.emit(active)
+	return true
+
+
+## Sets the charge (use: 0, debug: full).
+func set_charge(value: int) -> void:
+	if active == null:
+		return
+	active.charge = clampi(value, 0, active.charge_max)
+	active_changed.emit(active)

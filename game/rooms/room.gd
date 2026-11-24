@@ -731,7 +731,7 @@ func _setup_pickups() -> void:
 
 ## Adds an offer to the room (F1 panel, drops): it is kept in the stock of the cell and appears on the floor now.
 ## requested: room coordinates. Returns the offer, null when the room is not ready.
-func add_offer(def: ItemDef, requested: Vector2, price: int = 0) -> RoomStock.Offer:
+func add_offer(def: ItemDef, requested: Vector2, price: int = 0, armed: bool = true, charge: int = -1) -> RoomStock.Offer:
 	if not is_node_ready() or _stock == null or def == null:
 		Log.error("room", "add_offer() needs a ready room and an item")
 		return null
@@ -739,7 +739,7 @@ func add_offer(def: ItemDef, requested: Vector2, price: int = 0) -> RoomStock.Of
 	if not problem.is_empty():
 		Log.error("room", "add_offer() refused item %s: %s" % [def.id, problem])
 		return null
-	var offer: RoomStock.Offer = _stock.add_item(def, requested, price)
+	var offer: RoomStock.Offer = _stock.add_item(def, requested, price, armed, charge)
 	_add_pickup(offer)
 	return offer
 
@@ -796,12 +796,19 @@ func _add_pickup(offer: RoomStock.Offer) -> void:
 	pickup.name = "Pickup_%s" % offer.id()
 	pickup.setup(offer, _player)
 	pickup.consumable_replaced.connect(_on_consumable_replaced)
+	pickup.active_replaced.connect(_on_active_replaced)
 	_pickups.add_child(pickup)
 
 
 ## The player took a consumable while carrying another: the old one lies where the player stands, not armed yet.
 func _on_consumable_replaced(def: ConsumableDef, at_global: Vector2) -> void:
 	add_consumable_offer(def, to_local(at_global), false)
+
+
+## The player took an active item while carrying another: the old one lies where the player stands, with its charge, not
+## armed yet (story 5.8).
+func _on_active_replaced(def: ItemDef, charge: int, at_global: Vector2) -> void:
+	add_offer(def, _free_spot(to_local(at_global)), 0, false, charge)
 
 
 ## Gives every piece of furniture and every trigger its place in the BulletManagers (they exist by now).
@@ -955,6 +962,11 @@ func _on_player_glided(from: Vector2, to: Vector2) -> void:
 	var radius_px: float = GLIDE_RING_RADIUS_TILES * Const.TILE_SIZE
 	_add_ring(from, radius_px, GLIDE_RING_COLOR, GLIDE_RING_DURATION)
 	_add_ring(to, radius_px, GLIDE_RING_COLOR, GLIDE_RING_DURATION)
+
+
+## A ring that widens and fades around a global point (placeholder look until epic 7).
+func add_ring(origin: Vector2, radius_px: float, color: Color, duration: float) -> void:
+	_add_ring(origin, radius_px, color, duration)
 
 
 func _add_ring(origin: Vector2, radius_px: float, color: Color, duration: float) -> void:

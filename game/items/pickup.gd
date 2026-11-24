@@ -32,6 +32,8 @@ const PRICE_FONT_SIZE: int = 8
 
 ## The player took a consumable and was already carrying one: the old one goes back on the floor (the room lays it).
 signal consumable_replaced(def: ConsumableDef, global_position: Vector2)
+## The player took an active item and was carrying another: the old one goes back on the floor with its charge.
+signal active_replaced(def: ItemDef, charge: int, global_position: Vector2)
 
 var offer: RoomStock.Offer
 var _player: Player
@@ -144,7 +146,7 @@ func try_purchase() -> bool:
 func _give() -> bool:
 	match offer.kind:
 		RoomStock.Kind.ITEM:
-			return _player.carrier.acquire(offer.item) != null
+			return _acquire_item()
 		RoomStock.Kind.CONSUMABLE:
 			var previous: ConsumableDef = _player.carrier.acquire_consumable(offer.consumable)
 			if previous != null:
@@ -155,6 +157,17 @@ func _give() -> bool:
 		RoomStock.Kind.ARMOR:
 			return _player.health.add_armor(offer.amount)
 	return false
+
+
+## Takes the item; an active one replaces the carried active item, which is laid back down with its charge.
+func _acquire_item() -> bool:
+	var previous: OwnedItem = _player.carrier.loadout.active if offer.item.active else null
+	var charge_before: int = previous.charge if previous != null else 0
+	if _player.carrier.acquire(offer.item, offer.charge) == null:
+		return false
+	if previous != null:
+		active_replaced.emit(previous.def, charge_before, _player.global_position)
+	return true
 
 
 func _refuse() -> void:
@@ -200,7 +213,7 @@ func _collect() -> void:
 		_hold_stacked_pickups()
 		queue_free()
 		return
-	if _player.carrier.acquire(offer.item) == null:
+	if not _acquire_item():
 		_collected = false
 		set_physics_process(true)
 		_touching = false

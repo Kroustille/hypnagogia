@@ -43,6 +43,8 @@ func setup(owner_player: Player, stat_block: StatBlock) -> void:
 	loadout = Loadout.new(self)
 	tags = TagTracker.new(loadout)
 	loadout.consumable_changed.connect(_on_consumable_changed)
+	loadout.active_changed.connect(_on_active_changed)
+	room_cleared.connect(_on_room_cleared_charge)
 	tags.synergy_activated.connect(_on_synergy_activated)
 	tags.synergy_deactivated.connect(_on_synergy_deactivated)
 
@@ -97,13 +99,18 @@ func can_take(def: ItemDef) -> bool:
 
 
 ## The player takes a copy of the item: the loadout, the bus and the banner. Null (and a log) when it cannot be taken.
-func acquire(def: ItemDef) -> OwnedItem:
+func acquire(def: ItemDef, charge: int = -1) -> OwnedItem:
 	var refusal: String = refusal_of(def)
 	if not refusal.is_empty():
 		Log.warn("items", "item %s refused: %s" % [def.id, refusal])
 		return null
 	_acquiring = true
-	var owned: OwnedItem = loadout.add(def)
+	var owned: OwnedItem
+	if def.active:
+		loadout.set_active(def, charge) # the former active item is the caller's to lay down (Pickup)
+		owned = loadout.active
+	else:
+		owned = loadout.add(def)
 	_acquiring = false
 	var copies: int = loadout.copies_of(def.id)
 	Log.info("items", "item taken %s copies=%d" % [def.id, copies])
@@ -153,6 +160,33 @@ func use_consumable() -> UseResult:
 ## The effect of a lasting consumable that runs now (checks), null otherwise.
 func running_effect(id: StringName) -> ConsumableEffect:
 	return _running.get(id)
+
+
+## Uses the active item. NONE without one; REFUSED when dead, not charged, the gauge is short or the item has no effect:
+## nothing is spent then.
+func use_active() -> UseResult:
+	var owned: OwnedItem = loadout.active
+	if owned == null or player == null:
+		return UseResult.NONE
+	if player.health.is_dead() or owned.effect == null or owned.charge < owned.charge_max:
+		return UseResult.REFUSED
+	if owned.def.lucidity_cost > 0 and not player.lucidity.try_spend(owned.def.lucidity_cost, owned.def.id):
+		return UseResult.REFUSED
+	loadout.set_charge(0)
+	owned.effect.activate(player)
+	Log.info("items", "active item used %s" % owned.def.id)
+	return UseResult.USED
+
+## A room was cleared: the active item recharges by one.
+func _on_room_cleared_charge(_room: Node, _lowest_tier: int) -> void:
+	loadout.add_charge(1)
+
+
+func _on_active_changed(owned: OwnedItem) -> void:
+	if owned == null:
+		Events.active_item_changed.emit(&"", 0, 0)
+	else:
+		Events.active_item_changed.emit(owned.def.id, owned.charge, owned.charge_max)
 
 
 func _on_consumable_changed(def: ConsumableDef) -> void:

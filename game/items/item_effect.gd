@@ -50,6 +50,6 @@ func tick(_dt: float) -> void:
 	pass
 
 
-## The player used the active item (story 5.8).
-func activate() -> void:
+## The player used the active item (story 5.8), after the charge and the lucidity were checked and spent.
+func activate(_player: Player) -> void:
 	pass
