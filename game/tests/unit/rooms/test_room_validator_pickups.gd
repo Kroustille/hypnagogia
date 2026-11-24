@@ -93,3 +93,28 @@ func test_the_builder_reads_the_pickup_directive_and_reports_typos() -> void:
 	assert_eq(room.pickup_spots()[0].slot, PickupSpot.Slot.ARMOR)
 	room.free()
 	builder.free()
+
+
+const SHOP: String = "res://rooms/pool/onset/onset_shop_001.tscn"
+
+
+func test_the_shop_of_the_pool_has_its_five_stalls_and_is_valid() -> void:
+	assert_eq(_problems_after(SHOP, func(_room: Room) -> void: pass), PackedStringArray())
+	var room: Room = (load(SHOP) as PackedScene).instantiate() as Room
+	assert_eq(room.pickup_spots().size(), 5)
+	room.free()
+
+
+func test_a_shop_with_four_stalls_is_refused() -> void:
+	var problems: PackedStringArray = _problems_after(SHOP, func(room: Room) -> void:
+		for spot: PickupSpot in room.pickup_spots():
+			if spot.slot == PickupSpot.Slot.HEART:
+				spot.free())
+	assert_true(_has_problem(problems, "shop needs 1 HEART"), str(problems))
+
+
+func test_a_shop_with_overlapping_stalls_is_refused() -> void:
+	var problems: PackedStringArray = _problems_after(SHOP, func(room: Room) -> void:
+		var spots: Array[PickupSpot] = room.pickup_spots()
+		spots[1].position = spots[0].position)
+	assert_true(_has_problem(problems, "overlaps"), str(problems))

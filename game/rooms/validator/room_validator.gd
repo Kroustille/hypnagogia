@@ -6,6 +6,10 @@ extends RefCounted
 
 ## Enemies never appear closer than this to a door, in tiles (the player may enter there), even when the door ends up sealed.
 const MIN_SPAWN_DOOR_DISTANCE_TILES: float = 3.0
+## The stalls of a shop: slot to count.
+const SHOP_SLOTS: Dictionary[int, int] = {
+	PickupSpot.Slot.ITEM: 2, PickupSpot.Slot.CONSUMABLE: 1, PickupSpot.Slot.HEART: 1, PickupSpot.Slot.ARMOR: 1,
+}
 ## Room types that may have no reinforcement marker: they hold no enemy, or (nightmare) the GDD forbids reinforcements.
 const REINFORCEMENT_FREE_TYPES: Array[Room.RoomType] = [
 	Room.RoomType.START, Room.RoomType.TREASURE, Room.RoomType.SHOP, Room.RoomType.NIGHTMARE,
@@ -331,15 +335,18 @@ static func _check_triggers(room: Room, playable: Vector2i, problems: PackedStri
 		_check_marker_cell(label, _local_position(room, element), Rect2i(Vector2i.ONE, playable), blockers, problems)
 
 
-## Pedestals (story 5.2): a treasure room has at least one ITEM spot and no other kind of room has any spot. A spot has a
+## Pedestals (story 5.2, 5.5): a treasure room has at least one ITEM spot, a shop has exactly 2 ITEM, 1 CONSUMABLE, 1 HEART
+## and 1 ARMOR spots, no other kind of room has any spot. A spot has a
 ## valid slot, stands on free floor and is at least MIN_SPAWN_DOOR_DISTANCE_TILES from every door. Its reachability is
 ## checked with the rest.
 static func _check_pickups(room: Room, playable: Vector2i, frame: Vector2i, doors: Array[Door], problems: PackedStringArray) -> void:
 	var spots: Array[PickupSpot] = room.pickup_spots()
 	var treasure: bool = room.room_type == Room.RoomType.TREASURE
-	if not treasure and not spots.is_empty():
-		problems.append("PickupSpot in a room that is not a treasure room")
+	var shop: bool = room.room_type == Room.RoomType.SHOP
+	if not treasure and not shop and not spots.is_empty():
+		problems.append("PickupSpot in a room that is not a treasure room or a shop")
 	var item_spots: int = 0
+	var slot_counts: Dictionary[int, int] = {}
 	var playable_rect: Rect2i = Rect2i(Vector2i.ONE, playable)
 	var blockers: Dictionary = _blockers(room)
 	for spot: PickupSpot in spots:
@@ -350,6 +357,7 @@ static func _check_pickups(room: Room, playable: Vector2i, frame: Vector2i, door
 			continue
 		if spot.slot == PickupSpot.Slot.ITEM:
 			item_spots += 1
+		slot_counts[int(spot.slot)] = slot_counts.get(int(spot.slot), 0) + 1
 		_check_marker_cell(label, at, playable_rect, blockers, problems)
 		for door: Door in doors:
 			var distance: float = at.distance_to(Door.center_for(door.side, frame)) / Const.TILE_SIZE
@@ -358,6 +366,20 @@ static func _check_pickups(room: Room, playable: Vector2i, frame: Vector2i, door
 					label, distance, Door.Side.find_key(door.side), MIN_SPAWN_DOOR_DISTANCE_TILES])
 	if treasure and item_spots == 0:
 		problems.append("treasure room without an ITEM PickupSpot")
+	if shop:
+		_check_shop_spots(spots, room, slot_counts, problems)
+
+
+## A shop has its five stalls, each on a tile of its own.
+static func _check_shop_spots(spots: Array[PickupSpot], room: Room, slot_counts: Dictionary[int, int], problems: PackedStringArray) -> void:
+	for slot: int in SHOP_SLOTS:
+		var found: int = slot_counts.get(slot, 0)
+		if found != SHOP_SLOTS[slot]:
+			problems.append("shop needs %d %s PickupSpot, has %d" % [SHOP_SLOTS[slot], PickupSpot.Slot.find_key(slot), found])
+	for first: int in spots.size():
+		for second: int in range(first + 1, spots.size()):
+			if _local_position(room, spots[first]).distance_to(_local_position(room, spots[second])) < Const.TILE_SIZE:
+				problems.append("PickupSpot %s overlaps %s" % [spots[first].name, spots[second].name])
 
 
 ## The tiles a piece covers (frame coordinates). Empty without a def.

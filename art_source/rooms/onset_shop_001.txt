@@ -1,4 +1,4 @@
-// Provisional shop room: empty (the stock arrives with epic 5).
+// Provisional shop room: empty apart from the five stalls (the real decor arrives later).
 type: shop
 size: screen
 
@@ -26,3 +26,9 @@ door N
 door E
 door S
 door W
+
+pickup item 13 5
+pickup item 23 5
+pickup consumable 13 14
+pickup heart 23 14
+pickup armor 30 14
