@@ -162,3 +162,18 @@ func test_an_invalid_item_is_refused_by_the_room() -> void:
 	assert_null(_room.add_offer(broken, Vector2(50, 50)))
 	assert_push_error("add_offer() refused item")
 	assert_eq(_room.pickups().size(), 0)
+
+
+func test_blank_exam_adds_one_drop_laid_beside_the_first() -> void:
+	_player.carrier.acquire(load("res://data/items/blank_exam.tres") as ItemDef)
+	var parallel: RunRng = RunRng.new(_harness.run.rng.run_seed)
+	var expected: Loot.LootResult = Loot.roll(0, parallel.stream(RunRng.DROPS, 0), Tuning.LUCIDITY, Tuning.ECONOMY, 1)
+	assert_gte(expected.drops.size(), 1, "the guaranteed one")
+	await _clear(0)
+	var pickups: Array[Pickup] = _room.pickups()
+	assert_eq(pickups.size(), expected.drops.size())
+	var cells: Dictionary = {}
+	for pickup: Pickup in pickups:
+		cells[_room.nav().cell_of(pickup.offer.position)] = true
+	assert_eq(cells.size(), pickups.size(), "each in its own cell")
+	assert_eq(_harness.run.rng.stream(RunRng.DROPS, 0).randi(), parallel.stream(RunRng.DROPS, 0).randi())

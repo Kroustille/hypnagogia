@@ -120,3 +120,8 @@ signal shards_collected(amount: int)
 ## Listener: telemetry.
 @warning_ignore("unused_signal")
 signal shop_purchased(item_id: StringName, price: int)
+
+## The exam timer of Blank exam (story 5.9) changed. seconds_left: time left in the room; -1 = hidden (no timer running).
+## Listener: the HUD.
+@warning_ignore("unused_signal")
+signal exam_timer_changed(seconds_left: float)

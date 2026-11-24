@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://items/item_def.gd" id="1_def"]
+[ext_resource type="Script" path="res://items/effects/blank_exam_effect.gd" id="2_effect"]
+
+[resource]
+script = ExtResource("1_def")
+id = &"blank_exam"
+tags = Array[StringName]([&"time"])
+name_key = &"ITEM_BLANK_EXAM_NAME"
+bonus_key = &"ITEM_BLANK_EXAM_BONUS"
+cost_key = &"ITEM_BLANK_EXAM_COST"
+effect_script = ExtResource("2_effect")
+params = Dictionary[StringName, float]({
+&"guaranteed_drops": 1.0,
+&"pace_bonus": 0.3,
+&"seconds": 45.0
+})

@@ -20,6 +20,8 @@ var half_hearts: int = 0
 var max_half_hearts: int = 0
 ## Blue half-hearts, lost before the hearts.
 var armor: int = 0
+## True while nothing can add armor (story 5.9, Naked in public).
+var armor_blocked: bool = false
 
 var _cap_half_hearts: int = 0
 ## Half-hearts of max taken by lose_max() and not yet given back.
@@ -99,7 +101,7 @@ func apply_damage(info: DamageInfo) -> int:
 
 ## Adds armor under the cap. Returns false when nothing fits (or dead).
 func add_armor(amount: int) -> bool:
-	if not _check_amount(amount, "add_armor") or _dead:
+	if not _check_amount(amount, "add_armor") or _dead or armor_blocked:
 		return false
 	var room: int = _cap_half_hearts - max_half_hearts - armor
 	if room <= 0:
@@ -107,6 +109,16 @@ func add_armor(amount: int) -> bool:
 	armor += mini(amount, room)
 	changed.emit()
 	return true
+
+
+## Removes all the armor (story 5.9): not a hit, no invulnerability, no player_hit. Returns the half-hearts removed.
+func clear_armor() -> int:
+	var removed: int = armor
+	if removed == 0:
+		return 0
+	armor = 0
+	changed.emit()
+	return removed
 
 
 ## Lowers the max by this many half-hearts, never below MIN_MAX_HALF_HEARTS; current hearts come down to the new max
@@ -215,4 +227,4 @@ func can_heal() -> bool:
 
 ## True when add_armor() would add something (alive and under the cap).
 func can_add_armor() -> bool:
-	return not _dead and _cap_half_hearts - max_half_hearts - armor > 0
+	return not _dead and not armor_blocked and _cap_half_hearts - max_half_hearts - armor > 0
