@@ -64,5 +64,5 @@ func test_escape_cancels_and_is_consumed() -> void:
 	var event: InputEventAction = InputEventAction.new()
 	event.action = &"ui_cancel"
 	event.pressed = true
-	_entry._unhandled_input(event)
+	_entry._input(event)
 	assert_eq(_cancels, 1)

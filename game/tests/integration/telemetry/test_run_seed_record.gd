@@ -57,3 +57,14 @@ func test_the_bus_signal_reaches_the_session_file() -> void:
 	assert_eq(str(last["seed"]), "00000C1S")
 	var flag: bool = last["seeded"] == true
 	assert_true(flag)
+
+
+func test_a_seed_after_the_end_of_a_run_does_not_rewrite_its_start() -> void:
+	var session: TelemetrySession = TelemetrySession.new("t")
+	session.start(0.0)
+	session.run_started(1.0)
+	session.run_seeded("00000C1S", true)
+	session.run_ended(2.0)
+	session.run_seeded("ZZZZZZZZ", false)
+	var starts: Array[Dictionary] = _run_starts(session.events)
+	assert_eq(str(starts[0]["seed"]), "00000C1S")

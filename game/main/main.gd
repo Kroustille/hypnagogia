@@ -110,6 +110,8 @@ func _notification(what: int) -> void:
 	# Auto pause when the application loses focus; no auto resume: the player resumes.
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
 		_set_paused(true, "focus lost")
+	elif what == NOTIFICATION_WM_CLOSE_REQUEST:
+		_release_for_quit()
 
 
 ## The only code that freezes or unfreezes the game (pause and wake screen). Never use get_tree().paused.
@@ -205,6 +207,12 @@ func _seed_code() -> String:
 	return run.rng.seed_code() if run != null and run.rng != null else ""
 
 
+## Lets the run go (its loader hands the pending loads over) and collects them: no ResourceLoader token left at exit.
+func _release_for_quit() -> void:
+	_clear_active_scene()
+	RoomLoader.collect_orphans(true)
+
+
 ## Removes every child of ActiveScene.
 func _clear_active_scene() -> void:
 	_map_view.unbind()
@@ -260,6 +268,7 @@ func _on_pause_menu_settings_requested() -> void:
 ## No title screen at milestone A: Quit closes the game (settings are already saved).
 func _on_pause_menu_quit_requested() -> void:
 	Log.info("ui", "quit requested from the pause menu")
+	_release_for_quit()
 	get_tree().quit()
 
 

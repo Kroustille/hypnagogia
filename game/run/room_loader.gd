@@ -17,7 +17,10 @@ func request_all(paths: PackedStringArray) -> void:
 	for path: String in paths:
 		if _requested.has(path) or _scenes.has(path):
 			continue
-		_orphans.erase(path) # asked for again: this loader collects it
+		if _orphans.has(path): # a past run still loads it: adopt the open request (a second one would leak a token)
+			_orphans.erase(path)
+			_requested[path] = true
+			continue
 		if ResourceLoader.load_threaded_request(path, "PackedScene") == OK:
 			_requested[path] = true
 		else:
@@ -41,9 +44,12 @@ func scene_for(path: String) -> PackedScene:
 		_requested.erase(path)
 		scene = ResourceLoader.load_threaded_get(path) as PackedScene
 	else:
-		_collect_pending() # a synchronous load() while threaded requests run can deadlock
-		collect_orphans(true)
-		scene = load(path) as PackedScene
+		# Never asked for: adopt the orphan or request it, then wait for this path only (never for the other loads).
+		if _orphans.has(path):
+			_orphans.erase(path)
+			scene = ResourceLoader.load_threaded_get(path) as PackedScene
+		elif ResourceLoader.load_threaded_request(path, "PackedScene") == OK:
+			scene = ResourceLoader.load_threaded_get(path) as PackedScene
 	if scene == null:
 		Log.error("run", "room scene %s cannot be loaded" % path)
 		return null
@@ -79,13 +85,6 @@ static func collect_orphans(wait: bool = false) -> void:
 static func orphan_count() -> int:
 	return _orphans.size()
 
-
-func _collect_pending() -> void:
-	for path: String in _requested.keys():
-		var scene: PackedScene = ResourceLoader.load_threaded_get(path) as PackedScene
-		if scene != null:
-			_scenes[path] = scene
-	_requested.clear()
 
 
 func pending_count() -> int:

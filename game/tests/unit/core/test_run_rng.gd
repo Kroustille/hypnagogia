@@ -130,3 +130,8 @@ func test_a_typed_code_ignores_spaces_and_dashes() -> void:
 	assert_eq(RunRng.code_to_seed("0000000U"), -1, "U is not in the alphabet")
 	assert_eq(RunRng.code_to_seed("--  --"), -1)
 	assert_eq(RunRng.code_to_seed(""), -1)
+
+
+func test_code_to_seed_strips_the_line_ending_of_a_pasted_code() -> void:
+	assert_eq(RunRng.code_to_seed("00000C1S\r\n"), 12345)
+	assert_eq(RunRng.code_to_seed("  00000C1S\t"), 12345)

@@ -190,3 +190,82 @@ func test_a_room_scene_without_room_root_does_not_leak_a_node() -> void:
 	assert_push_error_count(2)
 	assert_true(_run().current_room() is Arena)
 	assert_lt(int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)) - before, 400, "no stray scene left over")
+
+
+func _key(keycode: Key, unicode: int = 0) -> void:
+	for pressed: bool in [true, false]:
+		var event: InputEventKey = InputEventKey.new()
+		event.keycode = keycode
+		event.physical_keycode = keycode
+		event.unicode = unicode
+		event.pressed = pressed
+		Input.parse_input_event(event)
+		await get_tree().process_frame
+	await get_tree().process_frame
+
+
+func test_letters_typed_after_an_invalid_enter_reach_the_field() -> void:
+	var entry: SeedEntry = await _open_seed_entry_from_pause()
+	var field: LineEdit = entry.get_node("%Field") as LineEdit
+	await _key(KEY_1, "1".unicode_at(0))
+	await _key(KEY_ENTER)
+	assert_eq(entry.error_text(), tr(&"UI_SEED_INVALID"))
+	await _key(KEY_A, "a".unicode_at(0))
+	assert_eq(field.text, "a", "the invalid code was selected, the next letter replaces it")
+	assert_eq(entry.error_text(), "")
+
+
+func test_a_single_real_escape_closes_the_window_and_keeps_the_pause() -> void:
+	var entry: SeedEntry = await _open_seed_entry_from_pause()
+	await _key(KEY_ESCAPE)
+	assert_false(entry.visible)
+	assert_true(_menu("PauseMenu").visible)
+	assert_true(GameClock.paused)
+
+
+func test_a_new_floor_does_not_wait_for_the_loads_of_the_previous_run() -> void:
+	Events.run_requested.emit(RunOptions.Mode.FLOOR, SEED, true, "")
+	Events.run_requested.emit(RunOptions.Mode.FLOOR, SEED + 1, true, "") # the first one leaves loads in progress
+	await get_tree().process_frame
+	assert_not_null(_run().floor_layout)
+	assert_gt(RoomLoader.orphan_count(), 0, "the new floor did not wait for the old requests")
+
+
+func test_an_adopted_orphan_leaves_no_token_in_the_resource_loader() -> void:
+	var paths: PackedStringArray = RoomInfo.scene_paths("res://rooms/pool/onset")
+	var first: RoomLoader = RoomLoader.new()
+	first.request_all(paths)
+	first.drain()
+	var second: RoomLoader = RoomLoader.new()
+	second.request_all(paths)
+	# Adopted, not requested twice (a second request would hold a token no get collects: a leak warning at exit).
+	assert_eq(RoomLoader.orphan_count(), 0, "every past request is adopted or collected")
+	for path: String in paths:
+		assert_not_null(second.scene_for(path), path)
+	assert_eq(second.pending_count(), 0)
+	RoomLoader.collect_orphans(true)
+
+
+func _debug_panel() -> DebugPanel:
+	for node: Node in _main.find_children("*", "DebugPanel", true, false):
+		return node as DebugPanel
+	return null
+
+
+func test_the_f1_replay_commands() -> void:
+	var panel: DebugPanel = _debug_panel()
+	if panel == null:
+		pending("no debug panel in this build")
+		return
+	var requests: Array = []
+	var on_request: Callable = func(mode: int, seed_value: int, seeded: bool, room: String) -> void:
+		requests.append([mode, seed_value, seeded, room])
+	Events.run_requested.connect(on_request)
+	assert_false(panel.replay_seed_code("not a cod!"))
+	assert_eq(requests.size(), 0, "an invalid code requests nothing")
+	assert_true(panel.replay_seed_code("00000C1S\r\n"))
+	assert_eq(requests, [[RunOptions.Mode.FLOOR, SEED, true, ""]])
+	requests.clear()
+	panel.replay_current_seed()
+	assert_eq(requests, [[RunOptions.Mode.FLOOR, _run().state.run_seed, true, ""]])
+	Events.run_requested.disconnect(on_request)

@@ -120,7 +120,7 @@ func room_loader() -> RoomLoader:
 func _start_floor() -> bool:
 	var layout: FloorLayout = ensure_floor()
 	if not layout.valid:
-		Log.error("run", "floor is invalid (%s): playing the arena" % layout.failure)
+		Log.error("run", "floor is invalid (%s, seed=%s): playing the arena" % [layout.failure, rng.seed_code()])
 		floor_layout = null
 		floor_map.layout = null
 		return false
@@ -136,7 +136,7 @@ func _start_floor() -> bool:
 	_loader.request_all(others)
 	if _enter_cell(layout.start, -1):
 		return true
-	Log.error("run", "start room cannot be entered: playing the arena")
+	Log.error("run", "start room cannot be entered (seed=%s): playing the arena" % rng.seed_code())
 	_loader.drain()
 	_loader = null
 	floor_map.layout = null # the map must not show a floor that is not played

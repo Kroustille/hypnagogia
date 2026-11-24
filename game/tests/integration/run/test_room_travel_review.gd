@@ -150,13 +150,13 @@ func test_the_arena_fallback_cleans_the_loader_the_dash_and_the_layout() -> void
 	assert_null(_run.floor_map.layout, "the map shows nothing over the arena")
 
 
-func test_a_loader_load_waits_for_the_pending_requests_first() -> void:
+func test_a_loader_load_waits_only_for_its_own_path() -> void:
 	var loader: RoomLoader = RoomLoader.new()
 	loader.request_all(PackedStringArray([ROOM_A]))
-	assert_not_null(loader.scene_for(ROOM_C), "never requested: loaded on the spot")
-	assert_eq(loader.pending_count(), 0, "after the pending requests were collected")
-	assert_true(loader.is_ready(ROOM_A))
+	assert_not_null(loader.scene_for(ROOM_C), "never requested: requested and awaited on its own")
+	assert_eq(loader.pending_count(), 1, "the other request is left alone")
 	assert_not_null(loader.scene_for(ROOM_A))
+	assert_true(loader.is_ready(ROOM_A))
 
 
 func test_the_debug_arena_key_is_not_a_movement_key() -> void:

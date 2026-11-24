@@ -54,7 +54,9 @@ func run_started(at: float) -> void:
 ## stays what the readers of the file expect); seeded: given by the player. Ignored outside a run.
 func run_seeded(seed_code: String, seeded: bool) -> void:
 	for index: int in range(events.size() - 1, -1, -1):
-		if events[index]["type"] == "run_start":
+		if events[index]["type"] == "run_end":
+			return
+		if events[index]["type"] == "run_start" and not events[index].has("seed"):
 			events[index]["seed"] = seed_code
 			events[index]["seeded"] = seeded
 			return

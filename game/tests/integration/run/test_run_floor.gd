@@ -136,5 +136,5 @@ func test_a_failed_floor_start_leaves_the_map_empty() -> void:
 	broken.failure = "test failure"
 	run.floor_layout = broken
 	assert_false(run._start_floor())
-	assert_push_error("floor is invalid (test failure)")
+	assert_push_error("floor is invalid (test failure, seed=")
 	assert_null(run.floor_map.layout)
