@@ -251,10 +251,14 @@ func room_tier() -> int:
 	return _player.lucidity.room_tier
 
 
-## The gauge pulled the live tier below the room tier: the danger follows at once, with a sound and a red ring.
+## The gauge pulled the live tier below the room tier: the danger follows at once, with a sound and a red ring only
+## when the profile actually changed (Lucid -> Floating keeps the same danger).
 func _on_room_danger_raised(tier: Lucidity.Tier, _previous: Lucidity.Tier) -> void:
-	danger.apply_tier(tier, Tuning.LUCIDITY)
+	var changed: bool = danger.apply_tier(tier, Tuning.LUCIDITY)
 	_maybe_schedule_reinforcement()
+	if not changed:
+		Log.debug("combat", "room danger unchanged at tier=%d, no signal" % tier)
+		return
 	Audio.play_sfx(DANGER_RAISED_SOUND, 1)
 	_add_ring(_player.global_position, DANGER_RING_RADIUS_TILES * Const.TILE_SIZE, DANGER_RING_COLOR, DANGER_RING_DURATION)
 	Log.debug("combat", "room danger raised tier=%d bullet x%.2f telegraph x%.2f" % [tier, danger.enemy_bullet_speed_mult, danger.telegraph_mult])

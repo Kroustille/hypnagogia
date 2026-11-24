@@ -14,13 +14,21 @@ var reinforcement: bool = false
 var boss_extra_pattern: bool = false
 
 
-## Sets every field for a room tier (Lucidity.Tier as an int).
-func apply_tier(tier: int, tuning: LucidityTuning) -> void:
+## Sets every field for a room tier (Lucidity.Tier as an int). Returns true when at least one field changed.
+func apply_tier(tier: int, tuning: LucidityTuning) -> bool:
 	var index: int = clampi(tier, 0, Lucidity.Tier.size() - 1)
-	enemy_bullet_speed_mult = _entry(tuning.danger_bullet_speed_mult, index)
-	telegraph_mult = _entry(tuning.danger_telegraph_mult, index)
-	reinforcement = index >= tuning.reinforcement_from_tier
-	boss_extra_pattern = index >= tuning.boss_extra_pattern_from_tier
+	var speed: float = _entry(tuning.danger_bullet_speed_mult, index)
+	var telegraph: float = _entry(tuning.danger_telegraph_mult, index)
+	var call_reinforcement: bool = index >= tuning.reinforcement_from_tier
+	var extra_pattern: bool = index >= tuning.boss_extra_pattern_from_tier
+	var changed: bool = (
+			speed != enemy_bullet_speed_mult or telegraph != telegraph_mult
+			or call_reinforcement != reinforcement or extra_pattern != boss_extra_pattern)
+	enemy_bullet_speed_mult = speed
+	telegraph_mult = telegraph
+	reinforcement = call_reinforcement
+	boss_extra_pattern = extra_pattern
+	return changed
 
 
 ## The tier's entry, or 1 (neutral) when the table is too short.
