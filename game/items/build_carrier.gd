@@ -207,7 +207,7 @@ func _on_synergy_activated(def: SynergyDef) -> void:
 func _announce_pending() -> void:
 	for def: SynergyDef in _to_announce:
 		Log.info("items", "synergy %s announced" % def.id)
-		Events.banner_requested.emit(def.name_key, def.description_key, &"")
+		Events.banner_queued.emit(def.name_key, def.description_key, &"")
 		Audio.play_sfx(SYNERGY_SOUND, 1)
 	_to_announce.clear()
 

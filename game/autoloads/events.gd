@@ -94,6 +94,11 @@ signal item_acquired(item_id: StringName, copies: int)
 @warning_ignore("unused_signal")
 signal banner_requested(title_key: StringName, bonus_key: StringName, cost_key: StringName)
 
+## Like banner_requested but never replaces: shown at once when the HUD is idle, else after the banners already waiting
+## (the synergy banner of story 5.7 must not erase the item banner of the same frame).
+@warning_ignore("unused_signal")
+signal banner_queued(title_key: StringName, bonus_key: StringName, cost_key: StringName)
+
 ## The consumable slot changed (story 5.3): the id and name key of what is carried, both empty when the slot is free.
 @warning_ignore("unused_signal")
 signal consumable_changed(id: StringName, name_key: StringName)

@@ -2,7 +2,7 @@ class_name Banner
 extends Control
 ## A short announcement under the HUD band: a title and two lines (an item: name, bonus, cost), shown for a few seconds
 ## (story 5.1; story 5.7 reuses it for synergies). Display only: texts are translation keys given by Events.banner_requested.
-## A new request replaces the one on screen. Runs on real time, whatever the game clock does.
+## banner_requested replaces the one on screen; banner_queued waits for it (story 5.7 review). Runs on real time, whatever the game clock does.
 
 ## Seconds on screen.
 const DURATION: float = 3.0
@@ -15,6 +15,8 @@ const COST_COLOR: Color = Color(0.95, 0.6, 0.6)
 const PADDING: float = 4.0
 
 var _time_left: float = 0.0
+## Banners waiting for the one on screen, as (title, bonus, cost) keys.
+var _queue: Array[PackedStringArray] = []
 var _title: Label
 var _bonus: Label
 var _cost: Label
@@ -30,6 +32,7 @@ func _ready() -> void:
 	visible = false
 	set_process(false)
 	Events.banner_requested.connect(show_banner)
+	Events.banner_queued.connect(queue_banner)
 
 
 func _process(delta: float) -> void:
@@ -48,10 +51,22 @@ func show_banner(title_key: StringName, bonus_key: StringName, cost_key: StringN
 	set_process(true)
 
 
+## Shows the banner at once when nothing is on screen, else after the ones already waiting.
+func queue_banner(title_key: StringName, bonus_key: StringName, cost_key: StringName) -> void:
+	if not visible:
+		show_banner(title_key, bonus_key, cost_key)
+		return
+	_queue.append(PackedStringArray([title_key, bonus_key, cost_key]))
+
+
+## Hides the banner, then shows the next one of the queue (for DURATION).
 func hide_banner() -> void:
 	_time_left = 0.0
 	visible = false
 	set_process(false)
+	if not _queue.is_empty():
+		var next: PackedStringArray = _queue.pop_front()
+		show_banner(StringName(next[0]), StringName(next[1]), StringName(next[2]))
 
 
 func is_showing() -> bool:

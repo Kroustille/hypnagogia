@@ -17,10 +17,12 @@ var _banners: Array[StringName] = []
 func before_each() -> void:
 	_banners.clear()
 	Events.banner_requested.connect(_on_banner)
+	Events.banner_queued.connect(_on_banner)
 
 
 func after_each() -> void:
 	Events.banner_requested.disconnect(_on_banner)
+	Events.banner_queued.disconnect(_on_banner)
 	_harness.release()
 
 
