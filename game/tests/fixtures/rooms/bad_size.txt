@@ -1,6 +1,7 @@
 // A grid of 30x10 instead of 36x19.
 type: combat
 size: screen
+grid: loose
 
 ..............................
 ..............................

@@ -6,6 +6,7 @@ extends Node
 ## Source format (blank lines and lines starting with // are ignored):
 ##   type: combat          start | combat | treasure | shop | nightmare
 ##   size: screen          screen
+##   grid: loose           optional, test fixtures only: the grid may differ from the playable area (an error otherwise)
 ##   <grid rows>           the playable area, one row per line: . floor, # wall, H high obstacle, L low obstacle, P pit
 ##   spawn <enemy> <wave> <x> <y>     enemy: sleepwalker, night_light, lullaby, sheep (none = no enemy, for fixtures)
 ##   reinforce <x> <y>
@@ -31,6 +32,9 @@ const ROOM_TYPES: Dictionary = {
 const SIZE_KINDS: Dictionary = {"screen": Room.SizeKind.SCREEN}
 const DOOR_SIDES: Dictionary = {"N": Door.Side.N, "E": Door.Side.E, "S": Door.Side.S, "W": Door.Side.W}
 
+## Set by the `grid: loose` header: the grid is not checked against the playable area.
+var _loose_grid: bool = false
+
 
 func _ready() -> void:
 	var args: PackedStringArray = OS.get_cmdline_user_args()
@@ -55,8 +59,8 @@ func run(source_path: String, output_path: String) -> int:
 			room.free()
 		return 1
 	if output_path.is_empty():
-		var name: String = source_path.get_file().get_basename()
-		output_path = "%s/%s/%s.tscn" % [OUTPUT_ROOT, name.split("_")[0], name]
+		var room_name: String = source_path.get_file().get_basename()
+		output_path = "%s/%s/%s.tscn" % [OUTPUT_ROOT, room_name.split("_")[0], room_name]
 	var scene: PackedScene = PackedScene.new()
 	var packed: Error = scene.pack(room)
 	room.free()
@@ -75,6 +79,7 @@ func run(source_path: String, output_path: String) -> int:
 ## of the text are appended to errors (the room is still returned, as complete as possible).
 func build(text: String, errors: PackedStringArray) -> Room:
 	var room: Room = BASE_SCENE.instantiate() as Room
+	_loose_grid = false
 	var grid: Array[String] = []
 	var doors: Array[Door.Side] = []
 	var serial: int = 0
@@ -103,6 +108,8 @@ func build(text: String, errors: PackedStringArray) -> Room:
 				_add_trigger(room, words, serial, errors)
 			_:
 				errors.append("unknown line: %s" % line)
+	if not _loose_grid:
+		_check_grid(room, grid, errors)
 	_paint(room, grid)
 	return room
 
@@ -125,6 +132,11 @@ func _read_header(room: Room, line: String, errors: PackedStringArray) -> void:
 				room.is_nightmare = room.room_type == Room.RoomType.NIGHTMARE
 			else:
 				errors.append("unknown room type: %s" % value)
+		"grid":
+			if value == "loose":
+				_loose_grid = true
+			else:
+				errors.append("unknown grid mode: %s" % value)
 		"size":
 			if SIZE_KINDS.has(value):
 				room.size_kind = SIZE_KINDS[value]
@@ -133,6 +145,15 @@ func _read_header(room: Room, line: String, errors: PackedStringArray) -> void:
 		_:
 			errors.append("unknown header: %s" % key)
 
+
+## The grid covers the playable area exactly: a short row would leave a cell without floor or wall.
+func _check_grid(room: Room, grid: Array[String], errors: PackedStringArray) -> void:
+	var playable: Vector2i = room.playable_tiles()
+	if grid.size() != playable.y:
+		errors.append("grid has %d rows, expected %d" % [grid.size(), playable.y])
+	for row: int in grid.size():
+		if grid[row].length() != playable.x:
+			errors.append("grid row %d has %d characters, expected %d" % [row, grid[row].length(), playable.x])
 
 ## Floor under the whole grid, the frame of walls around the expected playable area, then the symbols of the grid.
 func _paint(room: Room, grid: Array[String]) -> void:

@@ -104,3 +104,40 @@ func test_a_reinforcement_marker_on_a_pit_is_reported() -> void:
 
 func test_the_pit_test_room_is_valid() -> void:
 	assert_eq(RoomValidator.validate(load("res://rooms/pool/onset/onset_combat_004.tscn") as PackedScene), PackedStringArray())
+
+
+func test_a_floor_hole_is_reported() -> void:
+	_assert_single_problem("floor_hole", "1 playable cell(s) without floor")
+
+
+func test_a_missing_frame_tile_is_reported() -> void:
+	var room: Room = (load(FIXTURES + "valid.tscn") as PackedScene).instantiate() as Room
+	(room.get_node("Walls") as TileMapLayer).erase_cell(Vector2i(10, 0))
+	var problems: PackedStringArray = RoomValidator.validate_room(room, "mutant")
+	room.free()
+	assert_eq(problems, PackedStringArray(["mutant: frame wall missing at (10, 0)"]))
+
+
+func test_a_reinforcement_marker_outside_the_grid_is_reported() -> void:
+	var problems: PackedStringArray = _problems_of("reinforcement_outside")
+	assert_eq(problems.size(), 1, str(problems))
+	assert_string_contains("\n".join(problems), "ReinforcementSpawn")
+	assert_string_contains("\n".join(problems), "outside the playable area")
+
+
+func test_a_blocked_player_entry_cell_is_reported() -> void:
+	_assert_single_problem("player_spawn_blocked", "player spawn at")
+
+
+func test_two_doors_on_the_same_side_are_reported() -> void:
+	var room: Room = (load(FIXTURES + "valid.tscn") as PackedScene).instantiate() as Room
+	var twin: Door = (load("res://rooms/door.tscn") as PackedScene).instantiate() as Door
+	twin.side = Door.Side.N
+	room.get_node("Doors").add_child(twin)
+	var problems: PackedStringArray = RoomValidator.validate_room(room, "mutant")
+	room.free()
+	assert_eq(problems, PackedStringArray(["mutant: two doors on the N side"]))
+
+
+func test_a_wave_with_too_many_markers_is_reported() -> void:
+	_assert_single_problem("wave_too_big", "wave 0 has 13 enemy markers")

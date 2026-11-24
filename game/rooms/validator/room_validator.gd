@@ -34,8 +34,14 @@ static func validate_room(room: Room, id: String) -> PackedStringArray:
 	var doors: Array[Door] = room.doors()
 	if doors.is_empty():
 		problems.append("no door")
+	var sides: Dictionary = {}
+	for door: Door in doors:
+		if sides.has(door.side):
+			problems.append("two doors on the %s side" % Door.Side.find_key(door.side))
+		sides[door.side] = true
+	_check_player_spawn(room, playable, problems)
 	_check_enemies(room, playable, frame, doors, problems)
-	_check_reinforcements(room, problems)
+	_check_reinforcements(room, playable, problems)
 	_check_reachability(room, playable, frame, doors, problems)
 	var tagged: PackedStringArray = PackedStringArray()
 	for problem: String in problems:
@@ -53,7 +59,17 @@ static func _check_layout(room: Room, playable: Vector2i, frame: Vector2i, probl
 	if floor_rect.size != playable or floor_rect.position != Vector2i.ONE:
 		problems.append("playable area is %dx%d tiles at %s, expected %dx%d at (1, 1)" % [
 			floor_rect.size.x, floor_rect.size.y, floor_rect.position, playable.x, playable.y])
+	else:
+		var holes: int = playable.x * playable.y - floor_layer.get_used_cells().size()
+		if holes != 0:
+			problems.append("%d playable cell(s) without floor" % holes)
 	var frame_rect: Rect2i = Rect2i(Vector2i.ZERO, frame)
+	for x: int in frame.x:
+		for y: int in [0, frame.y - 1]:
+			_require_frame_wall(walls, Vector2i(x, y), problems)
+	for y: int in range(1, frame.y - 1):
+		for x: int in [0, frame.x - 1]:
+			_require_frame_wall(walls, Vector2i(x, y), problems)
 	var playable_rect: Rect2i = Rect2i(Vector2i.ONE, playable)
 	for cell: Vector2i in walls.get_used_cells():
 		if not frame_rect.has_point(cell):
@@ -67,26 +83,29 @@ static func _check_layout(room: Room, playable: Vector2i, frame: Vector2i, probl
 				problems.append("%s cell %s outside the playable area" % [layer_name, cell])
 
 
+## The frame is complete: doors are walls in the scene (they open at runtime).
+static func _require_frame_wall(walls: TileMapLayer, cell: Vector2i, problems: PackedStringArray) -> void:
+	if walls.get_cell_source_id(cell) == -1:
+		problems.append("frame wall missing at %s" % cell)
+
+
+## The player enters at the center of the room (until story 4.8): that cell must be free.
+static func _check_player_spawn(room: Room, playable: Vector2i, problems: PackedStringArray) -> void:
+	var position: Vector2 = room.to_local(room.player_spawn_position())
+	_check_marker_cell("player spawn at %s" % position, position, Rect2i(Vector2i.ONE, playable), _blockers(room), problems)
+
 static func _check_enemies(room: Room, playable: Vector2i, frame: Vector2i, doors: Array[Door], problems: PackedStringArray) -> void:
 	var spawns: Array[EnemySpawn] = room.enemy_spawns()
 	if spawns.is_empty() and room.room_type == Room.RoomType.COMBAT:
 		problems.append("combat room without EnemySpawn")
 	var playable_rect: Rect2i = Rect2i(Vector2i.ONE, playable)
-	var blockers: Dictionary = {
-		"wall": _layer(room, "Walls"), "high obstacle": _layer(room, "HighObstacles"),
-		"low obstacle": _layer(room, "LowObstacles"), "pit": _layer(room, "Pits"),
-	}
+	var blockers: Dictionary = _blockers(room)
+	_check_wave_sizes(spawns, problems)
 	for spawn: EnemySpawn in spawns:
 		var label: String = "EnemySpawn %s (wave %d) at %s" % [spawn.name, spawn.wave, spawn.position]
 		if spawn.enemy == null:
 			problems.append("%s has no enemy" % label)
-		var cell: Vector2i = Vector2i((spawn.position / Const.TILE_SIZE).floor())
-		if not playable_rect.has_point(cell):
-			problems.append("%s is outside the playable area" % label)
-		for kind: String in blockers:
-			var layer: TileMapLayer = blockers[kind]
-			if layer != null and layer.get_cell_source_id(cell) != -1:
-				problems.append("%s is on a %s" % [label, kind])
+		_check_marker_cell(label, spawn.position, playable_rect, blockers, problems)
 		for door: Door in doors:
 			var distance: float = spawn.position.distance_to(Door.center_for(door.side, frame)) / Const.TILE_SIZE
 			if distance < MIN_SPAWN_DOOR_DISTANCE_TILES:
@@ -94,40 +113,69 @@ static func _check_enemies(room: Room, playable: Vector2i, frame: Vector2i, door
 					label, distance, Door.Side.find_key(door.side), MIN_SPAWN_DOOR_DISTANCE_TILES])
 
 
-static func _check_reinforcements(room: Room, problems: PackedStringArray) -> void:
-	if REINFORCEMENT_FREE_TYPES.has(room.room_type) or room.is_nightmare:
-		return
+static func _check_reinforcements(room: Room, playable: Vector2i, problems: PackedStringArray) -> void:
+	var blockers: Dictionary = _blockers(room)
 	var container: Node = room.get_node_or_null("ReinforcementSpawns")
 	var count: int = 0
 	if container != null:
 		for child: Node in container.get_children():
-			if child is ReinforcementSpawn:
+			var marker: ReinforcementSpawn = child as ReinforcementSpawn
+			if marker != null:
 				count += 1
-	if count == 0:
+				_check_marker_cell("ReinforcementSpawn %s at %s" % [marker.name, marker.position], marker.position,
+						Rect2i(Vector2i.ONE, playable), blockers, problems)
+	var exempt: bool = REINFORCEMENT_FREE_TYPES.has(room.room_type) or room.is_nightmare
+	if count == 0 and not exempt:
 		problems.append("no ReinforcementSpawn")
 
 
+## The layers whose cells a marker or the player may not stand on, by label.
+static func _blockers(room: Room) -> Dictionary:
+	return {
+		"wall": _layer(room, "Walls"), "high obstacle": _layer(room, "HighObstacles"),
+		"low obstacle": _layer(room, "LowObstacles"), "pit": _layer(room, "Pits"),
+	}
+
+
+## A marker sits inside the playable area, on no wall, obstacle or pit.
+static func _check_marker_cell(label: String, position: Vector2, playable_rect: Rect2i, blockers: Dictionary, problems: PackedStringArray) -> void:
+	var cell: Vector2i = Vector2i((position / Const.TILE_SIZE).floor())
+	if not playable_rect.has_point(cell):
+		problems.append("%s is outside the playable area" % label)
+		return # the layers below are not drawn out there
+	for kind: String in blockers:
+		var layer: TileMapLayer = blockers[kind]
+		if layer != null and layer.get_cell_source_id(cell) != -1:
+			problems.append("%s is on a %s" % [label, kind])
+
+
+## A wave holds at most WaveRunner.MAX_WAVE_ENEMIES enemies: the markers beyond would be dropped, shifting the slots.
+static func _check_wave_sizes(spawns: Array[EnemySpawn], problems: PackedStringArray) -> void:
+	var sizes: Dictionary[int, int] = {}
+	for spawn: EnemySpawn in spawns:
+		if spawn.enemy != null and spawn.enemy.scene != null:
+			sizes[spawn.wave] = sizes.get(spawn.wave, 0) + 1
+	var waves: Array = sizes.keys()
+	waves.sort()
+	for wave: int in waves:
+		if sizes[wave] > WaveRunner.MAX_WAVE_ENEMIES:
+			problems.append("wave %d has %d enemy markers (maximum %d)" % [wave, sizes[wave], WaveRunner.MAX_WAVE_ENEMIES])
+
+
 ## Every enemy marker and every door must be reachable on foot from the first door: floor without pit, wall or
-## obstacle, 4-connected (story 4.3). Reinforcement markers must not sit on a pit.
+## obstacle, 4-connected (story 4.3).
 static func _check_reachability(room: Room, playable: Vector2i, frame: Vector2i, doors: Array[Door], problems: PackedStringArray) -> void:
 	var floor_layer: TileMapLayer = _layer(room, "Floor")
 	if floor_layer == null or doors.is_empty():
 		return
 	if floor_layer.get_used_rect().size != playable:
 		return # the layout problem is already reported
-	var pits: TileMapLayer = _layer(room, "Pits")
 	var blockers: Array[TileMapLayer] = []
 	for layer_name: String in ["Walls", "HighObstacles", "LowObstacles", "Pits"]:
 		var layer: TileMapLayer = _layer(room, layer_name)
 		if layer != null:
 			blockers.append(layer)
 	var playable_rect: Rect2i = Rect2i(Vector2i.ONE, playable)
-	var container: Node = room.get_node_or_null("ReinforcementSpawns")
-	if container != null and pits != null:
-		for child: Node in container.get_children():
-			var reinforcement: ReinforcementSpawn = child as ReinforcementSpawn
-			if reinforcement != null and pits.get_cell_source_id(Vector2i((reinforcement.position / Const.TILE_SIZE).floor())) != -1:
-				problems.append("ReinforcementSpawn %s at %s is on a pit" % [reinforcement.name, reinforcement.position])
 	var walkable: Callable = func(cell: Vector2i) -> bool:
 		if not playable_rect.has_point(cell) or floor_layer.get_cell_source_id(cell) == -1:
 			return false
