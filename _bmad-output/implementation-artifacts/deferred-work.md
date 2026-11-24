@@ -467,4 +467,11 @@
 
 - **NON ÉVALUÉ (humain) : drops et Éclats** : pickups de drop provisoires (disques rouge, gris-bleu, or), équilibre 1 à 3 Éclats × palier et 30 % de chance de drop. Playtest du jalon A.
 - **Traité en 5.4** : « Pickups superposés et réarmement » (prise dans le même tick : `_must_leave`), « Consommable déposé et pickups superposés », « Validation des objets contournée » (`Room.add_offer` et `BuildCarrier.refusal_of` vérifient `ItemCatalog.problem_of`). Pas traité : un pickup grisé qui redevient prenable sous le joueur est pris sans sortie (voulu pour les soins, AC5).
-- **Test instable** : `test_seed_flow.test_a_new_floor_does_not_wait_for_the_loads_of_the_previous_run` échoue de temps en temps en suite complète (chargements en arrière-plan déjà terminés).
+- **Test instable** : `test_seed_flow.test_a_new_floor_does_not_wait_for_the_loads_of_the_previous_run` échoue de temps en temps en suite complète (chargements en arrière-plan déjà terminés). → correctif de revue 5.4 (test déterministe).
+
+## Deferred from: code review of 5-4-gagner-des-eclats-et-des-drops-selon-son-palier (2026-11-24)
+
+- **Flux `drops` et `extra_drops`** (5.9, Copie d'examen) : `Loot.roll` ajoute un tirage de type par drop garanti, plus un tirage de consommable si c'est le type (`game/economy/loot.gd:28-29`, `:41-42`) ; tenir la Copie d'examen décalerait le flux de toutes les salles suivantes (contraire à AC3 « ni l'inventaire »). Tirer toujours `consumable_roll` (pas fixe de 4 tirages) et donner aux drops garantis un nombre fixe d'emplacements ou un sous-flux.
+- **Gains d'Éclats en télémétrie** (5.5, achats) : `run_end.shards` est le solde final (`game/telemetry/telemetry_session.gd:96`, `:182`) ; pour juger la cible du GDD (≈16 par étage Lucide, ≈32 en Abandon), l'enregistrement d'achat doit porter le prix (gains = solde + somme des prix), ou ajouter `shards_earned` (somme des hausses).
+- **Doc d'architecture** (fin d'epic 5, après validation de la décision 7 de 5.4) : `Drops.spawn(kind, position, rng)` y est écrit ; le code a `Drops.spawn(room, kind, position, consumable_roll)`.
+- **Test du vrai chemin « salle vidée → drop »** (5.4, faible) : `test_loot_flow.gd` émet `room_cleared` à la main et appelle `Drops.spawn` depuis le test ; aucun test ne tue le dernier ennemi pour vérifier le drop différé (sans « busy ») à `last_kill_position()`.

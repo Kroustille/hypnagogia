@@ -1,6 +1,6 @@
 # Story 5.4 : Gagner des Éclats et des drops selon son palier
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -34,6 +34,14 @@ Hors périmètre : 10 Éclats par cauchemar battu (epic 6), pactes qui doublent 
 - [x] `Room` mémorise la position de la dernière mort (le `tree_exited` du dernier ennemi : `enemy.position`, la salle est à l'origine monde) et l'expose (`last_kill_position()`).
 - [x] `Events.shards_changed`, `Hud._shards`, `strings.csv` si nouveau texte.
 - [x] Tests.
+
+### Review Findings
+
+Revue de code 2026-11-24 (trois couches : Blind Hunter, Edge Case Hunter, Acceptance Auditor ; plage `cd5e71a..2214ebb` + `77f5cbe`). 3 correctifs, 4 reportés, 12 écartés. Les correctifs de revue 5.3 (`77f5cbe`) sont tous présents. Chiffres du GDD conformes (1 à 3 Éclats, 30 %, ×1 / 1,25 / 1,5 / 2 / 2, 3 Éclats) ; palier = `room_tier()` (le plus bas atteint dans la salle), pas la jauge.
+
+- [ ] [Review][Patch] Une pause ou un fondu de porte efface la retenue des pickups superposés [game/items/pickup.gd:119 au commit 2214ebb, :221 dans l'arbre de travail 5.5] — `_on_body_exited` remet `_must_leave = false` sans condition ; la pause (`Main._freeze` désactive l'ActiveScene) signale une sortie, et à la reprise le pickup retenu est pris sans que le joueur soit sorti (deux prix de Dent, échange de consommables). Correctif : `_touching = false` puis `if can_process() and _player.can_process(): _must_leave = false` suivi du `if not _armed: _arm()` existant dans le même bloc. Test : deux consommables empilés, en prendre un, `_freeze(true)` puis `_freeze(false)` sans bouger, le second reste au sol.
+- [ ] [Review][Patch] La garde « salle libérée » de `Drops._lay` est inatteignable [game/economy/drops.gd:24] — le paramètre typé `room: Room` fait rejeter une instance libérée par la VM avant le corps (« Invalid type… previously freed ») : `is_instance_valid(room)` ne s'exécute jamais. En jeu, la salle n'est libérée que par `queue_free` (la file différée passe avant la suppression), donc seul un `free()` direct (GUT autofree, futur code) y arrive. Correctif : `static func _lay(room_ref: Object, kind: Kind, position: Vector2, consumable_roll: int) -> void:` puis `if not is_instance_valid(room_ref): return`, `var room: Room = room_ref as Room`, `if room == null or not room.is_inside_tree(): return`.
+- [ ] [Review][Patch] Test instable `test_seed_flow` « the new floor did not wait for the old requests » : hypothèse de minutage du test, pas une course de `RoomLoader`/`Run` [game/tests/integration/run/test_seed_flow.gd:231] — `drain()` ne prend jamais une requête `IN_PROGRESS` et l'adoption évite les doubles jetons (code 4.11 juste) ; mais le nombre d'orphelins dépend de la fin des chargements entre `request_all` et `drain` : seuls restent les chemins de l'étage SEED absents de SEED+1 et encore en cours. Vérifié : cache de ressources chaud → 0 orphelin à chaque fois, à froid 0 ou 1 selon le tirage (la suite complète réchauffe le cache). Correctif : (a) supprimer la ligne 231 (garder `assert_not_null(_run().floor_layout)`), finir le test par `RoomLoader.collect_orphans(true)` et l'ajouter aussi à `after_each` (ligne 17) ; (b) rendre la vérification « ne jamais attendre » déterministe : dans `game/run/room_loader.gd`, `## Test seam: how drain() reads the status of a load.` `var status_of: Callable = ResourceLoader.load_threaded_get_status` et, ligne 64, `var status: int = status_of.call(path) as int` ; dans `game/tests/integration/run/test_room_loader_drain.gd`, un test `request_all(_paths())`, `var pending: int = loader.pending_count()`, `loader.status_of = func(_path: String) -> int: return ResourceLoader.THREAD_LOAD_IN_PROGRESS`, `loader.drain()`, `assert_eq(RoomLoader.orphan_count(), pending)` (le `after_each` existant collecte avec attente).
 
 ## État du code concerné
 
@@ -78,6 +86,10 @@ epics.md (Story 5.4) ; GDD « Économie », « Loot » par palier, tableau des p
 11. **(Dev)** Pickups superposés (déféré 5.1 / 5.3) : quand un pickup est pris, ceux qui seraient aussi prenables sous le joueur attendent qu'il sorte (`_must_leave`) ; un pickup de soin refusé n'est pas concerné (il est pris dès que le joueur se blesse, AC5). Réarmement après sortie : seul `_must_leave` est effacé à la sortie.
 12. **(Dev)** `ItemCatalog.problem_of` est maintenant vérifiée par `Room.add_offer` (refus + erreur, pas d'assert) et `BuildCarrier.refusal_of` ; les consommables des drops passent par `ConsumableCatalog`.
 13. **(Dev)** Les correctifs de revue 5.3 (armement, `is_available`, même consommable, validation et cache du catalogue) ont été appliqués dans des commits à part avant ceux de 5.4.
+14. **(Revue)** Nombre de tirages par salle : 3, ou 4 si le type tiré est un consommable. Accepté pour 5.4 : il ne dépend que du flux lui-même, jamais du palier, de la chance ni de l'inventaire (AC3 tenu, même seed = mêmes salles). Le pas fixe (tirer toujours le consommable) est reporté à 5.9 avec `extra_drops`, qui, lui, ferait dépendre le flux de l'inventaire.
+15. **(Revue)** Télémétrie `shards` = solde en fin de run (lecture littérale d'AC8 « total d'Éclats ») ; gardé. Les gains se déduisent du solde + somme des prix d'achat : reporté à 5.5 (l'enregistrement d'achat doit porter le prix).
+16. **(Revue)** Décision 7 (`Drops.spawn(room, kind, position, consumable_roll)` au lieu de `(kind, position, rng)`) : gardée ; la doc d'architecture sera alignée après validation.
+17. **(Revue)** Test instable `test_seed_flow` : classé hypothèse de minutage du test (pas de course dans `RoomLoader`/`Run`) ; correctif = test déterministe avec un point d'injection du statut dans `RoomLoader.drain()`.
 
 ## Dev Agent Record
 
@@ -99,3 +111,4 @@ epics.md (Story 5.4) ; GDD « Économie », « Loot » par palier, tableau des p
 ### Change Log
 
 - 2026-11-24 : implémentation de la story 5.4, passée en `review`.
+- 2026-11-24 : revue de code (3 couches) : 3 correctifs à appliquer, story repassée en `in-progress`.
