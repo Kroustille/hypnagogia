@@ -84,7 +84,7 @@ development_status:
   epic-4: in-progress
   4-1-tester-la-logique-du-jeu-sans-le-lancer: done
   4-2-jouer-une-salle-predessinee: done
-  4-3-tomber-dans-les-trous: review
+  4-3-tomber-dans-les-trous: in-progress
   4-4-jouer-avec-la-salle-meubles-et-elements-declenchables: ready-for-dev
   4-5-des-ennemis-qui-contournent-les-obstacles: ready-for-dev
   4-6-explorer-les-grandes-salles: ready-for-dev

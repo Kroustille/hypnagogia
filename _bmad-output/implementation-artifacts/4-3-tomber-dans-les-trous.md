@@ -1,6 +1,6 @@
 # Story 4.3 : Tomber dans les trous
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -35,6 +35,17 @@ Hors périmètre : Ailes de papier et Chute sans fin (epic 5, qui poseront les m
 - [x] Fonction de chute unique `Player._fall(position)` (dégâts, repositionnement, invulnérabilité), jamais un second chemin.
 - [x] Mouton (`max_charge_distance`), Somnambule (pas de poussée), `onset_combat_004` via l'outil ASCII, `RoomValidator` (cellules interdites, accessibilité).
 - [x] Tests `tests/unit/player/test_pit_guard.gd`, `tests/integration/player/test_pit_fall.gd` (marche, dash au-dessus, dash qui finit dedans, Glissement dedans, stat active, invulnérable), `tests/unit/rooms/test_room_validator.gd` (nouvelles règles) ; `.scratch` : `run_all.sh` une fois.
+
+### Review Findings
+
+Revue de code 2026-11-24 (Opus, trois couches : Blind Hunter, Edge Case Hunter, Acceptance Auditor), sur `cf6a433..b94e7fc`. Lignes = HEAD `b94e7fc`. 6 correctifs, 6 reports, 2 décisions, 10 rejets. Conformes : chute à la marche et en fin de dash, Glissement (coût, recharge, pas d'invulnérabilité d'arrivée), invulnérable renvoyé sans dégâts, mort `player_hit(PIT)` avant `run_ended` et cause télémétrie `pit` (l'écran de réveil n'affiche pas la source), montant < 1 sans coup, Mouton (repos sans étourdissement, `0` = sans limite, distance réelle en px remise à zéro à chaque charge), Somnambule (le contact blesse toujours : `contact_size` 0,875 > `body_size` 0,625 ; il n'est pas bloqué, CHASE → TELEGRAPH → RUSH → CHASE), l'Éveil ne pousse que les ennemis. Les renforts `reinforce 36 …` hors grille et l'apparition du joueur dans le couloir de trous de `onset_combat_004` (à `b94e7fc`, la case du centre était un trou) sont corrigés par le correctif de la 4.2 (`4541cc6`) ; `room.gd` et le validateur ont bougé depuis : lignes `HEAD 23f9cd5` indiquées quand elles diffèrent.
+
+- [ ] [Review][Patch] **La chute ne remet pas l'élan à zéro** [`game/player/player.gd:301`, `:206`] : `velocity = Vector2.ZERO` est réécrit au tick suivant depuis `PlayerMotor.velocity`, qui garde sa vitesse ; touche maintenue, le joueur repart à pleine vitesse depuis `last_safe` (8 px du bord) et retombe (coup refusé, tremblement visible). Au Glissement c'est pire : `_fall()` passe dans `_update_powers()` avant `velocity = motor_velocity * clock_scale` et `move_and_slide()` du même tick. Ajouter `PlayerMotor.reset()` (`velocity = Vector2.ZERO`), l'appeler dans `_fall()`, et à la ligne 206 écrire `velocity = _motor.velocity * clock_scale` (au lieu de la variable locale lue avant les pouvoirs). Test : après une chute touche maintenue, `_motor.velocity == Vector2.ZERO` au tick de la chute.
+- [ ] [Review][Patch] **En vol, une cellule de trou devient la position sûre** [`game/player/player.gd:290`] : avec `CAN_FLY_OVER_PITS`, `last_safe` peut être le centre d'un trou ; si le vol cesse au-dessus d'un trou (objet de l'epic 5), le joueur est renvoyé dans le trou à chaque tick, un demi-cœur par seconde jusqu'à la mort. `var safe: bool = on_floor and not _room.is_pit_at(global_position)` (le vol ne fait que supprimer la chute, dans `_is_over_pit`). Compléter `test_flying_over_pits_never_falls` : après la traversée, `_room.is_pit_at(_player._pit_guard.last_safe)` est faux. Décision R1.
+- [ ] [Review][Patch] **Aucune chute tant qu'aucune cellule sûre n'est vue** [`game/player/player.gd:179-181`] : `enter_room` recrée le `PitGuard` vide et `should_fall` exige `_has_safe` ; un joueur dont le premier tick finit sur un trou traverse les trous librement jusqu'au premier sol (et un Glissement dans un trou à ce moment garde l'invulnérabilité d'arrivée). Dans `enter_room`, après `PitGuard.new()` : `var spawn: Vector2 = room.player_spawn_position()` puis `_pit_guard.observe(room.cell_center_at(spawn), room.is_floor_at(spawn) and not room.is_pit_at(spawn))` (`Run` place le joueur à cette position juste après ; la 4.8 y passera la case d'entrée de la porte).
+- [ ] [Review][Patch] **Le joueur naît au bord exact du couloir de trous** [`art_source/rooms/onset_combat_004.txt`, `game/rooms/pool/onset/onset_combat_004.tscn`] : après `4541cc6` (couloir déplacé sur les colonnes 14..17 du texte, tuiles 15..18), l'apparition (304, 168) = x 19,0 tuiles tombe sur la frontière exacte entre le trou de la tuile 18 et le sol de la tuile 19 ; 1 px à gauche au premier tick suffit à tomber (ou à traverser, finding précédent). Éloigner le couloir d'au moins deux tuiles du centre, par exemple couloir sur les colonnes 11..14 du texte (tuiles 12..15) et l'îlot `PP` des colonnes 10-11 (lignes 8-9) déplacé en 7-8 ; reconstruire avec `tools/build_room.sh`. Décision R2.
+- [ ] [Review][Patch] **`leave_room()` ne vérifie pas quelle salle part** [`game/player/player.gd:185-186`, `game/rooms/room.gd:266` (HEAD)] : une salle qui sort de l'arbre après le `_ready` de la suivante (4.8) coupe les trous de la nouvelle. `func leave_room(room: Room) -> void: if _room == room: _room = null`, appelé `_player.leave_room(self)`.
+- [ ] [Review][Patch] **Accessibilité : la case du joueur et les renforts ne sont pas exigés** [`game/rooms/validator/room_validator.gd:214-217` (HEAD)] : report de la revue 4.2 adressé à la 4.3 (« atteindre aussi les `ReinforcementSpawn` et la case du joueur ») ; le flood fill n'exige que les portes et les `EnemySpawn`. Après la boucle des `EnemySpawn`, même contrôle pour la cellule de `room.to_local(room.player_spawn_position())` (« player spawn is cut off from the doors ») et pour chaque `ReinforcementSpawn` (« … is cut off from the doors »), seulement si la cellule est `walkable` (sinon déjà signalée par `_check_marker_cell`, `4541cc6`). Fixture : une poche fermée par `P` autour d'un renfort.
 
 ## État du code concerné
 
@@ -79,6 +90,11 @@ Décisions prises en développement :
 15. **Somnambule : `test_move()` avant d'avancer** ; s'il touche le joueur, il ne bouge pas (ni marche ni ruée) ; le contact (zone `Hitbox`) blesse toujours.
 16. **Fixtures de test** : `pit_band` (bande de trous, salle de départ sans ennemi), `pits_cut_door`, `enemy_cut_off`, `reinforcement_on_pit` (sources `.txt` à côté des `.tscn`, construits par `tools/build_room.sh`).
 
+Décisions de la revue de code :
+
+R1. **En vol, la position sûre reste une cellule sans trou** : le critère 5 (« la position sûre se met à jour partout ») est lu comme « sur tout sol sûr traversé » ; sinon la fin du vol au-dessus d'un trou enferme le joueur dans une boucle de chutes (contraire au critère 6).
+R2. **Couloir de `onset_combat_004` décalé du centre** : le critère 11 dit « au centre », mais le joueur paraît au centre de la salle jusqu'à la 4.8 ; deux tuiles de marge comptent plus que la position exacte du couloir.
+
 ## Dev Agent Record
 
 ### Agent Model Used
@@ -101,3 +117,4 @@ Claude Sonnet 5.5
 ### Change Log
 
 - 2026-11-24 : implémentation de la story 4.3 (trous, chute, Mouton, Somnambule, salle 004, validateur).
+- 2026-11-24 : revue de code (Opus, trois couches) : 6 correctifs à faire, 6 reports, 2 décisions ; retour en `in-progress`.

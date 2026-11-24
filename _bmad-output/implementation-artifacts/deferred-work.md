@@ -341,3 +341,12 @@
 - **Les ennemis ne tombent pas** (décision 4) : le Mouton qui charge au-dessus d'un trou le traverse ; la 4.5 les fera contourner par le chemin.
 - **Cause de mort « pit » dans le télémétrie** (clé de l'enum en minuscules) ; l'écran de réveil n'affiche pas la source : pas de chaîne localisée à ajouter.
 - **La salle `onset_combat_004` n'est pas équilibrée** (une vague, ennemis du pool de départ) ; à juger au jalon B.
+
+## Deferred from: code review of 4-3-tomber-dans-les-trous (2026-11-24)
+
+- **Retour de chute sur un corps** (story 4.5) : `_fall()` replace au centre de `last_safe` sans tester les corps ; un ennemi garé là (le Somnambule s'arrête désormais au contact) chevauche le joueur, la sortie de pénétration peut le repousser dans le trou, et son contact blesse. Tester la destination (requête de forme comme le Glissement) et garder un court historique de cellules sûres dans `PitGuard`.
+- **Le recul du Mouton pousse un joueur immobile** (story 4.5) : l'état BACKUP avance sans exception de collision ni `test_move` ; même famille que le critère 10 (Somnambule). Factoriser la garde « ne pas avancer dans la cible touchée » dans `Enemy`.
+- **Glissement pendant un dash, arrivée dans un trou** (polish avant le playtest du jalon A) : `_fall()` ne coupe pas le dash, qui reprend depuis `last_safe` sur sa direction figée et peut refinir dans le trou (seconde chute refusée par l'invulnérabilité). Ajouter `Dash.cancel()` appelé par `_fall()`, ou refuser le Glissement pendant un dash.
+- **`max_charge_distance = 45` calé sur une salle d'un écran** (story 4.6) : en salle WIDE/TALL une charge légitime mur à mur peut dépasser 45 tuiles et finir sans étourdissement ; dériver la limite de la taille de la salle.
+- **Poches atteignables seulement au Glissement** (story 4.10, contenu du pool) : un îlot de sol entouré de trous plus larges que le dash (3 tuiles) mais à portée de Glissement (6) passe le validateur ; sans 20 de lucidité, le joueur y retombe à chaque pas. Signaler les cases de sol non atteintes par le flood fill.
+- **Invulnérabilité du dash et chute de fin de dash** (réglage) : avec `invulnerability_duration >= duration` (aujourd'hui 0,15 s < 0,18 s), un dash qui finit dans un trou renverrait toujours sans dégâts. Le documenter dans `DashTuning`.
