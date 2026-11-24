@@ -82,6 +82,14 @@ func finish_tick() -> void:
 		ended.emit()
 
 
+## Stops a dash in flight at once (the player was moved to another place): no cooldown change, no `ended` signal.
+func cancel() -> void:
+	_active = false
+	_invulnerable = false
+	_buffered = false
+	_step = 0.0
+
+
 func is_active() -> bool:
 	return _active
 

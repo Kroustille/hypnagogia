@@ -159,14 +159,19 @@ func _setup_health() -> void:
 	hurtbox.damage_received.connect(_on_hurtbox_damage_received)
 
 
-## Called by the room once it has built its BulletManager (the player is already ready by then).
+## Called by the room once it has built its BulletManager (the player is already ready by then). Repeatable: the same
+## manager again changes nothing; a manager that is gone or about to be freed is refused. A new manager gets its own
+## shot appearance (the previous one belonged to the manager of the room left).
 func equip_bullets(manager: BulletManager) -> void:
-	if manager == null:
-		Log.error("combat", "equip_bullets() called without a BulletManager")
+	if manager == null or not is_instance_valid(manager) or manager.is_queued_for_deletion():
+		Log.error("combat", "equip_bullets() called without a usable BulletManager")
 		assert(false, "equip_bullets() needs a BulletManager")
+		return
+	if manager == _bullets:
 		return
 	var tuning: ShotTuning = Tuning.SHOT
 	_bullets = manager
+	_unequipped_reported = false
 	_shot_params = BulletParams.new()
 	_shot_params.speed = stats.value_of(StatBlock.Stat.SHOT_SPEED)
 	_shot_params.radius = maxf(tuning.hitbox_size, 0.0) / 2.0
@@ -184,10 +189,21 @@ func enter_room(room: Room) -> void:
 	_pit_guard.observe(room.cell_center_at(spawn), room.is_floor_at(spawn) and not room.is_pit_at(spawn))
 
 
-## The room goes away: no more pit test. Ignored when another room has become current since (the next one may enter first).
+## The room goes away: the player forgets everything it gave (pit test, shots). Ignored when another room has become
+## current since (the next one may enter first).
 func leave_room(room: Room) -> void:
 	if _room == room:
 		_room = null
+	if _bullets != null and (not is_instance_valid(_bullets) or room.is_ancestor_of(_bullets)):
+		_bullets = null
+		_shot_params = null
+
+
+## Stops the walk and a dash in flight (the player is placed somewhere else: a room entered by a door).
+func stop_motion() -> void:
+	_dash.cancel()
+	_motor.reset()
+	velocity = Vector2.ZERO
 
 
 func _physics_process(delta: float) -> void:
