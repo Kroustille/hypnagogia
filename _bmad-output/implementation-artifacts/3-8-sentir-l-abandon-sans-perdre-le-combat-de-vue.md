@@ -1,6 +1,6 @@
 # Story 3.8 : Sentir l'abandon, sans perdre le combat de vue
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -25,15 +25,15 @@ Hors périmètre : musique réelle (7.7 ; ici une boucle provisoire), menu d'acc
 
 ## Tâches
 
-- [ ] `Const` : `Z_INDEX_DECOR` passe de -1 à -2 (chercher toutes les utilisations : `Arena`, scènes `.scratch`), `Z_INDEX_POSTFX = -1`, `Z_INDEX_COMBAT = 10` (alias de `Z_INDEX_ENEMY_BULLETS`).
-- [ ] `vfx/shaders/lucidity_distortion.gdshader` (`canvas_item`) : `uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest`, uniforms `wave_amount` (px), `aberration` (px), `time` ; décalage par entier de pixels (arrondi) ; aucun flou.
-- [ ] `vfx/lucidity_fx.gd` (`Node`, fils de l'arène) : crée `PostFx` (`ColorRect` de la taille du cadre de la salle, `z_index = Z_INDEX_POSTFX`, matériau du shader) ; cible d'intensité par palier ; interpolation en ticks du groupe `FX` ; applique `Audio.set_music_muffle(cutoff_hz)` ; lit `Settings`. `setup(player)` avant `add_child` ; état initial depuis `lucidity.live_tier` ; écoute `Events.lucidity_tier_changed`.
-- [ ] `Audio` : boucle provisoire (`audio/music/music_placeholder.wav`, générée, 8 s, `loop_mode` avant) jouée sur `Music` à `_ready` ; `AudioEffectLowPassFilter` ajouté à `Music` par code ; `set_music_muffle(cutoff_hz)`, `music_cutoff_hz()` ; `Main` ne la relance pas à chaque partie.
-- [ ] `Settings` : `distortion_intensity`, `shake_intensity` (0..1, défaut 1), `photosensitive` (faux) ; section `[accessibility]` de `settings.cfg`, lecture assainie (type et bornes, `NaN` refusé), setters qui enregistrent, comme `damage_numbers`.
-- [ ] `SettingsMenu` : deux curseurs et une case (réutiliser les modèles volume et `DamageNumbersButton`) ; clés `UI_SETTINGS_DISTORTION`, `UI_SETTINGS_SHAKE`, `UI_SETTINGS_PHOTOSENSITIVE` dans `strings.csv` ; la case photosensibilité prime sur les curseurs sans les modifier (décision 4).
-- [ ] `LucidityTuning` : `fx_wave`, `fx_aberration`, `fx_music_cutoff_hz` (5 valeurs chacun), `fx_transition` (0,5 s), `fx_photosensitive_cap` (0,5), `shake_pixels` et `shake_duration` pour Éveil.
-- [ ] `Arena.shake(pixels, duration)` : décalage entier de `Camera`, retour exact à la position d'origine ; appelé par `_on_awakening_used` (3.3).
-- [ ] Vérifications `t_lucidity_fx` ; une capture fenêtrée WSLg pour juger (NON VÉRIFIÉ par un humain) ; `run_all.sh` une fois à la fin.
+- [x] `Const` : `Z_INDEX_DECOR` passe de -1 à -2 (chercher toutes les utilisations : `Arena`, scènes `.scratch`), `Z_INDEX_POSTFX = -1`, `Z_INDEX_COMBAT = 10` (alias de `Z_INDEX_ENEMY_BULLETS`).
+- [x] `vfx/shaders/lucidity_distortion.gdshader` (`canvas_item`) : `uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest`, uniforms `wave_amount` (px), `aberration` (px), `time` ; décalage par entier de pixels (arrondi) ; aucun flou.
+- [x] `vfx/lucidity_fx.gd` (`Node`, fils de l'arène) : crée `PostFx` (`ColorRect` de la taille du cadre de la salle, `z_index = Z_INDEX_POSTFX`, matériau du shader) ; cible d'intensité par palier ; interpolation en ticks du groupe `FX` ; applique `Audio.set_music_muffle(cutoff_hz)` ; lit `Settings`. `setup(player)` avant `add_child` ; état initial depuis `lucidity.live_tier` ; écoute `Events.lucidity_tier_changed`.
+- [x] `Audio` : boucle provisoire (`audio/music/music_placeholder.wav`, générée, 8 s, `loop_mode` avant) jouée sur `Music` à `_ready` ; `AudioEffectLowPassFilter` ajouté à `Music` par code ; `set_music_muffle(cutoff_hz)`, `music_cutoff_hz()` ; `Main` ne la relance pas à chaque partie.
+- [x] `Settings` : `distortion_intensity`, `shake_intensity` (0..1, défaut 1), `photosensitive` (faux) ; section `[accessibility]` de `settings.cfg`, lecture assainie (type et bornes, `NaN` refusé), setters qui enregistrent, comme `damage_numbers`.
+- [x] `SettingsMenu` : deux curseurs et une case (réutiliser les modèles volume et `DamageNumbersButton`) ; clés `UI_SETTINGS_DISTORTION`, `UI_SETTINGS_SHAKE`, `UI_SETTINGS_PHOTOSENSITIVE` dans `strings.csv` ; la case photosensibilité prime sur les curseurs sans les modifier (décision 4).
+- [x] `LucidityTuning` : `fx_wave`, `fx_aberration`, `fx_music_cutoff_hz` (5 valeurs chacun), `fx_transition` (0,5 s), `fx_photosensitive_cap` (0,5), `shake_pixels` et `shake_duration` pour Éveil.
+- [x] `Arena.shake(pixels, duration)` : décalage entier de `Camera`, retour exact à la position d'origine ; appelé par `_on_awakening_used` (3.3).
+- [x] Vérifications `t_lucidity_fx` ; une capture fenêtrée WSLg pour juger (NON VÉRIFIÉ par un humain) ; `run_all.sh` une fois à la fin.
 
 ## État du code concerné
 
@@ -87,6 +87,32 @@ Hors périmètre : musique réelle (7.7 ; ici une boucle provisoire), menu d'acc
 
 ### Agent Model Used
 
+Claude Sonnet 5.5
+
 ### Completion Notes
 
+- Couches : `Const.Z_INDEX_DECOR = -2`, `Z_INDEX_POSTFX = -1`, `Z_INDEX_COMBAT = 10` (alias). Seule `Arena` utilisait le z du décor (aucune scène de vérification ne le lisait). Le test balaie l'arbre : seuls les quatre calques de décor et `PostFx` sont sous 0.
+- Distorsion : `vfx/shaders/lucidity_distortion.gdshader` (copie de l'écran, onde par ligne de pixels, aberration des canaux rouge et bleu, décalages entiers, aucun flou) et `vfx/lucidity_fx.gd` (fils de l'arène : `PostFx` `ColorRect` du cadre de la salle, matériau par instance, ease linéaire de 0,5 s en ticks `FX`, cutoff interpolé en log). `PostFx` est masqué quand l'onde et l'aberration valent 0 (aucune copie d'écran en Lucide). Cibles : `LucidityTuning.fx_*` x `Settings.distortion_intensity`, plafonnées à `fx_photosensitive_cap` (px) en photosensibilité.
+- Musique : `Audio` joue `audio/music/music_placeholder.wav` (8 s, 22 050 Hz mono, partiels à cycles entiers : boucle sans raccord, `edit/loop_mode=2` dans l'import) sur `Music` dès `_ready`, avec un seul `AudioEffectLowPassFilter` ; `set_music_muffle()` / `music_cutoff_hz()`.
+- Réglages : `Settings` (`distortion_intensity`, `shake_intensity`, `photosensitive`, section `[accessibility]`, lecture assainie, setters qui enregistrent), `SettingsMenu` (deux curseurs enregistrés au relâchement, une case) et trois clés `strings.csv`.
+- Tremblement : `Arena.shake(pixels, duration)` décale `Camera.offset` d'entiers (1 à `round(pixels x réglage)` par axe, nouveau tirage tous les 3 ticks), flux `cosmetic` de `Run.rng`, retour exact à zéro, figé en pause ; appelé par `_on_awakening_used`.
+- Sortie propre : `Audio._exit_tree` arrête tous les lecteurs et attend quelques passes du mixeur (borné à 600 ms) ; sans cela la boucle musicale (jamais finie) ferait fuir une ressource à chaque sortie.
+- Flakiness (tâche annexe) : `t_hud` laissait un son de tir jouer à la sortie ; le correctif est dans `Audio._exit_tree` (tous les lecteurs arrêtés et vidés), pas dans la scène. `t_telemetry` : le contrôle du plafond du dossier comptait les fichiers de `user://telemetry/` que les autres scènes parallèles modifient au même moment ; il élague maintenant un dossier à lui (`Telemetry._prune_old_sessions(directory)` prend le dossier en paramètre, par défaut inchangé).
+- Vérifications : `t_lucidity_fx` (71 contrôles : constantes et ordre des couches, tables, cibles, réglages, assainissement, couches du jeu, paliers un à un, ease à mi-chemin, remontée, réglage et photosensibilité, menu, tremblement, déterminisme du flux `cosmetic`, relance). `run_all.sh` complet en mode normal : voir le résultat ci-dessous. `--quit-after 120` propre.
+- NON ÉVALUÉ (humain) : aspect de l'onde et de l'aberration à chaque palier, rendu du filtre passe-bas sur la boucle, ressenti du tremblement, coût du `hint_screen_texture` (60 fps en F3), lisibilité du combat en Abandon total ; les captures fenêtrées WSLg n'ont pas été prises (pas d'affichage utilisable dans cette session). Voir `deferred-work.md`.
+
+### Décisions prises sans Kroustille (ajouts du dev)
+
+9. **Photosensibilité : `fx_photosensitive_cap` est un plafond en pixels (0,5), pas une fraction** — Raison : l'onde et l'aberration sont déjà en pixels ; 0,5 px arrondi donne au plus 1 px d'aberration et presque aucune onde.
+10. **Amplitude du tremblement = `round(shake_pixels x réglage)`, 1 à cette valeur par axe ; 0 donc rien à 0 % et à 20 % ou moins** — Raison : entiers uniquement ; un tremblement de 0 px n'existe pas.
+11. **Sortie : `Audio._exit_tree` vide les lecteurs** — Raison : une boucle ne finit jamais, elle fuirait à chaque `--quit-after` ; règle aussi la fuite des sons de tir de `t_hud`.
+12. **`Telemetry._prune_old_sessions` prend un dossier** — Raison : permet de tester le plafond sans partager `user://telemetry/` avec les scènes parallèles.
+13. **`run_all.sh` ignore les avertissements de lecture de `Settings` de `t_lucidity_fx`** — Raison : la scène force des valeurs invalides pour tester l'assainissement.
+
 ### File List
+
+`game/core/constants.gd`, `game/core/lucidity_tuning.gd`, `game/data/tuning/lucidity_tuning.tres`, `game/vfx/shaders/lucidity_distortion.gdshader`, `game/vfx/lucidity_fx.gd`, `game/autoloads/audio.gd`, `game/audio/music/music_placeholder.wav` (+ `.import`), `game/autoloads/settings.gd`, `game/ui/menus/settings_menu.{gd,tscn}`, `game/localization/strings.csv`, `game/rooms/arena/arena.gd`, `game/telemetry/telemetry.gd`, `_bmad-output/implementation-artifacts/deferred-work.md`, `.scratch/t_lucidity_fx.*`, `.scratch/t_telemetry.gd` et `.scratch/run_all.sh` (non versionnés).
+
+### Change Log
+
+- 2026-11-24 : implémentation de la 3.8 (distorsions, passe-bas, réglages, tremblement d'Éveil), passage en `review`.
