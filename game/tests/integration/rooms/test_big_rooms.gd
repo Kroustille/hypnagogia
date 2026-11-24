@@ -116,3 +116,83 @@ func test_the_screen_to_world_transform_follows_the_camera_for_the_mouse_aim() -
 	await get_tree().process_frame
 	var center: Vector2 = get_viewport().get_canvas_transform().affine_inverse() * (Vector2(Const.VIEWPORT) / 2.0)
 	assert_almost_eq(center.x, 800.0, 1.5, "the middle of the screen is the camera, so get_global_mouse_position() follows it")
+
+
+## The camera view minus the HUD band, in room coordinates.
+func _visible_rect() -> Rect2:
+	var band: Vector2 = Vector2(0.0, Const.HUD_BAND_HEIGHT)
+	return Rect2(_camera().position - Vector2(Const.VIEWPORT) / 2.0 + band, Vector2(Const.VIEWPORT) - band)
+
+
+func _marker_positions() -> Array[Vector2]:
+	var found: Array[Vector2] = []
+	for child: Node in _harness.room.get_node("ReinforcementSpawns").get_children():
+		var marker: Marker2D = child as Marker2D
+		if marker != null:
+			found.append(_harness.room.to_local(marker.global_position))
+	return found
+
+
+func test_a_reinforcement_in_a_wide_room_appears_inside_the_camera_view() -> void:
+	_harness.start(WIDE)
+	var room: Room = _harness.room
+	_harness.player.global_position = Vector2(200.0, 168.0) # camera at the left wall: only the left markers are in view
+	await _harness.ticks(2)
+	var view: Rect2 = _visible_rect()
+	var any_visible: bool = false
+	for marker_pos: Vector2 in _marker_positions():
+		any_visible = any_visible or view.has_point(marker_pos)
+	assert_true(any_visible, "at least one marker is in the view, else the test proves nothing")
+	for i: int in 8:
+		assert_true(view.has_point(room._pick_reinforcement_position()), "pick %d is in the view" % i)
+
+
+func test_a_one_screen_room_picks_the_reinforcement_exactly_as_before() -> void:
+	_harness.start("res://rooms/pool/onset/onset_combat_001.tscn")
+	var room: Room = _harness.room
+	await _harness.ticks(2)
+	var view: Rect2 = _visible_rect()
+	var markers: Array[Vector2] = _marker_positions()
+	for marker_pos: Vector2 in markers:
+		assert_true(view.has_point(marker_pos), "every marker of a one-screen room is in the view")
+	var player_pos: Vector2 = room.to_local(_harness.player.global_position)
+	var min_px: float = Tuning.COMBAT.min_spawn_distance * Const.TILE_SIZE
+	var far: Array[Vector2] = []
+	var farthest: Vector2 = markers[0]
+	for marker_pos: Vector2 in markers:
+		if marker_pos.distance_to(player_pos) >= min_px - Room.SPAWN_DISTANCE_EPSILON:
+			far.append(marker_pos)
+		if marker_pos.distance_to(player_pos) > farthest.distance_to(player_pos):
+			farthest = marker_pos
+	if far.is_empty():
+		far.append(farthest)
+	room._rng = RunRng.new(77)
+	var reference: RunRng = RunRng.new(77)
+	var expected: Vector2 = far[reference.stream(Room.COMBAT_STREAM, 0).randi_range(0, far.size() - 1)]
+	assert_eq(room._pick_reinforcement_position(), expected)
+
+
+func test_the_camera_is_snapped_after_a_glide() -> void:
+	_harness.start(WIDE)
+	_harness.player.global_position = Vector2(592.0, 168.0)
+	_harness.player.velocity = Vector2.ZERO
+	await _harness.ticks(2)
+	Input.action_press(&"aim_right", 1.0)
+	await _harness.ticks(2)
+	Input.action_press(&"power_2")
+	var start_x: float = _harness.player.global_position.x
+	var glided: bool = await _harness.until(func() -> bool: return _harness.player.global_position.x > start_x + 32.0, 6)
+	Input.action_release(&"power_2")
+	Input.action_release(&"aim_right")
+	assert_true(glided, "the player glided")
+	assert_eq(_camera().position.x, _harness.player.global_position.x, "camera on its target in the tick of the glide")
+
+
+func test_the_debug_emitter_fires_from_the_middle_of_the_current_room() -> void:
+	_harness.start(WIDE)
+	var panel: DebugPanel = (load("res://debug/debug_panel.tscn") as PackedScene).instantiate() as DebugPanel
+	add_child_autofree(panel)
+	assert_true(panel._fire(1, 0.0))
+	var manager: BulletManager = panel._find_enemy_manager(_harness.player)
+	assert_eq(manager.active_count, 1)
+	assert_eq(manager._positions[0].x, _harness.room.frame_px().x / 2.0, "the middle of a WIDE room, not of one screen")

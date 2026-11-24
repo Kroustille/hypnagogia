@@ -191,3 +191,15 @@ func test_a_lethal_fall_reports_the_pit_before_the_end_of_the_run() -> void:
 	Events.player_hit.disconnect(on_hit)
 	Events.run_ended.disconnect(on_end)
 	assert_eq(log, ["hit %d" % DamageInfo.Source.PIT, "end"] as Array[String])
+
+
+func test_the_camera_is_on_its_target_in_the_tick_of_a_fall() -> void:
+	await _stand_at(CELL_20_X)
+	var before: int = _player.health.half_hearts
+	Input.action_press(&"move_right")
+	await _harness.until(func() -> bool: return _player.health.half_hearts < before, 60)
+	Input.action_release(&"move_right")
+	var camera: Camera2D = _harness.room.get_node("%Camera") as Camera2D
+	var room: Room = _harness.room
+	var target: Vector2 = Vector2(RoomCamera.target(room.to_local(_player.global_position), room.frame_px(), Vector2(Const.VIEWPORT), Const.HUD_BAND_HEIGHT))
+	assert_eq(camera.position, target, "the camera follows the returned player at once")

@@ -18,8 +18,8 @@ extends Resource
 @export_range(0.0, 20.0, 0.25, "or_greater") var min_spawn_distance: float = 3.0
 ## Collision radius of every enemy bullet, in tiles (4 px): the reserved look has this diameter, what is seen is what hits.
 @export_range(0.05, 2.0, 0.05, "or_greater") var enemy_bullet_radius: float = 0.25
-## Safety net of an enemy bullet, in seconds: not a range, walls stop every bullet well before.
-@export_range(0.5, 60.0, 0.5, "or_greater") var enemy_bullet_lifetime: float = 10.0
+## Safety net of an enemy bullet, in seconds: covers the frame diagonal of a WIDE room (~77 tiles) at the slowest bullet speed.
+@export_range(0.5, 60.0, 0.5, "or_greater") var enemy_bullet_lifetime: float = 18.0
 ## Half-hearts lost by a fall into a pit (story 4.3): the base of the PIT_DAMAGE stat.
 @export_range(0, 48, 1, "or_greater") var pit_damage_half_hearts: int = 1
 ## Seconds between two recalculations of an enemy's path (story 4.5): throttled, never every frame.

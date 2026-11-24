@@ -241,7 +241,9 @@ func _fire(count: int, spread_degrees: float) -> bool:
 	_params.radius = Tuning.COMBAT.enemy_bullet_radius
 	_params.lifetime = EMITTER_BULLET_LIFETIME
 	_params.damage = Tuning.COMBAT.hit_damage_half_hearts
-	var origin: Vector2 = Vector2((Const.ROOM_TILES.x + 2) * Const.TILE_SIZE / 2.0, 2.5 * Const.TILE_SIZE)
+	var room: Room = get_tree().get_first_node_in_group(Const.GROUP_ROOM) as Room
+	var origin_x: float = room.frame_px().x / 2.0 if room != null else (Const.ROOM_TILES.x + 2) * Const.TILE_SIZE / 2.0
+	var origin: Vector2 = Vector2(origin_x, 2.5 * Const.TILE_SIZE)
 	var offset: Vector2 = manager.to_local(player.global_position) - origin
 	if offset == Vector2.ZERO:
 		return true

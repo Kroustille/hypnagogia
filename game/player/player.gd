@@ -264,6 +264,8 @@ func _try_glide() -> void:
 	var from: Vector2 = global_position
 	global_position = destination
 	reset_physics_interpolation() # the sprite (and the reticle) must not cross the screen in one tick
+	if _room != null:
+		_room.snap_camera()
 	_glide_cooldown.start(tuning.cooldown)
 	# Landing in a pit: no arrival invulnerability, it would refuse the fall hit (story 4.3).
 	var falls: bool = _is_over_pit()
@@ -305,6 +307,8 @@ func _fall() -> void:
 	velocity = Vector2.ZERO
 	_motor.reset() # else the motor rewrites the velocity next tick and the player walks back into the pit
 	reset_physics_interpolation()
+	if _room != null:
+		_room.snap_camera()
 	var amount: int = roundi(stats.value_of(StatBlock.Stat.PIT_DAMAGE))
 	Log.debug("combat", "player fell at %s, back to %s damage=%d" % [from, global_position, amount])
 	if amount < 1:

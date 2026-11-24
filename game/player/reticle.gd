@@ -32,6 +32,7 @@ func _enter_tree() -> void:
 
 func _ready() -> void:
 	top_level = true
+	process_priority = 1 # after the room camera (0): the canvas transform read in _process is this frame's, not the previous one
 	z_index = Z_INDEX
 	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	if _player == null:
