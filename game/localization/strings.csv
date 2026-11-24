@@ -41,3 +41,10 @@ UI_MAP_TITLE,Carte de l'étage
 UI_MAP_LEGEND_TREASURE,Trésor
 UI_MAP_LEGEND_SHOP,Boutique
 UI_MAP_LEGEND_NIGHTMARE,Cauchemar
+UI_PAUSE_SEED,Seed : %s
+UI_WAKE_SEED,Seed : %s
+UI_SEED_NEW_GAME,Nouvelle partie avec une seed
+UI_SEED_PROMPT,Entre une seed de 8 caractères
+UI_SEED_INVALID,Seed invalide : 8 caractères (chiffres et lettres sans U)
+UI_SEED_CONFIRM,Lancer
+UI_SEED_CANCEL,Annuler

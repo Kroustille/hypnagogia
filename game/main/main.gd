@@ -14,6 +14,7 @@ const SLOW_MOTION_SCALE: float = 0.25
 const WAKE_SCREEN_SCENE: PackedScene = preload("res://ui/menus/wake_screen.tscn")
 const PAUSE_MENU_SCENE: PackedScene = preload("res://ui/menus/pause_menu.tscn")
 const SETTINGS_MENU_SCENE: PackedScene = preload("res://ui/menus/settings_menu.tscn")
+const SEED_ENTRY_SCENE: PackedScene = preload("res://ui/menus/seed_entry.tscn")
 const HUD_SCENE: PackedScene = preload("res://ui/hud/hud.tscn")
 const MAP_VIEW_SCENE: PackedScene = preload("res://ui/map/floor_map_view.tscn")
 
@@ -31,6 +32,9 @@ var _run_options: RunOptions
 var _wake_screen: WakeScreen
 var _pause_menu: PauseMenu
 var _settings_menu: SettingsMenu
+var _seed_entry: SeedEntry
+## What the seed window was opened from, to give the focus back when it is cancelled.
+var _seed_entry_from_wake: bool = false
 var _map_view: FloorMapView
 
 @onready var _active_scene: Node = %ActiveScene
@@ -85,15 +89,21 @@ func _setup_menus() -> void:
 	_wake_screen = WAKE_SCREEN_SCENE.instantiate() as WakeScreen
 	_pause_menu = PAUSE_MENU_SCENE.instantiate() as PauseMenu
 	_settings_menu = SETTINGS_MENU_SCENE.instantiate() as SettingsMenu
+	_seed_entry = SEED_ENTRY_SCENE.instantiate() as SeedEntry
 	_ui.add_child(_wake_screen)
 	_ui.add_child(_pause_menu)
 	_ui.add_child(_settings_menu)
+	_ui.add_child(_seed_entry) # last: it takes the input before the menus below it
 	_wake_screen.restart_requested.connect(_on_wake_screen_restart_requested)
 	_wake_screen.verdict_given.connect(_on_wake_screen_verdict_given)
+	_wake_screen.new_seed_requested.connect(_on_wake_screen_new_seed_requested)
 	_pause_menu.resume_requested.connect(_on_pause_menu_resume_requested)
 	_pause_menu.settings_requested.connect(_on_pause_menu_settings_requested)
 	_pause_menu.quit_requested.connect(_on_pause_menu_quit_requested)
+	_pause_menu.new_seed_requested.connect(_on_pause_menu_new_seed_requested)
 	_settings_menu.back_requested.connect(_on_settings_menu_back_requested)
+	_seed_entry.seed_submitted.connect(_on_seed_entry_seed_submitted)
+	_seed_entry.cancelled.connect(_on_seed_entry_cancelled)
 
 
 func _notification(what: int) -> void:
@@ -114,11 +124,9 @@ func _set_paused(value: bool, reason: String = "") -> void:
 		return
 	_freeze(value)
 	if value:
-		_pause_menu.open()
+		_pause_menu.open(_seed_code())
 	else:
-		_settings_menu.hide()
-		_pause_menu.hide()
-		get_viewport().gui_release_focus()
+		_close_menus()
 	var suffix: String = " (%s)" % reason if not reason.is_empty() else ""
 	Log.info("ui", "game %s%s" % ["paused" if value else "resumed", suffix])
 
@@ -136,6 +144,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		var wants_load_test: bool = not _load_test_active
 		if wants_load_test:
 			_clear_active_scene() # the run releases its pending background loads before a synchronous load()
+			RoomLoader.collect_orphans(true)
 			var load_test: PackedScene = load(BULLET_LOAD_TEST_PATH) as PackedScene
 			# Flip the flag only after a successful load, so a failed load cannot desynchronize it.
 			if load_test != null and _show_scene(load_test):
@@ -159,7 +168,10 @@ func _unhandled_input(event: InputEvent) -> void:
 func _start_run(options: RunOptions = null) -> void:
 	if options != null:
 		_run_options = options
+	else:
+		_run_options = _fresh_seed_options(_run_options) # a restart is a new night, not a replay of the typed seed
 	_wake_screen.hide()
+	_close_menus()
 	_run_over = false
 	# Remove the old run while still frozen, unfreeze, then add the new one: it must enter an enabled tree.
 	_clear_active_scene()
@@ -167,7 +179,30 @@ func _start_run(options: RunOptions = null) -> void:
 	var run: Run = RUN_SCENE.instantiate() as Run
 	run.setup(_run_options) # before add_child()
 	_active_scene.add_child(run)
+	_run_options = run.played_options() # the options actually played: a room that could not load fell back to the arena
 	_load_test_active = false
+
+
+## The same mode and room as options, with a seed to draw: a restart never replays the seed of the run before.
+func _fresh_seed_options(previous: RunOptions) -> RunOptions:
+	var options: RunOptions = RunOptions.new()
+	options.mode = previous.mode
+	options.room_path = previous.room_path
+	return options
+
+
+## Hides the pause menu, the settings and the seed window, and drops the focus they held.
+func _close_menus() -> void:
+	_settings_menu.hide()
+	_pause_menu.hide()
+	_seed_entry.hide()
+	get_viewport().gui_release_focus()
+
+
+## The seed code of the run in progress (or just ended), empty when there is no run (load test).
+func _seed_code() -> String:
+	var run: Run = get_tree().get_first_node_in_group(Const.GROUP_RUN) as Run
+	return run.rng.seed_code() if run != null and run.rng != null else ""
 
 
 ## Removes every child of ActiveScene.
@@ -205,7 +240,7 @@ func _on_events_run_ended(_outcome: int) -> void:
 	_run_over = true
 	_run_ended_msec = Time.get_ticks_msec()
 	_freeze(true)
-	_wake_screen.open()
+	_wake_screen.open(_seed_code())
 
 
 func _on_wake_screen_restart_requested() -> void:
@@ -230,8 +265,34 @@ func _on_pause_menu_quit_requested() -> void:
 
 func _on_settings_menu_back_requested() -> void:
 	_settings_menu.hide()
-	_pause_menu.open(true)
+	_pause_menu.open(_seed_code(), PauseMenu.Focus.SETTINGS)
 
+
+## The player wants to type a seed, from the pause menu or from the wake screen.
+func _on_pause_menu_new_seed_requested() -> void:
+	_seed_entry_from_wake = false
+	_pause_menu.hide()
+	_seed_entry.open()
+
+
+func _on_wake_screen_new_seed_requested() -> void:
+	_seed_entry_from_wake = true
+	_seed_entry.open()
+
+
+## A valid seed was typed: a new run on it, from the one place that starts runs.
+func _on_seed_entry_seed_submitted(seed_value: int) -> void:
+	Log.info("run", "new game requested on a typed seed")
+	Events.run_requested.emit(RunOptions.Mode.FLOOR, seed_value, true, "")
+
+
+## Escape on the seed window: back to the menu it came from, nothing else changed.
+func _on_seed_entry_cancelled() -> void:
+	_seed_entry.hide()
+	if _seed_entry_from_wake:
+		_wake_screen.focus_new_seed()
+	else:
+		_pause_menu.open(_seed_code(), PauseMenu.Focus.NEW_SEED)
 
 ## A new run was requested on the bus. The game is unfrozen first (the pause menu may be what asked).
 func _on_run_requested(mode: int, seed_value: int, seeded: bool, room_path: String) -> void:

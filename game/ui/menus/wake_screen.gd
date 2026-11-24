@@ -8,6 +8,8 @@ extends Control
 signal restart_requested
 ## The player answered "was this death fair?". Never emitted when they restart without answering.
 signal verdict_given(just: bool)
+## The player asks to start a new game on a seed they type (Main opens the SeedEntry window).
+signal new_seed_requested
 
 ## Input guard after the screen opens, in seconds (UI placeholder, not a gameplay value).
 const INPUT_GUARD_SECONDS: float = 0.3
@@ -17,7 +19,9 @@ var _armed: bool = false
 var _answered: bool = false
 
 @onready var _title: Label = %Title
+@onready var _seed_label: Label = %SeedLabel
 @onready var _restart_button: Button = %RestartButton
+@onready var _new_seed_button: Button = %NewSeedButton
 @onready var _question: Label = %Question
 @onready var _yes_button: Button = %YesButton
 @onready var _no_button: Button = %NoButton
@@ -26,20 +30,24 @@ var _answered: bool = false
 func _ready() -> void:
 	_title.text = tr(&"UI_WAKE_TITLE")
 	_restart_button.text = tr(&"UI_WAKE_RESTART") % _restart_key_label()
+	_new_seed_button.text = tr(&"UI_SEED_NEW_GAME")
 	_yes_button.text = tr(&"UI_WAKE_YES")
 	_no_button.text = tr(&"UI_WAKE_NO")
 	_yes_button.pressed.connect(_give_verdict.bind(true))
 	_no_button.pressed.connect(_give_verdict.bind(false))
 	_restart_button.pressed.connect(_on_restart_button_pressed)
+	_new_seed_button.pressed.connect(_on_new_seed_button_pressed)
 	hide()
 
 
-## Shows the screen with the inputs guarded; the restart button takes the focus.
-func open() -> void:
+## Shows the screen with the inputs guarded and the seed of the run that just ended; the restart button takes the focus.
+func open(seed_code: String) -> void:
+	_seed_label.text = tr(&"UI_WAKE_SEED") % seed_code
 	show()
 	_guard_ticks_left = INPUT_GUARD_SECONDS * Engine.physics_ticks_per_second
 	_armed = false
 	_restart_button.disabled = true
+	_new_seed_button.disabled = true
 	_answered = false
 	_question.text = tr(&"UI_WAKE_QUESTION")
 	_set_answers_enabled(false)
@@ -53,6 +61,7 @@ func _physics_process(_delta: float) -> void:
 	if _guard_ticks_left <= 1e-6:
 		_armed = true
 		_restart_button.disabled = false
+		_new_seed_button.disabled = false
 		_set_answers_enabled(true)
 
 
@@ -72,8 +81,21 @@ func _request_restart() -> void:
 	restart_requested.emit()
 
 
+## Gives the focus back to the seed button (the seed window was cancelled).
+func focus_new_seed() -> void:
+	if _armed:
+		_new_seed_button.grab_focus()
+	else:
+		_restart_button.grab_focus()
+
+
 func _on_restart_button_pressed() -> void:
 	_request_restart()
+
+
+func _on_new_seed_button_pressed() -> void:
+	if visible and _armed:
+		new_seed_requested.emit()
 
 
 ## Label of the first key bound to restart. Works headless (unlike DisplayServer.keyboard_get_label_from_physical()).

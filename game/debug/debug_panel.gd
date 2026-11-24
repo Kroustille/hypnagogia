@@ -85,6 +85,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			_new_run(RunOptions.Mode.ARENA, "arena (milestone A)")
 		KEY_F:
 			_new_run(RunOptions.Mode.FLOOR, "floor")
+		KEY_C:
+			replay_current_seed()
+		KEY_V:
+			replay_seed_code(DisplayServer.clipboard_get())
 		_:
 			handled = false
 	if handled:
@@ -193,6 +197,27 @@ func _new_run(mode: RunOptions.Mode, label: String) -> void:
 	Events.run_requested.emit(mode, 0, false, "")
 	_log("new run: %s" % label)
 
+
+## Starts a new floor on the seed of the run in progress (story 4.11). Same request as the seed window: seeded.
+func replay_current_seed() -> void:
+	var run: Run = get_tree().get_first_node_in_group(Const.GROUP_RUN) as Run
+	if run == null:
+		_log("no run")
+		return
+	Events.run_requested.emit(RunOptions.Mode.FLOOR, run.state.run_seed, true, "")
+	_log("new floor on the current seed %s" % run.rng.seed_code())
+
+
+## Starts a new floor on the seed of a code (the clipboard for the V key). False, with the message in the panel, when
+## the code is not valid: no run is requested.
+func replay_seed_code(code: String) -> bool:
+	var seed_value: int = RunRng.code_to_seed(code)
+	if seed_value < 0:
+		_log("seed code invalid: '%s'" % code.strip_edges().left(RunRng.CODE_LENGTH * 2))
+		return false
+	Events.run_requested.emit(RunOptions.Mode.FLOOR, seed_value, true, "")
+	_log("new floor on seed %s" % RunRng.new(seed_value).seed_code())
+	return true
 
 ## Restarts the run in the next room of the pool (sorted by path), then loops back to the first one.
 func _next_pool_room() -> void:
@@ -311,6 +336,8 @@ func _refresh_text() -> void:
 		"G floor map of the seed (journal)",
 		"B new run in the arena (milestone A)",
 		"F new run on a floor (rooms joined by doors)",
+		"C new floor on the current seed",
+		"V new floor on the seed code of the clipboard",
 	])
 	if player != null:
 		var health: Health = player.health
