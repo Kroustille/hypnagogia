@@ -1,6 +1,6 @@
 # Story 5.9 : Copie d'examen vierge et Être nu en public
 
-Status: in-progress
+Status: done
 
 ## Story
 
@@ -98,11 +98,13 @@ epics.md (Story 5.9) ; GDD lignes Copie d'examen vierge et Être nu en public, n
 
 Revue de code (2026-11-24, Opus, trois couches en passes isolées : Blind Hunter, Edge Case Hunter, Acceptance Auditor) sur `9e6edb7..1c8408d` plus les hunks 5.9 de `94a020a` (`build_carrier.gd`, `hud.gd`, `strings.csv`). GUT `integration/items/` 65/65 sur un arbre propre à `1c8408d`. Vérifiés sans défaut : `room_entered` en fin de `Room._ready` (seul `BlankExamEffect` l'écoute ; `Events.room_entered` de `Run` inchangé, une émission par instance de salle), `fight_started` une fois au premier `begin_room` après `first_wave_delay`, gêne en ticks `ENEMIES` (Réveil cassé compris), `pace_mult` / `fire_hold` hors `apply_tier`, remis à `end_room`, tous les déplacements ennemis passent par `_move_in_direction`, chrono coupé à `room_cleared` / mort / détachement (le HUD persistant reçoit −1 au démontage du run), `Loot.roll` à tirages fixes, `_free_spot` (l'offre prise est marquée avant l'émission du remplacement), boutique sans armure.
 
-- [ ] [Review][Patch] Bonus d'Être nu en public tronqué à « Les ennemis ne tirent pas pendant 1 » [`game/localization/strings.csv:84`] — la virgule de « 1,5 s » coupe le champ CSV (vérifié avec `tr()`) : mettre la valeur entre guillemets, `ITEM_NAKED_IN_PUBLIC_BONUS,"Les ennemis ne tirent pas pendant 1,5 s au début de chaque salle"`.
-- [ ] [Review][Patch] Variable morte et commentaire confus [`game/items/effects/blank_exam_effect.gd:10`, `:50`, `:72`, `game/economy/shop_stock.gd:9`] — supprimer `_expired` (écrit, jamais lu) ; réécrire le commentaire de `ShopStock.draw` : « item, item, consumable, heart, armor (a second heart when blocks_armor); an item or the consumable is missing when nothing is left to offer », coupé sous 120 colonnes.
+- [x] [Review][Patch] Bonus d'Être nu en public tronqué à « Les ennemis ne tirent pas pendant 1 » [`game/localization/strings.csv:84`] — la virgule de « 1,5 s » coupe le champ CSV (vérifié avec `tr()`) : mettre la valeur entre guillemets, `ITEM_NAKED_IN_PUBLIC_BONUS,"Les ennemis ne tirent pas pendant 1,5 s au début de chaque salle"`.
+- [x] [Review][Patch] Variable morte et commentaire confus [`game/items/effects/blank_exam_effect.gd:10`, `:50`, `:72`, `game/economy/shop_stock.gd:9`] — supprimer `_expired` (écrit, jamais lu) ; réécrire le commentaire de `ShopStock.draw` : « item, item, consumable, heart, armor (a second heart when blocks_armor); an item or the consumable is missing when nothing is left to offer », coupé sous 120 colonnes.
 - [x] [Review][Defer] Étiquette du chrono : « Copie d'examen : 45 s » mesure 131 px pour 130 px de large ; alignée à droite, elle commence à x = 104 et chevauche la 12e icône de la rangée de cœurs (x 105–113). Voir `deferred-work.md`.
 - [x] [Review][Defer] Copie d'examen + Être nu en public : le drop garanti peut être une ½ armure, toujours refusée. Voir `deferred-work.md`.
 - [x] [Review][Defer] Arène en boucle : le chrono s'arrête au premier `room_cleared` de vague, le rythme ×1,3 posé avant reste jusqu'à la fin (pas d'`end_room`). Voir `deferred-work.md`.
+
+Correctifs de revue appliqués et vérifiés : bonus entre guillemets (`tr()` rend « 1,5 s », test GUT ajouté) et nettoyages (`_expired`, commentaire de `ShopStock.draw`).
 
 ## Dev Agent Record
 
