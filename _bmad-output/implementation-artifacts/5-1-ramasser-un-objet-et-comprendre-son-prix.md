@@ -1,6 +1,6 @@
 # Story 5.1 : Ramasser un objet et comprendre son prix
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -29,14 +29,14 @@ Hors périmètre : salle trésor (5.2), consommables (5.3), Éclats et drops (5.
 
 ## Tâches
 
-- [ ] `items/` : `item_def.gd`, `modifier_def.gd`, `owned_item.gd`, `loadout.gd`, `tag_tracker.gd` (compte les `id` distincts par tag ; signal `tag_count_changed(tag, count)` ; 5.7 y branche les seuils), `build_carrier.gd`, `item_effect.gd` (base : `attach(carrier)`, `detach()`, `tick(dt)` appelé par le carrier seulement si `wants_tick`, `activate()` pour 5.8), `item_catalog.gd` (charge `data/items/*.tres`, trié, gère le suffixe `.remap` comme `RoomInfo.scene_paths`), `pickup.gd/.tscn`.
-- [ ] `RoomStock` / `Offer` (`economy/room_stock.gd`) : liste d'`Offer` d'une salle (`kind`, `item: ItemDef`, `position` en coordonnées de salle, `taken`, `price` = 0). `Run` en garde un par cellule (`stocks: Dictionary[Vector2i, RoomStock]`) et le passe à la salle par `RoomOptions.stock` ; `Room._ready()` crée un `Pickup` par offre non prise ; `Room.add_offer(offer)` en ajoute une (F1, drops 5.4). C'est le seul mécanisme de ramassable de l'epic : un objet laissé par terre revient à la prochaine visite.
-- [ ] `Health.lose_max(half_hearts)` (borne à 2, ramène les PV courants, émet `changed`) et `Health.restore_max()` ; `Player` applique `max_half_hearts_delta` sur `Loadout.item_added/removed`.
-- [ ] `StatBlock` : nouvelles stats, `set_bounds`, signal `base_changed(stat)` ; `Player` recalcule le rétrécissement Lucide de `HURTBOX_SIZE` quand la base change (deferred-work 3.5, point a). Documenter dans l'architecture D9 que le code garde `StatBlock` / `Kind` / `Player.stats` (point d).
-- [ ] `BulletParams.pierce`, mémoire par tir dans `BulletManager` ; `Player._on_stat_changed` pousse `PIERCE` dans `_shot_params`.
-- [ ] `ui/hud/banner.gd`, `Events.banner_requested`, `Events.item_acquired`, clés `strings.csv` (`ITEM_FALLING_TOOTH_NAME/BONUS/COST`, `ITEM_LEAD_LEGS_*`, `UI_BANNER_*`).
-- [ ] Panneau F1 (`debug/debug_panel.gd`), télémétrie.
-- [ ] Tests (liste plus bas).
+- [x] `items/` : `item_def.gd`, `modifier_def.gd`, `owned_item.gd`, `loadout.gd`, `tag_tracker.gd` (compte les `id` distincts par tag ; signal `tag_count_changed(tag, count)` ; 5.7 y branche les seuils), `build_carrier.gd`, `item_effect.gd` (base : `attach(carrier)`, `detach()`, `tick(dt)` appelé par le carrier seulement si `wants_tick`, `activate()` pour 5.8), `item_catalog.gd` (charge `data/items/*.tres`, trié, gère le suffixe `.remap` comme `RoomInfo.scene_paths`), `pickup.gd/.tscn`.
+- [x] `RoomStock` / `Offer` (`economy/room_stock.gd`) : liste d'`Offer` d'une salle (`kind`, `item: ItemDef`, `position` en coordonnées de salle, `taken`, `price` = 0). `Run` en garde un par cellule (`stocks: Dictionary[Vector2i, RoomStock]`) et le passe à la salle par `RoomOptions.stock` ; `Room._ready()` crée un `Pickup` par offre non prise ; `Room.add_offer(offer)` en ajoute une (F1, drops 5.4). C'est le seul mécanisme de ramassable de l'epic : un objet laissé par terre revient à la prochaine visite.
+- [x] `Health.lose_max(half_hearts)` (borne à 2, ramène les PV courants, émet `changed`) et `Health.restore_max()` ; `Player` applique `max_half_hearts_delta` sur `Loadout.item_added/removed`.
+- [x] `StatBlock` : nouvelles stats, `set_bounds`, signal `base_changed(stat)` ; `Player` recalcule le rétrécissement Lucide de `HURTBOX_SIZE` quand la base change (deferred-work 3.5, point a). Documenter dans l'architecture D9 que le code garde `StatBlock` / `Kind` / `Player.stats` (point d).
+- [x] `BulletParams.pierce`, mémoire par tir dans `BulletManager` ; `Player._on_stat_changed` pousse `PIERCE` dans `_shot_params`.
+- [x] `ui/hud/banner.gd`, `Events.banner_requested`, `Events.item_acquired`, clés `strings.csv` (`ITEM_FALLING_TOOTH_NAME/BONUS/COST`, `ITEM_LEAD_LEGS_*`, `UI_BANNER_*`).
+- [x] Panneau F1 (`debug/debug_panel.gd`), télémétrie.
+- [x] Tests (liste plus bas).
 
 ## État du code concerné
 
@@ -79,3 +79,42 @@ epics.md (Story 5.1) ; GDD « Objets du MVP » ; architecture D9, P5 ; deferred-
 6. **`hit_incoming` ajouté** aux signaux du carrier (absent de l'architecture) : Chute libre (5.6) y ajoute son demi-cœur.
 7. **HeartRow** : inchangé, aucun objet n'augmente le max ; le deferred-work reste ouvert pour le jour où le plafond monte.
 8. **Touche F1 `I`** pour faire apparaître un objet (à décaler si prise).
+9. **Bornes** : `SHOT_SPEED` borné à [0,5 ; 59] (le minimum n'est pas dans la story : une vitesse ≤ 0 ferait refuser chaque tir par `BulletManager`, avec erreur et `assert`).
+10. **`Health.restore_max(n)` prend un argument** (la story le donnait sans) : retirer une seule Dent rend 2 demi-cœurs, pas tout ce qui a été perdu ; borné à ce que `lose_max` a pris.
+11. **`ItemEffect.owned` est tenu en `WeakRef`** : `OwnedItem` tient l'effet, un lien fort en retour ferait un cycle `RefCounted` (fuite).
+12. **Pas de clés `UI_BANNER_*`** : la bannière affiche les trois clés reçues telles quelles (titre, bonus, coût), sans préfixe ni libellé propre. La 5.7 réutilise la même forme.
+13. **`ItemCatalog` sans cache statique** : un tableau statique de `Resource` est signalé comme fuite à la sortie du processus ; `all()` recharge (le cache de ressources de Godot fait le travail), usage rare (F1).
+14. **`ItemCatalog` refuse aussi deux modificateurs sur la même stat** dans un objet : une source n'en porte qu'un par stat, le second écraserait le premier en silence.
+15. **Un objet non empilable déjà possédé est refusé** (`BuildCarrier.refusal_of`), comme la Dent à un cœur : pickup grisé. Aucun objet de la 5.1 n'est concerné en pratique hormis les Jambes de plomb (une seule copie).
+16. **Télémétrie** : la liste des objets prise d'une partie va dans l'événement `run_end` (`items`) et le résumé de session compte par `item_id` (`summary.items`) ; pas d'événement propre (l'ordre des événements reste celui que lisent les outils).
+17. **Une `Offer` prise reste dans le `RoomStock`** avec `taken = true` (jamais retirée) ; le `Pickup` seul disparaît.
+18. **Touche F1 `I`** : libre (aucune action de `project.godot` ni touche du panneau ne l'utilise).
+
+## Dev Agent Record
+
+### Completion Notes
+
+- `items/` : `ModifierDef`, `ItemDef`, `ItemEffect`, `OwnedItem`, `Loadout`, `TagTracker`, `BuildCarrier`, `ItemCatalog`, `Pickup` ; `economy/room_stock.gd` (`RoomStock` + `Offer`). `Run.stocks` (un stock par cellule, `stock_of()`), `RoomOptions.stock`, `Room._setup_pickups()` / `add_offer()` / `pickups()` (nœud `Pickups` créé en code).
+- `StatBlock` : 4 stats ajoutées à la fin, `set_bounds`, `base_changed`. `Player._setup_stats()` pose les bornes ; `_on_stat_base_changed` recalcule le rétrécissement de Lucide quand la base de `HURTBOX_SIZE` change (testé). `MOVE_SPEED` pousse `PlayerMotor.set_max_speed()` (les durées de rampe sont conservées). `FIRE_RATE` est une stat mais n'est branchée qu'en 5.3 (`Shooter.set_fire_rate`).
+- Tir traversant : `BulletParams.pierce` ; `BulletManager` garde par balle (slot) les ids des cibles déjà touchées (`_pierced`, effacé à la libération du slot), un coup par cible, la balle continue jusqu'au mur ou à la fin de vie. Aucun code d'objet dans la boucle.
+- Le joueur relaie `hit_incoming` (avant `apply_damage`), `hit_taken` (si `lost > 0`), `dash_ended`, `room_cleared` (joueur vivant) au carrier.
+- Bannière (`ui/hud/banner.gd`, enfant du HUD, `Hud.banner()`), `Events.item_acquired`, `Events.banner_requested`. Textes dans `strings.csv` (`ITEM_*`).
+- F1 `I` : `DebugPanel._drop_next_item()` pose l'objet suivant du catalogue à côté du joueur (`Room.add_offer`). Télémétrie : voir décision 16.
+- Architecture D9 alignée sur le code (note ajoutée) ; points (a) à (d) du deferred-work « `StatBlock` face aux objets » marqués résolus.
+- Tests GUT versionnés : `unit/items/` (loadout, tag tracker, catalogue), `unit/combat/test_health_max.gd`, `test_bullet_pierce.gd`, `unit/core/test_stat_block.gd` (étendu), `unit/telemetry/test_item_record.gd`, `integration/items/test_pickup_item.gd`. `tools/run_tests.sh` : 376 tests verts.
+- NON ÉVALUÉ (humain) : lisibilité de la bannière (3 s, 3 lignes, position sous la bande), placeholder du pickup (losange doré), ressenti de −20 % de vitesse et de +30 % de dégâts pour −1 cœur.
+- Aucun objet n'est posé automatiquement dans une salle (salle trésor : 5.2) : en jeu, seul F1 `I` en fait apparaître.
+
+### File List
+
+- `game/items/` (`modifier_def.gd`, `item_def.gd`, `item_effect.gd`, `owned_item.gd`, `loadout.gd`, `tag_tracker.gd`, `build_carrier.gd`, `item_catalog.gd`, `pickup.gd`), `game/economy/room_stock.gd`, `game/data/items/falling_tooth.tres`, `lead_legs.tres`
+- `game/core/stat_block.gd`, `game/player/player.gd`, `game/player/player_motor.gd`, `game/combat/health.gd`, `game/combat/bullets/bullet_params.gd`, `game/combat/bullets/bullet_manager.gd`
+- `game/rooms/room.gd`, `game/rooms/room_options.gd`, `game/run/run.gd`
+- `game/autoloads/events.gd`, `game/ui/hud/banner.gd`, `game/ui/hud/hud.gd`, `game/localization/strings.csv`
+- `game/debug/debug_panel.gd`, `game/telemetry/telemetry.gd`, `game/telemetry/telemetry_session.gd`
+- `game/tests/unit/items/*`, `game/tests/unit/combat/test_health_max.gd`, `test_bullet_pierce.gd`, `game/tests/unit/core/test_stat_block.gd`, `game/tests/unit/telemetry/test_item_record.gd`, `game/tests/integration/items/test_pickup_item.gd`
+- `_bmad-output/game-architecture.md`, `_bmad-output/implementation-artifacts/deferred-work.md`
+
+### Change Log
+
+- 2026-11-24 : socle des objets (BuildCarrier, Loadout, ItemDef, Pickup, RoomStock), Dent qui tombe et Jambes de plomb, bornes de stats, tirs traversants, bannière, F1 `I`, télémétrie.

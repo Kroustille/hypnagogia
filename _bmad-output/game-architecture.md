@@ -331,6 +331,7 @@ func _physics_process(delta: float) -> void:
 - `ItemEffect` (`RefCounted`) : se branche sur les signaux de son entité porteuse (`hit_taken`, `room_cleared`, `dash_ended`, `tick`) et se débranche à la perte de l'objet.
 - `TagTracker` : compte les objets distincts par tag, active ou désactive les effets de synergie aux seuils et émet `synergy_activated` pour l'annonce.
 - Toute entité qui a un composant `BuildCarrier` (`StatBlock` + `Loadout` + `TagTracker`) peut recevoir des objets : reflet du Miroir, Toi.
+- **Alignement sur le code (story 5.1).** Le code garde `StatBlock`, `StatBlock.Kind` (`ADD_FLAT`, `ADD_PERCENT`, `MULTIPLY`) et `Player.stats` (le même objet que `carrier.stats`) ; `StatModifier` n'existe pas. La source d'un modificateur d'objet est un `OwnedItem` (une copie, `RefCounted`), jamais l'`ItemDef` ni un nœud : deux copies s'additionnent et `clear_source(owned)` en retire exactement une. `StatBlock.set_bounds(stat, min, max)` borne la valeur calculée ; `base_changed(stat)` signale un changement de base. Les capacités (traverser, tir arrière, vol) sont des stats booléennes portées par un flottant (`PIERCE`, `REAR_SHOT`, `CAN_FLY_OVER_PITS`). Le carrier émet aussi `hit_incoming(info)` avant l'application d'un coup.
 - Pactes et consommables suivent le même modèle (`PactDef`, `ConsumableDef`).
 
 ### Salles et génération (D10, D11)
@@ -797,7 +798,7 @@ Réveil cassé : `GameClock.set_scale_for(groups_except_player, 0.5, 4.0)`, qui 
 
 **But :** le joueur, le reflet du Miroir et Toi partagent le même modèle.
 
-**Composants :** un nœud composant `BuildCarrier` (enfant de l'entité, puisque GDScript n'a pas d'interfaces) qui porte `StatBlock`, `Loadout` et `TagTracker` et émet `hit_taken`, `dash_ended`, `room_cleared`. Les `ItemEffect` s'y branchent. Toute entité qui a un enfant `BuildCarrier` peut recevoir des objets.
+**Composants :** un nœud composant `BuildCarrier` (enfant de l'entité, puisque GDScript n'a pas d'interfaces) qui porte `StatBlock`, `Loadout` et `TagTracker` et émet `hit_incoming`, `hit_taken`, `dash_ended`, `room_cleared`. Les `ItemEffect` s'y branchent. Toute entité qui a un enfant `BuildCarrier` peut recevoir des objets.
 
 ```gdscript
 # items/effects/free_fall_effect.gd
@@ -813,7 +814,7 @@ func detach() -> void:
 
 func tick(dt: float) -> void:
 	_bonus = minf(_bonus + def.params.rate * dt, def.params.max_bonus)
-	carrier.stats.set_modifier(self, StatBlock.Stat.DAMAGE, StatModifier.ADD_PERCENT, _bonus)
+	carrier.stats.set_modifier(self, StatBlock.Stat.DAMAGE, StatBlock.Kind.ADD_PERCENT, _bonus)
 ```
 
 Le reflet du Miroir reçoit une copie des `ItemDef` du joueur, dans son propre `Loadout`. Il tire par le `BulletManager` ennemi de la salle, avec une apparence dédiée (couleur et contour exclusifs).
