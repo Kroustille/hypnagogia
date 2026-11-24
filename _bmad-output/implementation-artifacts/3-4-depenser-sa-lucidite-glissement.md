@@ -1,6 +1,6 @@
 # Story 3.4 : Dépenser sa lucidité : Glissement
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -89,6 +89,16 @@ Hors périmètre : trous (epic 4, « un trou est une destination valide » viend
 10. **Stick : la longueur renvoyée par `Input.get_vector` (zone morte 0,2 déjà retirée et rééchelonnée) sert de `t`** ; un stick à peine hors zone morte donne donc environ 2 tuiles (2,25 mesurées avec 0,25 d'axe). Stick actif au moment de l'appui = stick ; sinon, si la dernière source de visée est le stick, 2 tuiles vers la dernière visée ; sinon souris. – Raison : suit exactement le code de visée existant.
 11. **Obstacles : deux `TileSet` distincts** (un par couche de collision, la couche physique d'un `TileSet` étant unique), blocs en code (`LOW_OBSTACLE_CELLS`, `HIGH_OBSTACLE_CELLS` dans `Arena`). `_is_valid_spawn` refuse tout corps qui recouvre une cellule d'obstacle ; conséquence : un ennemi à corps géant (cas de `t_invalid23`) ne peut plus apparaître tant que les obstacles existent, le test les vide pour ce cas. – Raison : AC 1 ; le cas géant est artificiel.
 12. **Anneaux de Glissement** : rayon 1 tuile, 0,25 s, au départ et à l'arrivée (constantes visuelles placeholders dans `Arena`, via le nouveau `_add_ring`) ; F3 affiche aussi « Glide n% ». – Raison : AC 8 ne donne pas de valeurs.
+
+13. **(revue) Dash + Glissement : les i-frames du dash suivent la téléportation et peuvent payer des dashs parfaits à l'arrivée** — Choix : accepté tel quel (l'invulnérabilité d'arrivée seule ne paie ni graze ni dash parfait, vérifié) ; il faut au moins 4 balles esquivées (4 x 5) pour rembourser les 20 de lucidité, et le dash seul permet déjà la même chose. — Raison : pas de ferme rentable ; à surveiller au playtest du jalon A.
+
+### Review Findings
+
+- [ ] [Review][Patch] L'obstacle haut en (27,13) coupe la ligne de tir entre l'emplacement (34,17) et le départ du joueur (304,168) : c'est l'emplacement de la première Veilleuse de la vague 2 (curseur d'emplacements 3), tourelle fixe dont les tirs vers le départ meurent sur le bloc ; la story l'interdit (« Pièges ») [game/rooms/arena/arena.gd:21] — Correctif : `HIGH_OBSTACLE_CELLS = [Vector2i(11, 3), Vector2i(24, 15)]` (bloc 384-416 x 240-272 px : aucune ligne emplacement -> départ ne le croise, marge de balle 4 px comprise ; 6,7 tuiles du départ ; loin de tout emplacement). Adapter `t_glide` aux coordonnées du bloc déplacé (tirs vers le bloc haut, joueur et ennemi arrêtés par lui, Glissement arrêté devant lui). Ajouter à `t_glide` : pour chaque `spawn_slot`, le segment emplacement -> départ ne croise aucune cellule de `HighObstacles`.
+- [x] [Review][Defer] Le Mouton qui charge dans un obstacle haut finit sa charge sans étourdissement (`STUNNING_LAYERS` = murs seuls) alors que l'arène a désormais des obstacles hauts [game/enemies/sheep/sheep.gd:16] — reporté : prévu par le code pour la 4.5.
+- [x] [Review][Defer] Maj sur Windows : cinq appuis rapides ouvrent la boîte « Touches rémanentes » ; un joueur qui martèle Maj pendant la recharge peut la déclencher [game/project.godot:141] — reporté : NON VÉRIFIÉ (Windows natif), playtest du jalon A.
+
+Vérifié sans écart : destination (mur collé, coin, angle rasant de 5°, coin d'obstacle haut frôlé par le rayon, obstacle bas traversé, arrivée dans un obstacle bas reculée devant, ennemi sur la ligne), trajet refusé avant la dépense, invulnérabilité d'arrivée (6 ticks, hors `_is_evading()` : ni graze ni dash parfait, et une balle traversée pendant ces ticks ne paie pas de graze ensuite), contact du Mouton/Veilleuse filtré par `Hurtbox.is_hittable()`, pause et mort, couches (haut bloque les tirs, bas non ; joueur et ennemis bloqués par les deux ; `knock_back` respecte les obstacles), `_is_valid_spawn`, F5 (`t_enemy_main` passe), `power_2` (bouton 9 = LB, aucun autre usage de Maj ni du bouton 9). `t_glide`, `t_enemy_main`, `t_sheep` : PASS.
 
 ## Dev Agent Record
 
