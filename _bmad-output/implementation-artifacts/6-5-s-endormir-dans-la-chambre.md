@@ -1,6 +1,6 @@
 # Story 6.5 : S'endormir dans la chambre
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -81,6 +81,22 @@ epics.md (Story 6.5) ; GDD, Point de départ (3 cœurs, 100 de lucidité, 0 Écl
 10. **Pas de modification des tests existants** : `Main.start_in_bedroom = false` est posé une fois pour la suite GUT par un script `pre_run_script` (`tests/support/pre_run.gd`, branché dans `.gutconfig.json`) ; les tests de la chambre le remettent à `true` puis à `false`. Les scènes de `.scratch` le posent dans `th.gd` et `t_floor_main.gd`. Le défaut du jeu reste `true`.
 11. **Origine de la fenêtre de seed** : le booléen `_seed_entry_from_wake` devient l'énum `Main.SeedOrigin { PAUSE, WAKE, BEDROOM }` ; Échap depuis la chambre dégèle et lâche le focus (sans rouvrir de menu).
 12. **Chambre construite à la main (nœuds `StaticBody2D`/`ColorRect`), hors générateur de salles et validateur** : l'histoire ne les demande pas.
+13. **(revue) Bureau à l'opposé du lit** : l'AC5 dit « près du lit », le bureau est en haut à droite (≈ 430 px du lit). Accepté : « près du lit » lu comme « dans la chambre » (décision 4) ; placement repris avec les vrais décors (epic 7).
+14. **(revue) Textes « E / X-Carré » restants (AC2, AC5, tâche 1, décision 3, Pièges)** : remplacés par la décision 9 (X / bouton A), qui fait foi ; spec non réécrite.
+15. **(revue) Crochet `pre_run.gd` gardé** comme filet de la suite GUT, mais les trois tests existants qui construisent `Main` posent aussi le drapeau eux-mêmes (patch ci-dessous) : plus de dépendance silencieuse (panneau GUT de l'éditeur, autre `-gconfig`).
+16. **(revue) Écartés** : le lit lance toujours `FLOOR` (l'AC2 le demande) ; le moteur du marcheur intègre sous `GameClock.paused` (en jeu `Main` désactive `ActiveScene`, comme pour le `Player`) ; Échap / Start pendant la saisie de seed de la chambre (vérifié : `SeedEntry._input` consomme `ui_cancel`, `_set_paused` ne fait rien quand déjà gelé) ; caméra de la chambre (la `Run` quitte l'arbre avant l'ajout de la chambre) ; F5 de debug depuis la chambre revient dans une run (outil de debug) ; « second » bouton de l'AC4 = troisième (formulation).
+
+### Review Findings
+
+- [ ] [Review][Patch] Musique étouffée dans la chambre après une run finie en lucidité basse : seul `LucidityFx._apply()` règle le filtre, rien ne le rouvre quand la salle est libérée [game/main/main.gd:216] — après `_clear_active_scene()` dans `_enter_bedroom()`, ajouter `Audio.set_music_muffle(Audio.OPEN_CUTOFF_HZ)` ; dans `test_wake_to_bedroom`, vérifier `Audio.music_cutoff_hz() == Audio.OPEN_CUTOFF_HZ` après le retour.
+- [ ] [Review][Patch] Pendant la garde de 0,3 s, un stick poussé peut déplacer le focus de « Se rendormir » vers « Nouvelle partie » puis « Retourner dans la chambre » (boutons désactivés mais focalisables) : l'appui A prévu pour relancer renvoie à la chambre [game/ui/menus/wake_screen.gd:65 et :83] — dans `open()` mettre `_new_seed_button.focus_mode` et `_bedroom_button.focus_mode` à `FOCUS_NONE`, et les remettre à `FOCUS_ALL` à l'armement (comme Oui/Non dans `_set_answers_enabled`).
+- [ ] [Review][Patch] Menu pause de la chambre : « Seed : » sans rien derrière (`_seed_code()` vide sans `Run`) [game/ui/menus/pause_menu.gd:39] — `_seed_label.visible = not seed_code.is_empty()`.
+- [ ] [Review][Patch] Trois tests existants dépendent sans le dire de `pre_run.gd` [game/tests/integration/run/test_run_requested.gd:10, game/tests/integration/run/test_seed_flow.gd:11, game/tests/integration/ui/test_map_hold.gd:11] — première ligne de `before_each()` : `Main.start_in_bedroom = false` (assertions inchangées, comme le demandait la tâche).
+- [ ] [Review][Patch] Les tests de la chambre laissent le jeu gelé et l'action `pause` enfoncée pour la suite (`test_the_pause_menu_works_in_the_bedroom`, dernier test de `test_wake_to_bedroom`, premier de `test_bedroom_seed`) [game/tests/integration/bedroom/test_bedroom_flow.gd:19, game/tests/integration/bedroom/test_bedroom_seed.gd:17, game/tests/integration/run/test_wake_to_bedroom.gd:18] — dans ces `after_each()` : `GameClock.paused = false` et `Input.action_release(&"pause")`.
+- [x] [Review][Defer] Touche X maintenue au bureau : la répétition du clavier tape des « x » dans le champ de seed [game/bedroom/bedroom.gd:62, game/ui/menus/seed_entry.gd:33] — reporté (deferred-work.md).
+- [x] [Review][Defer] L'invite affiche la touche clavier (« X ») même à la manette, où X est un autre bouton que `interact` (A) [game/bedroom/bedroom.gd:99] — reporté à 1.7 (deferred-work.md).
+- [x] [Review][Defer] Télémétrie : le `no_answer` d'une mort quittée vers la chambre n'est daté qu'au `run_started` suivant [game/main/main.gd] — reporté (deferred-work.md).
+- [x] [Review][Defer] Géométrie de la chambre en pixels dans le `.tscn`, seule la caméra suit `Const.ROOM_TILES` [game/bedroom/bedroom.tscn] — reporté à l'epic 7 (deferred-work.md).
 
 ## Dev Agent Record
 

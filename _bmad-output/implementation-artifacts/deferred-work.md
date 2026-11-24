@@ -571,3 +571,10 @@
 ## Deferred from: dev of 6-6-lire-l-heure-du-reveil (2026-11-24)
 
 - **NON ÉVALUÉ (humain) : lisibilité de l'heure du réveil** (playtest du jalon A) : la ligne « Réveil : HH:MM » de l'écran de réveil et le `Label` du réveil de la chambre (sprite d'horloge en epic 7) ; ressenti du plafond de la mort à 00:17 (écart au GDD, à valider en fin d'epic).
+
+## Deferred from: code review of 6-5-s-endormir-dans-la-chambre (2026-11-24)
+
+- **Touche `interact` maintenue au bureau ⇒ « xxx » dans le champ de seed** (avant le playtest du jalon A) : `game/bedroom/bedroom.gd:62` consomme l'appui, puis `SeedEntry.open()` (`game/ui/menus/seed_entry.gd:33`) donne le focus au `LineEdit` ; les échos de répétition du clavier (après ≈ 0,5 s) y écrivent « x » (caractère Crockford valide). Correctif : dans `open()`, `_swallow_interact = Input.is_action_pressed(&"interact")` ; dans `_input`, consommer les événements `interact` tant qu'il est vrai, le remettre à faux au relâchement.
+- **Invite de la chambre à la manette** (story 1.7, remappage) : `Bedroom._interact_key_label()` (`game/bedroom/bedroom.gd:99`) lit la première touche clavier : « Dormir (X) » à la manette, où X (bouton 2) est `shoot`/`use_active` et `interact` est A. Même limite que « Se rendormir (R) » : choisir le libellé selon le dernier périphérique utilisé.
+- **Télémétrie : `no_answer` daté trop tard** (analyse de la télémétrie du jalon A) : une mort quittée par « Retourner dans la chambre » sans réponse n'est close qu'au `run_started` suivant (ou à `end`) ; le décompte est juste, l'horodatage peut avoir des minutes de retard. Accepter et documenter, ou clore la mort à la sortie de l'écran de réveil.
+- **Géométrie de la chambre en dur** (epic 7, vrais décors de la chambre) : `game/bedroom/bedroom.tscn` fixe murs, sol et cadre en pixels (608×336) ; seule la caméra suit `Const.ROOM_TILES`. Si la taille des salles change, caméra et murs divergent : dériver la géométrie de `FRAME_TILES` ou vérifier l'accord au démarrage.
