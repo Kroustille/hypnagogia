@@ -203,11 +203,27 @@ func enter_room(room: Room) -> void:
 	# The spawn cell is the first safe position: a first tick ending in a pit still falls (Run places the player there).
 	var spawn: Vector2 = room.player_spawn_position()
 	_pit_guard.observe(room.cell_center_at(spawn), room.is_floor_at(spawn) and not room.is_pit_at(spawn))
+	if not room.fight_started.is_connected(_on_room_fight_started):
+		room.fight_started.connect(_on_room_fight_started)
+
+
+## Called by the room at the end of its own _ready(), once it knows whether it holds a fight: the items read it through
+## BuildCarrier.room_entered (story 5.9). enter_room() comes too early for that.
+func room_ready(room: Room) -> void:
+	if _room == room and carrier != null:
+		carrier.room_entered.emit(room)
+
+
+func _on_room_fight_started() -> void:
+	if carrier != null and _room != null:
+		carrier.room_fight_started.emit(_room)
 
 
 ## The room goes away: the player forgets everything it gave (pit test, shots). Ignored when another room has become
 ## current since (the next one may enter first).
 func leave_room(room: Room) -> void:
+	if room.fight_started.is_connected(_on_room_fight_started):
+		room.fight_started.disconnect(_on_room_fight_started)
 	if _room == room:
 		_room = null
 		if carrier != null and carrier.current_room == room:

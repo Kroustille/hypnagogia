@@ -71,7 +71,9 @@ func _ready() -> void:
 
 ## Once per tick, in every state, before the state's _process_<state>(): advances the fire cycle.
 func _tick_cycle(clock_scale: float) -> void:
-	_cycle_ticks_left -= clock_scale
+	if danger.fire_hold:
+		return # the room holds the fire (story 5.9)
+	_cycle_ticks_left -= clock_scale * danger.pace_mult
 
 
 func _is_cycle_over() -> bool:

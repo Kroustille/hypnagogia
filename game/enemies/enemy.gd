@@ -212,14 +212,14 @@ func _move_toward(point: Vector2, speed_px: float, clock_scale: float) -> void:
 	_move_in_direction(to.normalized() if to.length_squared() >= 1e-6 else Vector2.ZERO, speed_px, clock_scale, true)
 
 
-## Moves along a direction (unit vector, or zero to stand still) at speed_px per second, scaled by the clock:
-## never stops on a point (a charge goes on until something stops it). move_and_slide() reports what it hit.
+## Moves along a direction (unit vector, or zero to stand still) at speed_px per second, scaled by the clock
+## and by the room pace (story 5.9): never stops on a point (a charge goes on until something stops it). move_and_slide() reports what it hit.
 ## spare_target: stands still instead of stepping into the target's body.
 func _move_in_direction(direction: Vector2, speed_px: float, clock_scale: float, spare_target: bool = false) -> void:
 	if spare_target and _presses_target(direction, speed_px, clock_scale):
 		velocity = Vector2.ZERO
 		return
-	velocity = direction * speed_px * clock_scale
+	velocity = direction * speed_px * clock_scale * danger.pace_mult
 	move_and_slide()
 
 
@@ -228,7 +228,7 @@ func _move_in_direction(direction: Vector2, speed_px: float, clock_scale: float,
 func _presses_target(direction: Vector2, speed_px: float, clock_scale: float) -> bool:
 	if direction == Vector2.ZERO or not is_instance_valid(_target):
 		return false
-	var step: Vector2 = direction * speed_px * clock_scale / Engine.physics_ticks_per_second
+	var step: Vector2 = direction * speed_px * clock_scale * danger.pace_mult / Engine.physics_ticks_per_second
 	return test_move(global_transform, step, _probe) and _probe.get_collider() == _target
 
 

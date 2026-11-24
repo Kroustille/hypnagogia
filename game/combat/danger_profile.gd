@@ -12,6 +12,11 @@ var telegraph_mult: float = 1.0
 var reinforcement: bool = false
 ## Nightmare bosses add a pattern (epic 6).
 var boss_extra_pattern: bool = false
+## Multiplier on the speed of enemy movement and of their fire cycle (story 5.9, Blank exam). Set by the room, never by
+## apply_tier(): the tier does not touch it. Telegraphs and bullets in flight keep their own speed.
+var pace_mult: float = 1.0
+## True while the enemies hold their fire (story 5.9, Naked in public): their fire cycle does not advance.
+var fire_hold: bool = false
 
 
 ## Sets every field for a room tier (Lucidity.Tier as an int). Returns true when at least one field changed.

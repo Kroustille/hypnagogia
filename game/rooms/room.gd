@@ -31,6 +31,9 @@ signal emptied
 ## listener acts later (Run.travel), it never frees this room from here.
 signal door_taken(side: int)
 
+## The first wave of the fight is about to appear (story 5.9): once per room, at the first begin_room() with enemies.
+signal fight_started
+
 ## Physics priority of the room: its camera is placed after the player has moved (priority 0) on the same tick.
 const CAMERA_PHYSICS_PRIORITY: int = 10
 
@@ -143,6 +146,9 @@ var _shake_next_draw: float = 0.0
 var _shake_amplitude: int = 0
 ## What the room tier does to the enemies (story 3.6): one object, mutated in place, given to every enemy.
 var danger: DangerProfile = DangerProfile.new()
+## Ticks of the enemies group left on the fire hold (story 5.9); the profile says whether it is on.
+var _fire_hold_ticks_left: float = 0.0
+var _fight_started: bool = false
 
 
 ## Playable tiles of a room of this footprint, walls excluded.
@@ -237,6 +243,8 @@ func _ready() -> void:
 	elif _waves_wanted():
 		_setup_waves() # last: spawns need the bullets and the player
 		_close_doors() # a fight starts on entry: begin_room() shuts them again (no effect)
+	if _player != null:
+		_player.room_ready(self) # last: the items read has_fight() and is_cleared()
 
 	Log.info("room", "%s ready playable=%s tiles" % [_log_name(), playable_tiles()])
 
@@ -319,6 +327,7 @@ func _notification(what: int) -> void:
 func _physics_process(_delta: float) -> void:
 	_track_camera()
 	_process_shake()
+	_tick_fire_hold()
 	if _pending.is_empty():
 		return
 	var step: float = GameClock.scale(GameClock.Group.ENEMIES)
@@ -363,6 +372,9 @@ func begin_room(wave_defs: Array[EnemyDef] = []) -> void:
 		_player.lucidity.begin_room()
 		danger.apply_tier(_player.lucidity.room_tier, Tuning.LUCIDITY)
 	_maybe_schedule_reinforcement()
+	if _wave_active and not _fight_started:
+		_fight_started = true
+		fight_started.emit()
 
 
 ## A following wave of the same fight (pre-drawn rooms): only the enemies planned for the reinforcement type change.
@@ -373,9 +385,35 @@ func begin_wave(wave_defs: Array[EnemyDef]) -> void:
 	_maybe_schedule_reinforcement()
 
 
+## Sets the enemy pace (story 5.9): their speed and fire cycle run at mult times the normal. Reset by end_room().
+func set_pace_mult(mult: float) -> void:
+	danger.pace_mult = maxf(mult, 0.0)
+
+
+## Holds the fire of the enemies for this many ticks of their clock (story 5.9); 0 lifts the hold. A longer hold wins.
+func set_fire_hold(ticks: float) -> void:
+	if ticks <= 0.0:
+		_fire_hold_ticks_left = 0.0
+	else:
+		_fire_hold_ticks_left = maxf(_fire_hold_ticks_left, ticks)
+	danger.fire_hold = _fire_hold_ticks_left > TICK_EPSILON
+
+
+## Counts the fire hold down in ticks of the enemies group.
+func _tick_fire_hold() -> void:
+	if _fire_hold_ticks_left <= 0.0:
+		return
+	_fire_hold_ticks_left -= GameClock.scale(GameClock.Group.ENEMIES)
+	if _fire_hold_ticks_left <= TICK_EPSILON:
+		_fire_hold_ticks_left = 0.0
+		danger.fire_hold = false
+
+
 ## The last wave is cleared (called by WaveRunner): the doors open.
 func end_room() -> void:
 	_cleared = true
+	danger.pace_mult = 1.0 # a cleared room is back to normal (story 5.9)
+	set_fire_hold(0.0)
 	for door: Door in _doors:
 		door.open()
 
@@ -771,14 +809,31 @@ func last_kill_position() -> Vector2:
 	return _last_kill_position if _has_kill else frame_px() / 2.0
 
 
-## The requested point, or the center of the nearest cell the player can reach when it lies in a wall or a pit.
+## The requested point, or the center of the nearest cell the player can reach when it lies in a wall or a pit, or
+## where another offer already lies (two drops of one room go side by side, story 5.9).
 func _free_spot(requested: Vector2) -> Vector2:
 	if _nav == null:
 		return requested
-	var cell: Vector2i = _nav.nearest_free_cell(_nav.cell_of(requested))
-	if _nav.is_in_grid(cell) and _nav.is_blocked(_nav.cell_of(requested)):
-		return _nav.center_of(cell)
-	return requested
+	var wanted: Vector2i = _nav.cell_of(requested)
+	var taken: Dictionary[Vector2i, bool] = {}
+	for offer: RoomStock.Offer in _stock.remaining():
+		taken[_nav.cell_of(offer.position)] = true
+	if not _nav.is_blocked(wanted) and not taken.has(wanted):
+		return requested
+	var best: Vector2i = Vector2i(-1, -1)
+	var best_distance: float = INF
+	var size: Vector2i = _nav.size_cells()
+	for y: int in size.y:
+		for x: int in size.x:
+			var candidate: Vector2i = Vector2i(x, y)
+			if _nav.is_blocked(candidate) or taken.has(candidate):
+				continue
+			var distance: float = Vector2(candidate).distance_squared_to(Vector2(wanted))
+			if distance < best_distance:
+				best_distance = distance
+				best = candidate
+	return _nav.center_of(best) if best.x >= 0 else requested
+
 
 ## The Pickups on the floor now (untaken offers).
 func pickups() -> Array[Pickup]:
