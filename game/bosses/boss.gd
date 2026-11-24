@@ -13,6 +13,8 @@ enum State { ANNOUNCING, FIGHTING }
 const ANNOUNCE_SOUND: AudioStream = preload("res://audio/sfx/sfx_enemy_night_light_telegraph.wav")
 const SHARE_EPSILON: float = 1e-6
 const TICK_EPSILON: float = 1e-6
+## Title of the pop quiz on the blackboard (BossDef.extra_attack).
+const EXTRA_TITLE_KEY: StringName = &"BOSS_PROFESSOR_EXTRA"
 
 var _state: State = State.ANNOUNCING
 var _boss_def: BossDef
@@ -32,6 +34,12 @@ var _fight_started: bool = false
 ## True once the run is over or the boss is dead: no attack starts any more.
 var _halted: bool = false
 var _left_tree_reported: bool = false
+## The pop quiz (BossDef.extra_attack): latched for the whole fight once the room reaches Total abandon, whatever the
+## gauge does after. Its runner belongs to no group: it survives every change of group and phase.
+var _extra_active: bool = false
+var _extra_runner: AttackRunner
+## Per phase, false when BossPhase.validate() refused it: it then runs without alternation (its attacks are checked one by one).
+var _phase_ok: Array[bool] = []
 
 
 ## Before add_child() (Room.spawn_enemy()): the room, its streams and the floor.
@@ -52,6 +60,7 @@ func _ready() -> void:
 		Log.error("combat", "boss %s needs a BossDef with phases, a room, its streams and the enemy BulletManager" % get_path())
 		assert(false, "Boss needs a BossDef, bind_room() and a BulletManager")
 		return
+	_validate_def()
 	_bullet_params = BulletParams.new() # own instance, never a shared Resource
 	_bullet_params.speed = 1.0
 	_bullet_params.radius = Tuning.COMBAT.enemy_bullet_radius
@@ -88,6 +97,9 @@ func _process_fighting(clock_scale: float) -> void:
 	_tick_alternation(clock_scale)
 	for runner: AttackRunner in _runners:
 		runner.tick(clock_scale, danger.pace_mult)
+	_check_extra()
+	if _extra_runner != null:
+		_extra_runner.tick(clock_scale, danger.pace_mult)
 
 
 ## The only place that writes _state.
@@ -117,6 +129,11 @@ func is_fighting() -> bool:
 
 func runners() -> Array[AttackRunner]:
 	return _runners
+
+
+## The pop quiz runner, null until it starts.
+func extra_runner() -> AttackRunner:
+	return _extra_runner
 
 
 ## One draw, 0 to 1, of the BOSS stream of the run for this floor: the only random source of the boss.
@@ -235,7 +252,7 @@ func _start_phase(phase: BossPhase) -> void:
 		return
 	_active_group = 0
 	_alternate_ticks_left = phase.alternate_seconds * Engine.physics_ticks_per_second
-	if phase.alternates():
+	if _alternates(phase):
 		_start_attacks(phase.group_attacks(0), 0)
 	else:
 		for i: int in phase.groups.size():
@@ -246,7 +263,7 @@ func _start_phase(phase: BossPhase) -> void:
 ## The groups of an alternating phase take turns: the one that leaves stops its runners (their chalks go on).
 func _tick_alternation(clock_scale: float) -> void:
 	var phase: BossPhase = _boss_def.phases[_phase_index]
-	if not phase.alternates():
+	if not _alternates(phase):
 		return
 	_alternate_ticks_left -= clock_scale
 	if _alternate_ticks_left > TICK_EPSILON:
@@ -264,19 +281,57 @@ func _tick_alternation(clock_scale: float) -> void:
 
 func _start_attacks(attacks: Array[BossAttack], group: int) -> void:
 	for attack: BossAttack in attacks:
-		var problem: String = attack.validate()
-		if problem.is_empty() and attack.kind == BossAttack.Kind.ROW and attack.gap_tiles >= arena_px().size.x / Const.TILE_SIZE:
-			problem = "gap_tiles %s does not fit in the room" % attack.gap_tiles
-		if not problem.is_empty():
-			Log.error("combat", "boss %s attack skipped: %s" % [_boss_def.id, problem])
-			_assert_failed("BossAttack is invalid: %s" % problem)
-			continue
-		var runner: AttackRunner = AttackRunner.make(attack)
+		var runner: AttackRunner = _make_runner(attack)
 		if runner == null:
 			continue
-		runner.setup(self, attack)
 		_runners.append(runner)
 		_runner_groups.append(group)
+
+
+## A set-up runner for the attack, or null (after a Log.error) when the attack cannot run.
+func _make_runner(attack: BossAttack) -> AttackRunner:
+	var problem: String = attack.validate()
+	if problem.is_empty() and attack.kind == BossAttack.Kind.ROW and attack.gap_tiles >= arena_px().size.x / Const.TILE_SIZE:
+		problem = "gap_tiles %s does not fit in the room" % attack.gap_tiles
+	if not problem.is_empty():
+		Log.error("combat", "boss %s attack skipped: %s" % [_boss_def.id, problem])
+		_assert_failed("BossAttack is invalid: %s" % problem)
+		return null
+	var runner: AttackRunner = AttackRunner.make(attack)
+	if runner != null:
+		runner.setup(self, attack)
+	return runner
+
+
+## The pop quiz starts the first tick the room asks for it (while FIGHTING: a phase announce holds it back), once.
+## Announced on the blackboard without holding the attacks: it is added to the fight, not a pause in it.
+func _check_extra() -> void:
+	if _extra_active or not danger.boss_extra_pattern or _boss_def.extra_attack == null:
+		return
+	_extra_active = true # even when the attack is refused: the error is reported once, not every tick
+	var runner: AttackRunner = _make_runner(_boss_def.extra_attack)
+	if runner == null:
+		return
+	_extra_runner = runner
+	Log.info("combat", "boss extra pattern started")
+	Events.boss_announced.emit(_boss_def.id, EXTRA_TITLE_KEY)
+
+
+## Reports what BossDef.validate() refuses, once at set-up, and remembers which phases may alternate.
+func _validate_def() -> void:
+	var problem: String = _boss_def.validate()
+	if not problem.is_empty():
+		Log.error("combat", "boss %s data problem: %s" % [_boss_def.id, problem])
+		_assert_failed("BossDef is invalid: %s" % problem)
+	_phase_ok.clear()
+	for phase: BossPhase in _boss_def.phases:
+		_phase_ok.append(phase != null and phase.validate().is_empty())
+
+
+## A phase whose data is refused never alternates (its groups would swap every few ticks, or one is missing).
+func _alternates(phase: BossPhase) -> bool:
+	var index: int = _boss_def.phases.find(phase)
+	return phase.alternates() and index >= 0 and _phase_ok[index]
 
 
 func _stop_runners() -> void:
@@ -290,6 +345,9 @@ func _stop_runners() -> void:
 func _halt() -> void:
 	_halted = true
 	_stop_runners()
+	if _extra_runner != null:
+		_extra_runner.stop()
+		_extra_runner = null
 
 
 func _on_events_run_ended(_outcome: int) -> void:

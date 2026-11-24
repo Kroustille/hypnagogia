@@ -3,6 +3,8 @@ extends Resource
 ## One phase of a boss (an "épreuve"): the title written on the blackboard, the share of hit points from which it
 ## applies, and its attacks. Phases of a BossDef are sorted by decreasing hp_from.
 
+const MIN_ALTERNATE_SECONDS: float = 1.0
+
 ## Translation key of the chalk title.
 @export var title_key: StringName = &""
 ## The phase applies while the hit points are at or under this share of the maximum (1.0 = from the start).
@@ -42,6 +44,8 @@ func alternates() -> bool:
 func validate() -> String:
 	if not is_finite(alternate_seconds) or alternate_seconds < 0.0:
 		return "alternate_seconds %s must be finite and >= 0" % alternate_seconds
+	if alternate_seconds > 0.0 and alternate_seconds < MIN_ALTERNATE_SECONDS:
+		return "alternate_seconds %s is under %s: the groups would swap every few ticks" % [alternate_seconds, MIN_ALTERNATE_SECONDS]
 	if alternate_seconds > 0.0 and groups.size() < 2:
 		return "alternate_seconds needs at least two groups"
 	for attack: BossAttack in attacks() + extras:

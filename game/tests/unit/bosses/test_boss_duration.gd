@@ -122,3 +122,33 @@ func test_a_phase_that_alternates_needs_two_groups() -> void:
 	assert_ne(phase.validate(), "")
 	phase.alternate_seconds = NAN
 	assert_ne(phase.validate(), "")
+
+
+func test_the_pop_quiz_is_a_valid_ring_of_twelve_every_six_seconds() -> void:
+	var quiz: BossAttack = PROFESSOR.extra_attack
+	assert_not_null(quiz)
+	assert_eq(quiz.validate(), "")
+	assert_eq(quiz.kind, BossAttack.Kind.RING)
+	assert_eq(quiz.bullet_count, 12)
+	assert_eq(quiz.interval, 6.0)
+	assert_eq(quiz.bullet_speed, 5.0)
+	assert_eq(quiz.telegraph, 0.6)
+	assert_eq(quiz.ring_offset_deg, 15.0)
+	assert_eq(PROFESSOR.validate(), "", "the whole def is valid")
+	assert_eq(BossAttack.Kind.RING, 4, "kinds are never renumbered")
+	assert_ne(tr(&"BOSS_PROFESSOR_EXTRA"), "BOSS_PROFESSOR_EXTRA", "the title is translated")
+
+
+func test_validate_refuses_a_bad_ring_and_a_def_with_a_bad_phase() -> void:
+	var ring: BossAttack = PROFESSOR.extra_attack.duplicate() as BossAttack
+	ring.bullet_count = 1
+	assert_ne(ring.validate(), "")
+	ring.bullet_count = 12
+	ring.ring_offset_deg = NAN
+	assert_ne(ring.validate(), "")
+	var phase: BossPhase = PROFESSOR.phases[2].duplicate() as BossPhase
+	phase.alternate_seconds = 0.01
+	assert_ne(phase.validate(), "", "a swap every 0.6 tick is refused")
+	var def: BossDef = PROFESSOR.duplicate() as BossDef
+	def.phases = [PROFESSOR.phases[0], phase]
+	assert_ne(def.validate(), "")
