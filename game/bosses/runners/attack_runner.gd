@@ -16,6 +16,12 @@ static func make(attack: BossAttack) -> AttackRunner:
 	match attack.kind:
 		BossAttack.Kind.ROW:
 			return RowRunner.new()
+		BossAttack.Kind.SPIRAL:
+			return SpiralRunner.new()
+		BossAttack.Kind.AIMED:
+			return AimedRunner.new()
+		BossAttack.Kind.RULER:
+			return RulerRunner.new()
 	Log.error("combat", "no runner for the attack kind %d" % attack.kind)
 	return null
 
