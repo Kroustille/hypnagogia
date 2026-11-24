@@ -13,7 +13,7 @@ class Offer extends RefCounted:
 	var consumable: ConsumableDef
 	var position: Vector2 = Vector2.ZERO
 	var taken: bool = false
-	## Shards to pay; 0 = free (shops: story 5.x).
+	## Shards to pay; 0 = free (a shop stall has a price, story 5.5).
 	var price: int = 0
 	## A consumable dropped by the player is armed only once the player has left its zone (story 5.3).
 	var armed: bool = true
@@ -67,6 +67,12 @@ func add_drop(drop_kind: Kind, amount: int, position: Vector2) -> Offer:
 	offer.position = position
 	offers.append(offer)
 	return offer
+
+
+## Adds an offer built elsewhere (a shop stall), at a position.
+func add_offer(offer: Offer, position: Vector2) -> void:
+	offer.position = position
+	offers.append(offer)
 
 
 ## Offers not taken yet.

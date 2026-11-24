@@ -1,7 +1,7 @@
 class_name EconomyTuning
 extends Resource
 ## Balancing values of the shards and the drops (story 5.4). Read-only at runtime (see Tuning.ECONOMY).
-## The shop prices join this Resource with story 5.5.
+## The shop prices are here too (story 5.5).
 
 ## Shards a cleared combat room gives before the tier multiplier (drawn between the two, both included).
 @export_range(0, 100, 1, "or_greater") var shards_min: int = 1
@@ -13,3 +13,12 @@ extends Resource
 ## Half-hearts a heart drop heals, half-hearts of armor an armor drop gives.
 @export_range(1, 10, 1, "or_greater") var heart_drop_half_hearts: int = 1
 @export_range(1, 10, 1, "or_greater") var armor_drop_half_hearts: int = 1
+
+## Shop prices in shards (story 5.5): an item, a consumable, a heart, an armor.
+@export_range(1, 100, 1, "or_greater") var item_price: int = 15
+@export_range(1, 100, 1, "or_greater") var consumable_price: int = 5
+@export_range(1, 100, 1, "or_greater") var heart_price: int = 4
+@export_range(1, 100, 1, "or_greater") var armor_price: int = 5
+## Half-hearts a bought heart heals, half-hearts of armor a bought armor gives (the GDD's "1 heart").
+@export_range(1, 10, 1, "or_greater") var heal_half_hearts: int = 2
+@export_range(1, 10, 1, "or_greater") var armor_half_hearts: int = 2
