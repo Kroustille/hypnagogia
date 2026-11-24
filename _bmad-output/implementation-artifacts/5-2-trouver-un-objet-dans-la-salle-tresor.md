@@ -1,6 +1,6 @@
 # Story 5.2 : Trouver un objet dans la salle trésor
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -74,6 +74,18 @@ epics.md (Story 5.2) ; GDD « Pools d'objets » (pools trésor et boutique = 8 o
 9. **Seul l'emplacement `ITEM` est lu par `Run`** ; `CONSUMABLE`, `HEART`, `ARMOR` sont acceptés par la directive et le validateur mais sans effet avant 5.5 et les stories de soin.
 10. **Les autres salles du pool ne sont pas regénérées** pour ajouter le nœud `PickupSpots` (vide) : `Room.pickup_spots()` tolère son absence ; il apparaîtra à leur prochaine regénération.
 11. **Pas de touche ajoutée** (critère 8 : seul le journal `treasure item <id>`).
+12. **(Revue de code) Pool filtré vide : un tirage quand même.** Le critère 4 veut une séquence du flux qui ne dépend que du nombre de salles trésor ouvertes ; `draw` consomme donc toujours exactement un tirage, même si rien n'est proposable (au lieu de « aucun tirage » de l'implémentation).
+
+### Review Findings
+
+Revue de code 2026-11-24 (trois couches : Blind Hunter, Edge Case Hunter, Acceptance Auditor). 1 patch, 1 reporté, 9 écartés.
+
+- [ ] [Review][Patch] Un seul candidat ne fait avancer le flux d'aucun tirage : `RandomNumberGenerator.randi_range(0, 0)` rend 0 sans toucher l'état (vérifié sous Godot 4.7.2), donc le critère 4 (« un seul tirage par appel, quel que soit le nombre d'exclus ») est faux dès qu'un objet est possédé ou que la Dent est refusée à 1 cœur max ; le pool filtré vide ne tire rien non plus (décision 12) [game/economy/item_picker.gd:11-14] — dans `draw`, tirer d'abord `var roll: int = rng.randi()` (avant le test `candidates.is_empty()`), puis `return candidates[roll % candidates.size()]`. Tests (`game/tests/unit/economy/test_item_picker.gd`) : dans `test_one_draw_per_call_whatever_the_number_of_candidates`, ajouter un pool d'un seul candidat comparé à 8 ; `test_an_empty_filtered_pool_gives_null_and_draws_nothing` devient « avance d'un tirage par appel » (comparer à un flux de même seed qui a fait trois `randi()`).
+- [x] [Review][Defer] `Run.stocks` jamais vidé au changement d'étage rend aussi la salle trésor muette : `first_visit = not stocks.has(cell)` [game/run/run.gd:168] serait faux à l'étage N+1 pour une cellule déjà visitée à l'étage N — reporté, epic 6 (avec l'entrée `Run.stocks` de la revue 5.1)
+
+Réglés par cette story (entrées de `deferred-work.md` étiquetées 5.2) : le test de revisite passe maintenant par `Run._enter_cell` (`test_an_item_left_is_offered_again_and_an_item_taken_is_gone`) ; les pools ne contiennent que des objets du catalogue validé (`test_item_pool_defs` compare aux `ItemCatalog.all()`, une `ItemDef` refusée par `validate()` le fait échouer).
+
+Écartés : ordre de la liste filtrée (ordre du `.tres`, stable, indépendant du `Loadout`) ; pools à 2 objets (décision 6, le test échoue si un objet manque) ; `Room.pickup_spots()` qui tolère l'absence du nœud (seules les salles trésor ont des spots, et elles passent par `RoomBuilder` ; regénérer 33 scènes n'apporte rien) ; spot à x = 296 et non 304 (salle de largeur paire, pas de tuile centrale) ; ids d'`ext_resource` regénérés dans `onset_treasure_001.tscn` (sans effet) ; `load()` du pool à chaque première entrée (cache des ressources) ; insertion de `economy` au milieu de `Log.CATEGORIES` (seul `has()` est utilisé) ; salle trésor jouée seule (mode ROOM / F1) sans objet (le tirage n'appartient qu'à la `Run` d'étage, piège de la story) ; mort / recommencer (nouvelle `Run`, donc stocks et flux neufs : même seed = même objet).
 
 ## Dev Agent Record
 

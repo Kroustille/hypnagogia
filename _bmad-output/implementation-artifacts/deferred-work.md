@@ -448,3 +448,4 @@
 ## Deferred from: story 5-2-trouver-un-objet-dans-la-salle-tresor (2026-11-24)
 
 - **NON ÉVALUÉ (humain) : piédestal de la salle trésor** (`art_source/rooms/onset_treasure_001.txt`, spot `item` au centre, placeholder losange doré) : lisibilité et emplacement, à juger au playtest du jalon A, avec le décor final de l'epic 7.
+- **Salle trésor et `Run.stocks` au changement d'étage** (epic 6, avec l'entrée `Run.stocks` de la revue 5.1) : `Run._enter_cell` ne tire l'objet trésor que si la cellule n'a pas encore de stock (`first_visit`, `game/run/run.gd:168`) ; tant que `stocks` n'est pas vidé ou indexé par étage, une salle trésor de l'étage N+1 sur une cellule déjà visitée à l'étage N n'aurait pas d'objet (ou montrerait les restes de l'étage N).
