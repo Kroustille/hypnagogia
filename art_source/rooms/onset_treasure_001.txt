@@ -1,4 +1,4 @@
-// Provisional treasure room: empty (the chest arrives with epic 5).
+// Provisional treasure room: empty apart from the pedestal of its item (the real decor arrives later).
 type: treasure
 size: screen
 
@@ -26,3 +26,5 @@ door N
 door E
 door S
 door W
+
+pickup item 17 9

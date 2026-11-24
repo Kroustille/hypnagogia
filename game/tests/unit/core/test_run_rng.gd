@@ -135,3 +135,14 @@ func test_a_typed_code_ignores_spaces_and_dashes() -> void:
 func test_code_to_seed_strips_the_line_ending_of_a_pasted_code() -> void:
 	assert_eq(RunRng.code_to_seed("00000C1S\r\n"), 12345)
 	assert_eq(RunRng.code_to_seed("  00000C1S\t"), 12345)
+
+
+func test_drawing_the_treasure_stream_does_not_move_shop_drops_or_combat() -> void:
+	var alone: RunRng = RunRng.new(4321)
+	var expected: Dictionary[StringName, Array] = {}
+	for name: StringName in [RunRng.SHOP, RunRng.DROPS, RunRng.COMBAT]:
+		expected[name] = _draws(alone.stream(name))
+	var mixed: RunRng = RunRng.new(4321)
+	_draws(mixed.stream(RunRng.TREASURE, 0))
+	for name: StringName in expected:
+		assert_eq(_draws(mixed.stream(name)), expected[name], "%s is untouched by treasure" % name)

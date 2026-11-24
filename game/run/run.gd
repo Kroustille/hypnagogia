@@ -14,6 +14,8 @@ const ARENA_SCENE: PackedScene = preload("res://rooms/arena/arena.tscn")
 ## The controls help of the start room of the first floor (story 4.8).
 const TUTORIAL_SCENE: PackedScene = preload("res://ui/tutorial/controls_tutorial.tscn")
 
+## The items a treasure room may offer (story 5.2).
+const TREASURE_POOL_PATH: String = "res://data/pools/treasure_pool.tres"
 const FLOOR_DEF_PATH: String = "res://data/floors/onset.tres"
 
 ## The floor definition played (a variable so that a check can point it at a missing file).
@@ -163,7 +165,10 @@ func _enter_cell(cell: Vector2i, entry_side: int) -> bool:
 	options.link_sides = floor_layout.door_sides(cell)
 	options.already_cleared = floor_map.is_cleared(cell)
 	options.entry_side = entry_side
+	var first_visit: bool = not stocks.has(cell)
 	options.stock = stock_of(cell)
+	if first_visit and placement.room_type == Room.RoomType.TREASURE:
+		_stock_treasure(room, options.stock)
 	room.setup(_player, rng, state.floor_index, options) # before add_child()
 	_place_player(room)
 	if state.floor_index == 0 and placement.room_type == Room.RoomType.START:
@@ -177,6 +182,27 @@ func _enter_cell(cell: Vector2i, entry_side: int) -> bool:
 		floor_map.mark_cleared(cell) # nothing to win here: start, treasure, shop
 	room.snap_camera() # the camera starts on the player
 	return true
+
+
+## The item of a treasure room, drawn once on the first entry (the loadout of that moment counts) and kept in the stock
+## of the cell: a later visit shows the same offer, or none when it was taken. The stream is the treasure one of this floor.
+func _stock_treasure(room: Room, stock: RoomStock) -> void:
+	var spot: PickupSpot = null
+	for candidate: PickupSpot in room.pickup_spots():
+		if candidate.slot == PickupSpot.Slot.ITEM:
+			spot = candidate
+			break
+	if spot == null:
+		Log.warn("economy", "treasure room without an item pedestal")
+		return
+	var pool: ItemPoolDef = load(TREASURE_POOL_PATH) as ItemPoolDef
+	var def: ItemDef = ItemPicker.draw(pool, _player.carrier.loadout.owned_ids(), _player.health.max_half_hearts,
+			rng.stream(RunRng.TREASURE, state.floor_index))
+	if def == null:
+		Log.warn("economy", "treasure pool is empty after the exclusions: no item in this room")
+		return
+	stock.add_item(def, spot.position)
+	Log.info("economy", "treasure item %s" % def.id)
 
 
 ## Tells the journal and the bus that the player came into the active room of the floor.
