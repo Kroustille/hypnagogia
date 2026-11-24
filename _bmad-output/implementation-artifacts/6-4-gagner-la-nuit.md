@@ -1,6 +1,6 @@
 # Story 6.4 : Gagner la nuit
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -71,6 +71,14 @@ epics.md (Story 6.4) ; GDD, Conditions de victoire (réveil de soi-même, un seu
 4. **Écran de réveil de victoire sans question de justesse.** La question vise la mort méritée (GDD) ; une victoire n'a rien à juger.
 5. **Les entrées de `deferred-work.md` sur l'enchaînement d'étages** (`Run.stocks`, carte, flux `combat` sans indice d'étage) **ne sont pas traitées par l'epic 6** : un seul étage au MVP. À traiter avec le premier second étage ; `RunSnapshot` (6.8) enregistre `floor_index` pour ne pas les rendre plus chères.
 6. **Télémétrie : `run_end` reçoit `outcome` ; pas de `reason` (`restarted`, `session_end`)** : le reste du point deferred 3.1 est laissé en l'état.
+7. **Revue — `run_end.outcome = "abandoned"`** pour une run coupée par une relance ou la fin de session (ajout du dev, absent de l'AC 5 qui ne cite que `death` / `victory`). Gardé : sans lui ces `run_end` n'auraient pas de champ `outcome` ; il couvre en partie le `reason` du deferred 3.1. Une run relancée pendant les 2 s de victoire est donc `abandoned` (rare, sans conséquence).
+8. **Revue — un `boss_defeated` reçu après la fin de la run paie quand même ses Éclats** (`Boss._on_death` ne connaît pas `Run._ended`). Gardé : dans le jeu, `Main` gèle la scène au `run_ended` du même tick, le boss ne peut plus mourir ensuite ; `Run` ignore ce signal une fois la run finie. Le risque pour l'enregistrement de la première victoire (6.7) est noté dans `deferred-work.md`.
+
+### Review Findings
+
+Revue de code (2026-11-24, Opus, trois couches en passes isolées : Blind Hunter, Edge Case Hunter, Acceptance Auditor) sur `5978e16..de1ce72`, avec un coup d'œil à `e0b5911` (gardes de la revue 6.3, `LenientProfessor`, `_assert_failed()` dans `Boss._ready`). Arbre propre de `de1ce72` extrait à part, `XDG_DATA_HOME` jetable, `--fixed-fps 60` : GUT `integration/bosses` 43/43, `integration/run` 74/74, `unit/telemetry` 7/7, `unit/ui` 32/32, `unit/bosses/test_boss_def` 11/11. Vérifiés sans défaut : mort du boss une seule fois (`Enemy._die` gardé par `_dead` ; deux coups du même tick : le second est écarté par `_deliver_hits` puisque le boss est en file de suppression) ; Éveil sans effet (le boss refuse le recul, pas de fosse) ; onde du Plongeon et `kill()` passent par `_die()` hors de toute itération du `BulletManager` ennemi ; le reflet ne touche pas d'ennemi ; pendant l'attente, toute blessure passe par `Hurtbox.receive()` → `Player._on_hurtbox_damage_received`, refusée par l'invulnérabilité forcée avant `hit_incoming` (fosse : retour sans dégât, Chute libre jamais sollicitée), règle et contact aussi ; « Se pincer » et `lose_max` ne tuent jamais ; `travel()` et portes refusés ; délai en ticks `WORLD`, gelé par la pause (et par le gel de `Main`) ; mort et victoire du même tick : la première l'emporte (`_ended` / invulnérabilité posée dans le callback même), le gel de `Main` empêche toute mort du boss après une défaite ; `run_ended(VICTORY)` une fois ; `Main`, `WakeScreen` (titre, question et Oui/Non masqués et non focalisables, focus sur « Se rendormir »), issue inconnue = `Log.warn` + défaite ; télémétrie `victory`, `victories`, `run_end.outcome` ; règle : `sweep_speed` en tuiles/s, pas par tick `sweep_speed / 60` < `thickness_tiles` ⇔ `sweep_speed < thickness_tiles × 60` (prudent : ignore la hauteur du corps), `professor.tres` 12 < 45 ; `UI_WAKE_TITLE_VICTORY` dans `strings.csv`.
+
+- [ ] [Review][Patch] Le titre de craie ne disparaît pas à la mort du boss (AC 1) [`game/ui/announcements/chalk_title.gd:36`] — `ChalkTitle` ne se cache qu'à `run_ended` (2 s plus tard) ou à la fin de sa tenue : tué peu après « Interro surprise » (1,3 s d'écriture + 1,2 s de tenue) ou « Examen final », le titre reste au tableau pendant l'attente de la victoire. Ajouter `Events.boss_defeated.connect(_on_boss_defeated)` à côté de `run_ended` et `func _on_boss_defeated(_boss_id: StringName) -> void: hide_title()` ; test GUT (`unit/ui/test_boss_bar.gd`) : `boss_announced` puis `boss_defeated` ⇒ `written() == ""` et invisible.
 
 ## Dev Agent Record
 
