@@ -357,3 +357,10 @@
 - **NON ÉVALUÉ (humain) : meubles comme couvert** : 30 PV, 1 PV par demi-cœur ennemi, tailles provisoires (lit 3×2, chaise 1×1, pupitre 2×1) ; équilibre de `onset_combat_005`.
 - **Story 4.5** : la grille de chemin lit l'état des meubles par `Furniture.is_destroyed()` / signal `destroyed` ; la poursuite directe derrière un meuble reste bloquée jusque-là. Le Mouton arrête sa charge sur un meuble sans étourdissement : à revoir avec les obstacles hauts.
 - **`Telegraph` sans annulation** : résolu par `Telegraph.cancel()` (le son déjà joué n'est pas coupé).
+
+## Deferred from: code review of 4-4-jouer-avec-la-salle-meubles-et-elements-declenchables (2026-11-24)
+
+- **Story 4.8 : point d'entrée du joueur contre les bloqueurs** : le point situé à `player_entry_distance` (3 tuiles) d'une porte n'est vérifié par le validateur contre aucun bloqueur (mur, trou, obstacle, et désormais meuble) ; un meuble posé là ferait apparaître le joueur dans un `StaticBody2D`. Le vérifier dans le validateur quand la 4.8 fixe le point d'entrée.
+- **Story 4.5 : `Furniture.destroyed` émis avant la coupure du corps** : le signal part pendant la livraison des coups, avant que les `set_deferred` (couche, forme) ne s'appliquent ; un écouteur qui interroge la physique au même tick voit encore le meuble solide. La grille de chemin doit lire `is_destroyed()` / `footprint_rect()`, pas la physique. Même story : le flood fill compte un passage d'une tuile (16 px) entre meuble et mur comme praticable sans vérifier la taille des corps (Mouton).
+- **Epic 7 (audio) : son d'un télégraphe annulé** : `Telegraph.cancel()` ne coupe pas le son d'annonce (`Audio.play_sfx` ne rend pas de poignée) ; le joueur entend l'annonce d'une attaque qui ne vient pas, contraire à la règle de lisibilité des télégraphes. Faire rendre une voix à `play_sfx`, la garder dans `start()`, l'arrêter dans `cancel()`.
+- **Playtest / story 4.10 : lampe de `onset_combat_005` hors de portée** : la lampe (312, 88) est à 160 px du point d'apparition le plus proche pour un rayon de 48 px ; elle n'éblouit que des ennemis venus jusqu'à elle. Rapprocher la lampe des apparitions dans les salles du pool.

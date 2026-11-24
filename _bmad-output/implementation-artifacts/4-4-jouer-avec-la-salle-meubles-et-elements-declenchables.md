@@ -1,6 +1,6 @@
 # Story 4.4 : Jouer avec la salle : meubles et éléments déclenchables
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -35,6 +35,19 @@ Hors périmètre : les autres éléments déclenchables (un seul : la lampe), so
 - [x] Enregistrement des meubles et lampes à l'entrée de salle, après les `BulletManager` (ordre d'`Arena._ready`). `Room.enemies_within(point, radius_px)` (ennemis vivants du nœud `Enemies`).
 - [x] Salle `onset_combat_005` (ASCII) ; validateur (critère 8).
 - [x] Tests GUT : `tests/integration/rooms/test_furniture.gd` (tir joueur, tir ennemi, 30 PV, destruction, déblocage, Glissement), `test_lamp.gd` (portée exacte, une fois, télégraphe annulé, éblouissement 1 s en ticks, contact actif, tir ennemi sans effet), `tests/unit/combat/test_telegraph_cancel.gd`, validateur.
+
+### Review Findings
+
+Revue complète (3 couches) du 2026-11-24 sur `d411e2c..c3ca891`. Numéros de ligne à `c3ca891` (un correctif de la 4.3 touche le validateur en parallèle). 22 constats après dédoublonnage : 4 actions (3 constats), 5 reportés, 14 écartés.
+
+- [ ] [Review][Patch] **Commentaire et nom de test faux sur les tirs du tick de destruction** [`game/rooms/furniture.gd:127`, `game/tests/integration/rooms/test_furniture.gd:72`] : `BulletManager` lit `is_hittable()` une fois par tick (`_refresh_target_rects`), donc les autres tirs du même manager qui touchent le meuble dans le tick de sa destruction sont consommés sans effet (le test l'affirme : « all 31 shots were consumed »). Remplacer « (bullets of this very tick pass through) » par « (HP drop no further; shots of this very tick already tested by a BulletManager are still consumed, as for an enemy: from the next tick on they pass through) » et renommer le test en `test_the_30th_hit_destroys_it_once_and_the_shots_of_that_tick_are_consumed`. Décision R1.
+- [ ] [Review][Patch] **Une lampe éteinte absorbe un second tir du même tick** [`game/rooms/markers/trigger.gd:43`] : même cause ; critère 5 (« tirs suivants ignorés »). Après `hurtbox.camp = BulletManager.Camp.ENEMY`, ajouter `hurtbox.one_hit_per_tick = true` (la lampe ne se déclenche qu'une fois : les tirs suivants du tick passent). Test : deux tirs du joueur sur la lampe au même tick → `player_bullets().active_count == 1` après le tick.
+- [ ] [Review][Patch] **Le validateur ne vérifie ni `def.size` ni `def.max_hp`** [`game/rooms/validator/room_validator.gd:257-259`] : une taille < 1 donne zéro case (`_cells_of`), la pièce passe toutes les règles puis `Furniture._ready()` fait `assert(false)` ; `max_hp <= 0` fait asserter `HitPoints`. Après le test `def == null` : `if piece.def.size.x < 1 or piece.def.size.y < 1: problems.append("%s has an invalid size" % label); continue` et `if not (is_finite(piece.def.max_hp) and piece.def.max_hp > 0.0): problems.append("%s has invalid max_hp" % label)`.
+- [ ] [Review][Patch] **Empreinte du validateur ≠ empreinte du jeu hors centre de tuile** [`game/rooms/validator/room_validator.gd:257`, `:297`] : `_cells_of` prend `floor(position / 16)`, `Furniture.footprint_rect()` part de `position - 8` ; un marqueur déplacé à la main sur un coin de tuile (snap de l'éditeur) couvre `size + 1` cases en vrai et peut chevaucher mur, porte ou marqueur sans être signalé. Dans `_check_furniture`, après le test de def : `var half: float = Const.TILE_SIZE / 2.0` ; `if not is_equal_approx(fposmod(piece.position.x, Const.TILE_SIZE), half) or not is_equal_approx(fposmod(piece.position.y, Const.TILE_SIZE), half): problems.append("%s is not on a tile center" % label); continue`.
+- [x] [Review][Defer] **Point d'entrée du joueur non vérifié contre les meubles** [`game/rooms/validator/room_validator.gd`] — reporté à la 4.8 (le point `player_entry_distance` n'est vérifié contre aucun bloqueur, déjà vrai avant).
+- [x] [Review][Defer] **`destroyed` émis avant la coupure différée du corps ; passages d'une tuile** [`game/rooms/furniture.gd:141`, `room_validator.gd` `_check_reachability`] — reporté à la 4.5.
+- [x] [Review][Defer] **Le son d'un télégraphe annulé n'est pas coupé** [`game/combat/telegraph.gd`] — reporté à l'epic 7 (audio).
+- [x] [Review][Defer] **La lampe de `onset_combat_005` est loin de tout point d'apparition** [`game/rooms/pool/onset/onset_combat_005.tscn`] — reporté au playtest / 4.10.
 
 ## État du code concerné
 
@@ -71,6 +84,7 @@ Hors périmètre : les autres éléments déclenchables (un seul : la lampe), so
 10. **Éblouissement** : l'ennemi ébloui est teinté de jaune (provisoire) ; le minuteur de tir des tireurs est gelé pendant l'éblouissement ; un Mouton étourdi est ramené au repos par l'éblouissement ; la lampe n'a ni corps ni PV, sa hurtbox refuse le coup (pas de chiffre de dégâts) ; les meubles affichent un chiffre de dégâts aux tirs du joueur (feedback gardé).
 11. **Arrêt de la charge du Mouton** : aucun changement de `STUNNING_LAYERS` ; toucher le meuble termine déjà la charge sans étourdir (collision non « étourdissante »).
 12. **Salles de test** : `onset_combat_005` plus des fixtures `furniture_*`/`trigger_no_kind` ; les lignes `furniture none` et `trigger none` du constructeur ASCII servent aux fixtures (pièce sans def, déclencheur sans genre).
+13. **R1 (revue) : critère 4 « les tirs en vol dans le même tick ne le touchent plus »** : lu comme « les PV ne baissent plus et les tirs des ticks suivants passent ». Les autres tirs du même `BulletManager` dans le tick de destruction restent consommés (limite connue du manager, la même que pour un ennemi tué) ; un budget de coups par hurtbox coûterait plus qu'il ne rapporte (quelques balles perdues sur 30 PV). La lampe, elle, passe en `one_hit_per_tick` (un seul déclenchement).
 
 ## Dev Agent Record
 
@@ -95,3 +109,4 @@ Claude Sonnet 5.5
 ### Change Log
 
 - 2026-11-24 : implémentation de la story 4.4 (meubles, lampe, éblouissement, validateur, salle `onset_combat_005`).
+- 2026-11-24 : revue de code (3 couches) : 4 actions, 5 reportés, décision R1 ; statut `in-progress`.
