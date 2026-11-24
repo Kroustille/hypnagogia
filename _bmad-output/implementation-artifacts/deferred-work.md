@@ -449,3 +449,9 @@
 
 - **NON ÉVALUÉ (humain) : piédestal de la salle trésor** (`art_source/rooms/onset_treasure_001.txt`, spot `item` au centre, placeholder losange doré) : lisibilité et emplacement, à juger au playtest du jalon A, avec le décor final de l'epic 7.
 - **Salle trésor et `Run.stocks` au changement d'étage** (epic 6, avec l'entrée `Run.stocks` de la revue 5.1) : `Run._enter_cell` ne tire l'objet trésor que si la cellule n'a pas encore de stock (`first_visit`, `game/run/run.gd:168`) ; tant que `stocks` n'est pas vidé ou indexé par étage, une salle trésor de l'étage N+1 sur une cellule déjà visitée à l'étage N n'aurait pas d'objet (ou montrerait les restes de l'étage N).
+
+## Deferred from: story 5-3-porter-un-consommable (2026-11-24)
+
+- **NON ÉVALUÉ (humain) : Café et Se pincer** : +30 % vitesse et cadence 10 s puis −20 % vitesse 5 s ; +25 de lucidité pour ½ cœur. Ressenti à juger au playtest du jalon A.
+- **NON ÉVALUÉ (humain) : icône provisoire du consommable** (carré coloré + initiale dans le HUD, pickup rond bleu clair) et **touche Q** (physique, A sur AZERTY) à côté des touches de déplacement ; manette Y non testée. `use_active` (5.8) est réservé à E / bouton X.
+- **Consommable déposé et pickups superposés** (5.4) : deux pickups de consommable sous le joueur dans le même tick s'échangent l'un l'autre ; à traiter avec l'entrée « Pickups superposés et réarmement » de 5.1.
