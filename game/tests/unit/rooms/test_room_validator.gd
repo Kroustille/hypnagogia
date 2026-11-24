@@ -84,7 +84,7 @@ func test_room_info_reads_a_scene_and_scene_paths_are_sorted() -> void:
 	assert_eq(info.size_kind, Room.SizeKind.SCREEN)
 	assert_eq(info.doors, [Door.Side.N, Door.Side.E, Door.Side.S, Door.Side.W] as Array[int])
 	var paths: PackedStringArray = RoomInfo.scene_paths("res://rooms/pool")
-	assert_eq(paths.size(), 4)
+	assert_eq(paths.size(), 5)
 	var sorted: PackedStringArray = paths.duplicate()
 	sorted.sort()
 	assert_eq(paths, sorted)

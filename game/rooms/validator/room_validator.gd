@@ -41,6 +41,8 @@ static func validate_room(room: Room, id: String) -> PackedStringArray:
 		sides[door.side] = true
 	_check_player_spawn(room, playable, problems)
 	_check_enemies(room, playable, frame, doors, problems)
+	_check_furniture(room, playable, problems)
+	_check_triggers(room, playable, problems)
 	_check_reinforcements(room, playable, problems)
 	_check_reachability(room, playable, frame, doors, problems)
 	var tagged: PackedStringArray = PackedStringArray()
@@ -129,11 +131,12 @@ static func _check_reinforcements(room: Room, playable: Vector2i, problems: Pack
 		problems.append("no ReinforcementSpawn")
 
 
-## The layers whose cells a marker or the player may not stand on, by label.
+## What a marker or the player may not stand on, by label: a TileMapLayer, or the cells of the furniture (a set).
 static func _blockers(room: Room) -> Dictionary:
 	return {
 		"wall": _layer(room, "Walls"), "high obstacle": _layer(room, "HighObstacles"),
 		"low obstacle": _layer(room, "LowObstacles"), "pit": _layer(room, "Pits"),
+		"furniture": _furniture_cells(room),
 	}
 
 
@@ -144,8 +147,7 @@ static func _check_marker_cell(label: String, position: Vector2, playable_rect: 
 		problems.append("%s is outside the playable area" % label)
 		return # the layers below are not drawn out there
 	for kind: String in blockers:
-		var layer: TileMapLayer = blockers[kind]
-		if layer != null and layer.get_cell_source_id(cell) != -1:
+		if _is_occupied(blockers[kind], cell):
 			problems.append("%s is on a %s" % [label, kind])
 
 
@@ -163,7 +165,7 @@ static func _check_wave_sizes(spawns: Array[EnemySpawn], problems: PackedStringA
 
 
 ## Every enemy marker and every door must be reachable on foot from the first door: floor without pit, wall or
-## obstacle, 4-connected (story 4.3).
+## obstacle or furniture (destructible, but a room never relies on breaking one: story 4.4), 4-connected (story 4.3).
 static func _check_reachability(room: Room, playable: Vector2i, frame: Vector2i, doors: Array[Door], problems: PackedStringArray) -> void:
 	var floor_layer: TileMapLayer = _layer(room, "Floor")
 	if floor_layer == null or doors.is_empty():
@@ -175,9 +177,10 @@ static func _check_reachability(room: Room, playable: Vector2i, frame: Vector2i,
 		var layer: TileMapLayer = _layer(room, layer_name)
 		if layer != null:
 			blockers.append(layer)
+	var furniture_cells: Dictionary = _furniture_cells(room)
 	var playable_rect: Rect2i = Rect2i(Vector2i.ONE, playable)
 	var walkable: Callable = func(cell: Vector2i) -> bool:
-		if not playable_rect.has_point(cell) or floor_layer.get_cell_source_id(cell) == -1:
+		if not playable_rect.has_point(cell) or floor_layer.get_cell_source_id(cell) == -1 or furniture_cells.has(cell):
 			return false
 		for layer: TileMapLayer in blockers:
 			if layer.get_cell_source_id(cell) != -1:
@@ -237,3 +240,82 @@ static func _door_entries(side: Door.Side, frame: Vector2i) -> Array[Vector2i]:
 
 static func _layer(room: Room, layer_name: String) -> TileMapLayer:
 	return room.get_node_or_null(layer_name) as TileMapLayer
+
+
+## Every piece of furniture has a def, lies inside the playable area, on no wall, obstacle or pit, and overlaps no other
+## piece (story 4.4). A piece placed on another marker is reported by that marker's own check.
+static func _check_furniture(room: Room, playable: Vector2i, problems: PackedStringArray) -> void:
+	var playable_rect: Rect2i = Rect2i(Vector2i.ONE, playable)
+	var layers: Dictionary = {
+		"wall": _layer(room, "Walls"), "high obstacle": _layer(room, "HighObstacles"),
+		"low obstacle": _layer(room, "LowObstacles"), "pit": _layer(room, "Pits"),
+	}
+	var taken: Dictionary = {} # cell -> name of the first piece covering it
+	var reported: Dictionary = {}
+	for piece: Furniture in room.furnitures():
+		var label: String = "Furniture %s at %s" % [piece.name, piece.position]
+		if piece.def == null:
+			problems.append("%s has no def" % label)
+			continue
+		var outside: bool = false
+		var on_what: Dictionary = {}
+		for cell: Vector2i in _cells_of(piece):
+			if not playable_rect.has_point(cell):
+				outside = true
+				continue
+			for kind: String in layers:
+				if _is_occupied(layers[kind], cell):
+					on_what[kind] = true
+			if taken.has(cell) and taken[cell] != piece.name and not reported.has(piece.name):
+				reported[piece.name] = true
+				problems.append("%s overlaps Furniture %s" % [label, taken[cell]])
+			if not taken.has(cell):
+				taken[cell] = piece.name
+		if outside:
+			problems.append("%s is outside the playable area" % label)
+		for kind: String in on_what:
+			problems.append("%s is on a %s" % [label, kind])
+
+
+## A trigger has a known kind and stands inside the playable area, on no wall, obstacle, pit or furniture.
+static func _check_triggers(room: Room, playable: Vector2i, problems: PackedStringArray) -> void:
+	var blockers: Dictionary = _blockers(room)
+	for element: Trigger in room.triggers():
+		var label: String = "Trigger %s at %s" % [element.name, element.position]
+		if element.kind == &"":
+			problems.append("%s has no kind" % label)
+		elif not Trigger.KNOWN_KINDS.has(element.kind):
+			problems.append("%s has an unknown kind '%s'" % [label, element.kind])
+		_check_marker_cell(label, element.position, Rect2i(Vector2i.ONE, playable), blockers, problems)
+
+
+## The tiles a piece covers (frame coordinates). Empty without a def.
+static func _cells_of(piece: Furniture) -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	if piece.def == null:
+		return cells
+	var first: Vector2i = Vector2i((piece.position / Const.TILE_SIZE).floor())
+	for y: int in piece.def.size.y:
+		for x: int in piece.def.size.x:
+			cells.append(first + Vector2i(x, y))
+	return cells
+
+
+## The tiles covered by all the furniture of the room, as a set.
+static func _furniture_cells(room: Room) -> Dictionary:
+	var cells: Dictionary = {}
+	for piece: Furniture in room.furnitures():
+		for cell: Vector2i in _cells_of(piece):
+			cells[cell] = true
+	return cells
+
+
+## A blocker is a tile layer (a tile in the cell) or a set of cells.
+static func _is_occupied(blocker: Variant, cell: Vector2i) -> bool:
+	if blocker is TileMapLayer:
+		var layer: TileMapLayer = blocker
+		return layer.get_cell_source_id(cell) != -1
+	if blocker is Dictionary:
+		var cells: Dictionary = blocker
+		return cells.has(cell)
+	return false
