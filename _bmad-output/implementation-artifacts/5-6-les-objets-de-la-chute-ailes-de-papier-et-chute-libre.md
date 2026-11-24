@@ -1,6 +1,6 @@
 # Story 5.6 : Les objets de la Chute : Ailes de papier et Chute libre
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -92,3 +92,24 @@ epics.md (Story 5.6) ; GDD « Objets du MVP » (lignes Ailes de papier, Chute li
 ### Non évalué (humain)
 
 - Ressenti de Chute libre (+5 %/s, ½ cœur de plus) et des 3 s de suspension des Ailes : playtest du jalon A.
+
+### Review Findings
+
+Revue de code (2026-11-24, 3 couches : Blind Hunter, Edge Case Hunter, Acceptance Auditor), diff `dc69e08..83848c1`. Lignes à `83848c1` (entre parenthèses : à `8acaa74` quand elles ont bougé). 4 patchs, 3 reports, 14 rejets.
+
+**Régression signalée `t_enemy_main` / `t_sheep_main` : pas une régression de 5.6, pas un bogue du jeu.** Preuve : arbres propres de `dc69e08` et `83848c1` extraits à part (le dev 5.7 modifiait l'arbre de travail) ; au calme, 3/3 PASS sur chacun ; sous charge (10 instances en parallèle), 5/5 FAIL sur **chacun**, au même pas (« F1 + key 6 »). Instrumenté : quand l'échec arrive, `Engine.get_process_frames()` n'a pas avancé pendant les 2 ticks de `press()` (0 image de rendu, 2 ticks de physique dans la même itération) ; or `Input.parse_input_event` ne vide sa file qu'à l'image suivante : la touche 6 n'est jamais livrée avant le check. Chaque passage avec ≥ 1 image passe. C'est le harnais (en `--fixed-fps 60` : une image par tick, jamais d'échec). Report ci-dessous.
+
+- [ ] [Review][Patch] Ailes rattachées pendant la suspension : le vol ne revient jamais [`game/items/effects/paper_wings_effect.gd:19-20`] — `detach()` met `wants_tick = false` et garde `_suspended_left` ; `attach()` (via `BuildCarrier._enter_tree` → `Loadout.attach_all`, ajouté par cette story) ne remet pas `wants_tick`, donc `tick()` n'est plus appelé et le survol est perdu pour la run. Correctif : `if _suspended_left <= 0.0: _grant_flight()` puis `else: wants_tick = true`. Test GUT dans `test_paper_wings_effect.gd` : coup reçu, 60 ticks, `remove_child`/`add_child` du carrier, 130 ticks de plus → `CAN_FLY_OVER_PITS` = 1 (échoue aujourd'hui).
+- [ ] [Review][Patch] Un montant de coup invalide venu d'une source n'est plus signalé [`game/player/player.gd:529-533` (`533-537`)] — un `info.amount` fini < 1 dès l'entrée (ennemi mal réglé, 0,4) saute l'émission puis est refusé en silence, alors qu'avant `Health.apply_damage` journalisait `hit refused: invalid amount` + assert. Correctif : ne refuser en silence que si un effet a baissé le montant : `if is_finite(info.amount) and roundi(info.amount) >= 1:` `carrier.hit_incoming.emit(info)` puis, **dans ce bloc**, `if is_finite(info.amount) and roundi(info.amount) < 1: hurtbox.refuse_hit(); return` ; un montant invalide d'origine va à `Health` comme avant 5.6. Test GUT : `DamageInfo` amount 0.4 sans objet → `assert_push_error`/journal d'erreur ou `lost == 0` via `Health` (voir `t_invalid23`) ; le test `test_an_effect_that_cancels_the_hit_refuses_it_cleanly` doit rester vert.
+- [ ] [Review][Patch] `ItemCatalog.problem_of` crée un effet jetable à chaque appel, donc à chaque tick par pickup d'Ailes / Chute libre [`game/items/item_catalog.gd:47-56`] — chaîne `Pickup._physics_process` → `_refresh_look` → `is_available` → `BuildCarrier.can_take` → `refusal_of` → `problem_of` → `effect_script.new()` (60 allocations/s par pickup, plus l'`_init` de l'effet). Correctif : cache statique par script, `static var _required_by_script: Dictionary = {}` (script → `Array[StringName]`, ou `""`/marqueur pour « n'étend pas `ItemEffect` »), rempli au premier appel. Test GUT dans `test_item_catalog.gd` : deux appels sur `paper_wings.tres` donnent `""`, et une définition sans `suspend_seconds` est toujours refusée après un premier appel valide sur un autre objet du même script.
+- [ ] [Review][Patch] AC3 non prouvé sans l'invulnérabilité d'après-coup [`game/tests/integration/items/test_fall_items.gd:50`] — le test de chute gratuite passe aussi si `fall_if_over_pit` infligeait le coup de chute, car le joueur est invulnérable 1 s. Ajouter un test : joueur vulnérable (pas de coup avant) au-dessus du trou, survol retiré à la main, `player.fall_if_over_pit()` → `true`, replacé à `last_safe`, `half_hearts` inchangé, aucun `player_hit`. Ajouter aussi, dans `test_free_fall_effect.gd`, un `detach()` direct (sans `Loadout.remove`) avec bonus > 0 → modificateur `DAMAGE` absent (AC6).
+- [x] [Review][Defer] Chute libre face à un effet qui annule un coup (aucun aujourd'hui) — reporté, voir `deferred-work.md`.
+- [x] [Review][Defer] Dash encore actif quand `fall_if_over_pit` / `_fall` replace le joueur — reporté (déjà vrai pour le Planer), voir `deferred-work.md`.
+- [x] [Review][Defer] Harnais scratch : touche simulée non livrée quand 2 ticks tombent dans la même image (`t_enemy_main`, `t_sheep_main`) — reporté, voir `deferred-work.md`.
+
+Rejetés (14) : refus mort/invulnérable avant l'émission redondant avec `Hurtbox.is_hittable` / `Health` mais même issue (pas de `player_hit`, `refuse_hit`, invulnérabilité de coup, i-frames du dash, contact et télémétrie inchangés, touche 3 « hit ignored » inchangée) ; `fall_if_over_pit` sans salle (`_is_over_pit` teste déjà `_room == null` et la mort) ; chute « dans un rappel physique » (les coups arrivent depuis `_physics_process` des hitbox / gestionnaires de balles, pas depuis un signal du moteur) ; `_enter_tree` sur une loadout vide (rien à rattacher) ; rattachement des anciens effets (Café et Pincement sont des consommables, pas des `ItemEffect`) ; `PIT_DAMAGE` < 1 ne compte pas comme coup pour Chute libre (pas de coup, cohérent avec « un coup refusé n'est pas un coup ») ; `bonus()` périmé après `detach` (aucun lecteur, `attach` remet à 0) ; `detach_all` qui touche les stats (voulu : rien ne doit rester posé hors de l'arbre) ; `DamageInfo` réutilisé (chaque source en crée un neuf) ; dérive flottante de 1 tick sur les 180 ; nombres en dur dans `strings.csv` (convention des autres objets) ; `load_steps` ; `effect_script` non `GDScript` (le projet n'a que du GDScript) ; carrier avec `player` nul dans l'arbre (aucun chemin du jeu ; `setup` reçoit toujours le joueur).
+
+### Décisions prises sans Kroustille (revue de code)
+
+8. **Joueur mort : les consommables en cours se figent aussi** (`BuildCarrier._physics_process` sort avant `_running`) : accepté, la run est finie et `_exit_tree` les annule.
+9. **Échecs de `t_enemy_main` / `t_sheep_main` classés « harnais »**, pas bogue du jeu : mêmes échecs sur `dc69e08` sous charge, cause mesurée (file d'entrée non vidée sans image de rendu entre les ticks).
