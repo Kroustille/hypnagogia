@@ -102,6 +102,40 @@ func add(def: ItemDef, charge: int = -1) -> OwnedItem:
 	return owned
 
 
+## Every definition held, active item left out, one entry per copy: what the Reflection of the Mirror receives (story 5.10).
+## Definitions, never OwnedItem: the copies share no source with this loadout.
+func copy_defs() -> Array[ItemDef]:
+	var defs: Array[ItemDef] = []
+	for owned: OwnedItem in _items:
+		if not owned.def.active:
+			defs.append(owned.def)
+	return defs
+
+
+## Takes a copy of a definition for a build that is not the player's: its stat modifiers, and its effect only when the effect
+## says supports_non_player() (an unsupported one is not even kept). No active item, no price in hearts. Returns the copy,
+## null when the definition is not taken.
+func add_def_for_copy(def: ItemDef) -> OwnedItem:
+	if def == null or def.active:
+		return null
+	var owned: OwnedItem = OwnedItem.new(def)
+	for modifier: ModifierDef in def.modifiers:
+		_carrier.stats.set_modifier(owned, modifier.stat, modifier.kind, modifier.value)
+	if def.effect_script is GDScript:
+		var made: Object = (def.effect_script as GDScript).new()
+		var effect: ItemEffect = made as ItemEffect
+		if effect != null and effect.supports_non_player():
+			effect.owned = owned
+			owned.effect = effect
+		elif made != null and not made is RefCounted:
+			made.free()
+	_items.append(owned)
+	if owned.effect != null:
+		owned.effect.attach(_carrier)
+	item_added.emit(owned)
+	return owned
+
+
 ## Takes this copy away. False when it is not held.
 func remove(owned: OwnedItem) -> bool:
 	var index: int = _items.find(owned)

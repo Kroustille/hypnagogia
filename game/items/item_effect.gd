@@ -35,6 +35,12 @@ func param(key: StringName) -> float:
 	return item.def.params.get(key, 0.0) if item != null else 0.0
 
 
+## True when the effect can be attached to a build that is not the player's (the Reflection, story 5.10): it then reads only
+## carrier.stats and carrier.host, never carrier.player. Most effects are tied to the player and say no.
+func supports_non_player() -> bool:
+	return false
+
+
 ## The item was added to the loadout (or the carrier entered the tree again). Does nothing when already attached.
 func attach(new_carrier: BuildCarrier) -> void:
 	carrier = new_carrier

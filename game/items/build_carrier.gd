@@ -17,6 +17,9 @@ signal room_entered(room: Room)
 signal room_fight_started(room: Room)
 
 var player: Player
+## The node the build belongs to: the Player, or the Reflection of the Mirror (story 5.10). Effects that support a
+## non-player host read this and stats only; player is null for them.
+var host: Node
 ## The same object as Player.stats.
 var stats: StatBlock
 var loadout: Loadout
@@ -43,6 +46,7 @@ enum UseResult { NONE, USED, REFUSED }
 ## Dependency injection: call before add_child().
 func setup(owner_player: Player, stat_block: StatBlock) -> void:
 	player = owner_player
+	host = owner_player
 	stats = stat_block
 	loadout = Loadout.new(self)
 	tags = TagTracker.new(loadout)
@@ -53,10 +57,18 @@ func setup(owner_player: Player, stat_block: StatBlock) -> void:
 	tags.synergy_deactivated.connect(_on_synergy_deactivated)
 
 
+## Dependency injection for a build that is not the player's (the Reflection, story 5.10): no player, no synergies. Call
+## before add_child().
+func setup_host(owner_host: Node, stat_block: StatBlock) -> void:
+	host = owner_host
+	stats = stat_block
+	loadout = Loadout.new(self)
+
+
 func _physics_process(delta: float) -> void:
-	var ticks: float = GameClock.scale(GameClock.Group.PLAYER)
+	var ticks: float = GameClock.scale(GameClock.Group.ENEMIES if player == null and host != null else GameClock.Group.PLAYER)
 	var dt: float = delta * ticks
-	if dt <= 0.0 or player.health.is_dead():
+	if dt <= 0.0 or (player != null and player.health.is_dead()):
 		return
 	for id: StringName in _running.keys():
 		var effect: ConsumableEffect = _running[id]
@@ -238,6 +250,8 @@ func _attach_synergy(def: SynergyDef) -> void:
 
 ## Back in the tree: the active synergies listen again (attach is a no-op when already attached).
 func _attach_synergies() -> void:
+	if tags == null:
+		return
 	for def: SynergyDef in SynergyCatalog.all():
 		if tags.active_synergy(def.tag) != def:
 			continue
