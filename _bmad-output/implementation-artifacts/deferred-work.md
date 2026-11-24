@@ -249,3 +249,7 @@
 - **`Player._on_room_cleared(_room)` ne tolère pas un argument de plus** malgré son commentaire (story 3.6) : mettre à jour la signature et le commentaire quand `room_cleared` reçoit `lowest_tier`.
 - **Graze puis coup quand le joueur rattrape un projectile qui s'éloigne** (playtest du jalon A) : le test d'éloignement lit la vitesse du projectile, pas la vitesse relative ; rare (6 tuiles/s contre 5–6). Si gênant : tester la vitesse relative au déplacement de la hurtbox.
 - Le cas « projectile esquivé qui touche à la fin de l'invulnérabilité du dash » (report de la story 3-2 ci-dessus) est traité par une correction de revue (décision 12 : un projectile esquivé ne touche plus le joueur).
+
+## Deferred from: story 3-3 (2026-11-24)
+
+- **NON ÉVALUÉ (humain) : sensation d'Éveil** : recul de 2 tuiles instantané, anneau placeholder, sons provisoires (remplacés par 7.7), recharge d'1 s sans indicateur HUD (emplacements en epic 5), recul qui n'interrompt ni charge ni télégraphe, LT sur manette réelle. À juger au playtest du jalon A.

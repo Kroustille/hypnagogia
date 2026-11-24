@@ -1,6 +1,6 @@
 # Story 3.3 : Dépenser sa lucidité : Éveil
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -26,16 +26,16 @@ Hors périmètre : bonus de palier (3.5), danger (3.6), distorsions et trembleme
 
 ## Tâches
 
-- [ ] `core/awakening_tuning.gd` + `data/tuning/awakening_tuning.tres` (`cost`, `cooldown`, `effect_radius`, `knockback_distance`), `Tuning.AWAKENING`.
-- [ ] `Lucidity.try_spend()` + signal `spent` ; `Player` relaie sur `Events.lucidity_spent(power, cost, tier)` (entiers et `StringName`).
-- [ ] `player/powers/power_cooldown.gd` (`RefCounted`, ticks de jeu comme `Dash`) : `start(seconds)`, `tick(clock_scale)`, `is_ready()`, `progress()`.
-- [ ] `project.godot` : `power_1` = clic droit (`MOUSE_BUTTON_RIGHT`) + manette axe `4` (LT, `JOY_AXIS_TRIGGER_LEFT`), zone morte 0,5 comme `shoot`. `power_2` est ajoutée par 3.4.
-- [ ] `Player` : lecture de `power_1` dans `_physics_process` (`is_action_just_pressed`, après le dash), cooldown, signal local `awakening_used(origin: Vector2)`, son de refus.
-- [ ] `BulletManager.clear_all() -> int` : libère tous les projectiles actifs (compte renvoyé), sans signal de touche ni de graze ; restitue les emplacements au pool.
-- [ ] `Enemy.knock_back(direction: Vector2, distance_px: float)` : déplacement par `move_and_collide` (masque murs et ennemis déjà en place), jamais à travers un mur.
-- [ ] `Arena` : `_on_awakening_used(origin)` branché sur le joueur (même câblage que le graze de 3.2) : `_enemy_bullets.clear_all()`, recul des ennemis du rayon, anneau.
-- [ ] `vfx/ring_pulse.gd` (`Node2D`, dessin d'un cercle qui grandit et s'estompe, rayon, couleur, durée en ticks du groupe `FX`) ; sons `sfx_awakening.wav`, `sfx_power_refused.wav` (générés, provisoires).
-- [ ] Télémétrie : `TelemetrySession` compte les dépenses ; F3 affiche la recharge d'Éveil ; vérifications `t_awakening` ; `run_all.sh` une fois à la fin.
+- [x] `core/awakening_tuning.gd` + `data/tuning/awakening_tuning.tres` (`cost`, `cooldown`, `effect_radius`, `knockback_distance`), `Tuning.AWAKENING`.
+- [x] `Lucidity.try_spend()` + signal `spent` ; `Player` relaie sur `Events.lucidity_spent(power, cost, tier)` (entiers et `StringName`).
+- [x] `player/powers/power_cooldown.gd` (`RefCounted`, ticks de jeu comme `Dash`) : `start(seconds)`, `tick(clock_scale)`, `is_ready()`, `progress()`.
+- [x] `project.godot` : `power_1` = clic droit (`MOUSE_BUTTON_RIGHT`) + manette axe `4` (LT, `JOY_AXIS_TRIGGER_LEFT`), zone morte 0,5 comme `shoot`. `power_2` est ajoutée par 3.4.
+- [x] `Player` : lecture de `power_1` dans `_physics_process` (`is_action_just_pressed`, après le dash), cooldown, signal local `awakening_used(origin: Vector2)`, son de refus.
+- [x] `BulletManager.clear_all() -> int` : libère tous les projectiles actifs (compte renvoyé), sans signal de touche ni de graze ; restitue les emplacements au pool.
+- [x] `Enemy.knock_back(direction: Vector2, distance_px: float)` : déplacement par `move_and_collide` (masque murs et ennemis déjà en place), jamais à travers un mur.
+- [x] `Arena` : `_on_awakening_used(origin)` branché sur le joueur (même câblage que le graze de 3.2) : `_enemy_bullets.clear_all()`, recul des ennemis du rayon, anneau.
+- [x] `vfx/ring_pulse.gd` (`Node2D`, dessin d'un cercle qui grandit et s'estompe, rayon, couleur, durée en ticks du groupe `FX`) ; sons `sfx_awakening.wav`, `sfx_power_refused.wav` (générés, provisoires).
+- [x] Télémétrie : `TelemetrySession` compte les dépenses ; F3 affiche la recharge d'Éveil ; vérifications `t_awakening` ; `run_all.sh` une fois à la fin.
 
 ## État du code concerné
 
@@ -87,6 +87,23 @@ Hors périmètre : bonus de palier (3.5), danger (3.6), distorsions et trembleme
 
 ### Agent Model Used
 
+Agent : Claude Sonnet 5.5 (dev-story, mode lean).
+
 ### Completion Notes
 
+- Toutes les tâches faites. `Lucidity.try_spend(cost, power)` + signal `spent` ; `Player` relaie sur `Events.lucidity_spent` et journalise (`spend awakening cost=30 tier=… value=…`). `PowerCooldown` (ticks de jeu), `power_1` (clic droit + LT axe 4, zone morte 0,5), `Player._update_powers()` extensible pour 3.4, signal `awakening_used(origin)`.
+- `Arena._on_awakening_used` : `clear_all()` du manager ennemi, recul des ennemis à moins de 3 tuiles (`Enemy.knock_back`, `move_and_collide`, direction par défaut à droite si centres confondus), `RingPulse` (groupe FX). Sons `sfx_awakening.wav` et `sfx_power_refused.wav` générés (provisoires, 7.7).
+- Télémétrie : `TelemetrySession.spent()` ; `run_end.spends` et `summary.spends` = `{pouvoir: {palier_avant: nombre}}`. F3 : « Awakening n% » (recharge).
+- Aucune chaîne joueur ajoutée (pas de texte à localiser).
+- Vérifications : `t_awakening` (39 ok), ajoutée à `run_all.sh` ; `run_all.sh` en mode normal : ALL PASS (868 ok) ; `--quit-after 120` propre. `t_hud` a échoué une fois sous charge (fuite d'objets à la sortie, flaky, sans lien : reproduit sans mes changements), repassé ensuite.
+- Décisions du spec respectées sans écart. Précision : une pression est ignorée (sans son de refus) si l'horloge du joueur est à 0 ; un joueur mort entend le son de refus et ne dépense rien.
+- NON ÉVALUÉ (humain) : sensation d'Éveil (recul de 2 tuiles, anneau, sons provisoires, recharge 1 s), absence d'indicateur de recharge dans le HUD (décision 6), recul qui n'interrompt pas les attaques (décision 3), LT sur manette réelle.
+
 ### File List
+
+Nouveaux : `game/core/awakening_tuning.gd`, `game/data/tuning/awakening_tuning.tres`, `game/player/powers/power_cooldown.gd`, `game/vfx/ring_pulse.gd`, `game/audio/sfx/sfx_awakening.wav`, `game/audio/sfx/sfx_power_refused.wav` (+ `.import`, `.uid`).
+Modifiés : `game/core/tuning.gd`, `game/player/lucidity.gd`, `game/player/player.gd`, `game/autoloads/events.gd`, `game/project.godot`, `game/combat/bullets/bullet_manager.gd`, `game/enemies/enemy.gd`, `game/rooms/arena/arena.gd`, `game/telemetry/telemetry.gd`, `game/telemetry/telemetry_session.gd`, `game/debug/perf_overlay.gd`.
+
+### Change Log
+
+- 2026-11-24 : implémentation de la story 3.3 (Éveil), passée en review.
