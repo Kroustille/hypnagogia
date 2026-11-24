@@ -132,3 +132,13 @@ func test_the_room_does_not_clear_while_the_reflection_lives() -> void:
 	_harness.room.kill_all_enemies()
 	await _harness.until(func() -> bool: return _harness.room.is_cleared(), WAVE_TICKS)
 	assert_true(_harness.room.is_cleared())
+
+
+func test_the_reflection_appears_inside_the_visible_area_of_a_wide_room() -> void:
+	_harness.start("res://rooms/pool/onset/onset_combat_007.tscn")
+	_harness.player.global_position = _harness.room.to_global(Vector2(80.0, 168.0)) # west entrance
+	await _harness.ticks(3) # the camera follows
+	var reflection: Reflection = _spawn_reflection()
+	assert_not_null(reflection)
+	var view: Rect2 = _harness.room.visible_rect_local()
+	assert_true(view.has_point(_harness.room.to_local(reflection.global_position)), "inside the view, not at the far east")

@@ -98,10 +98,11 @@ func _fire_volley() -> int:
 	var aim: Vector2 = to.normalized()
 	var fired: int = 0
 	_bullet_params.speed = _base_bullet_speed * danger.enemy_bullet_speed_mult # read now: bullets in flight keep theirs
-	for direction: Vector2 in _volley_directions(aim):
+	var directions: Array[Vector2] = _volley_directions(aim)
+	for direction: Vector2 in directions:
 		if _bullets.fire(_bullet_params, origin, direction):
 			fired += 1
-	Log.debug("combat", "%s fired %d/%d" % [_def.id, fired, _volley_count])
+	Log.debug("combat", "%s fired %d/%d" % [_def.id, fired, directions.size()])
 	return fired
 
 

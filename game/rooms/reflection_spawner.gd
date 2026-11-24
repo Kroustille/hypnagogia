@@ -59,6 +59,9 @@ func _appear() -> void:
 func spawn() -> Enemy:
 	var center: Vector2 = _room.to_global(_room.frame_px() / 2.0)
 	var requested: Vector2 = _room.to_local(center * 2.0 - _player.global_position) # opposite the player
+	var view: Rect2 = _room.visible_rect_local()
+	var inset: Vector2 = Vector2.ONE * Const.TILE_SIZE
+	requested = requested.clamp(view.position + inset, view.end - inset)
 	var defs: Array[ItemDef] = _player.carrier.loadout.copy_defs()
 	var factor: float = _room.hp_factor()
 	var prepare: Callable = func(enemy: Enemy) -> void:

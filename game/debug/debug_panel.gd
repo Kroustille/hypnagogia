@@ -104,7 +104,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_give_fall_items()
 		KEY_U:
 			_recharge_active_item()
-		KEY_M:
+		KEY_N:
 			_spawn_reflection()
 		_:
 			handled = false
@@ -175,7 +175,6 @@ func _spawn(def: EnemyDef, label: String) -> void:
 		_log("spawn refused")
 	else:
 		_log("%s spawned at %s" % [label, enemy.global_position])
-
 
 
 ## Makes the reflection of the Mirror appear in the active room, without the draw (story 5.10).
@@ -437,7 +436,7 @@ func _refresh_text() -> void:
 		"K drop the next catalog consumable next to the player",
 		"Y give the four Fall items (synergy thresholds)",
 		"U recharge the active item",
-		"M spawn the hostile reflection (Mirror, no draw)",
+		"N spawn the hostile reflection (Mirror, no draw)",
 	])
 	if player != null:
 		var health: Health = player.health

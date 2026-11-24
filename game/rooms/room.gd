@@ -549,14 +549,19 @@ func _pick_reinforcement_position() -> Vector2:
 	if far.is_empty():
 		far.append(farthest)
 	# Prefer a marker the player can see (camera view minus the HUD band): a big room has markers off screen.
-	var view: Rect2 = Rect2(
-		_camera.position - Vector2(Const.VIEWPORT) / 2.0 + Vector2(0.0, Const.HUD_BAND_HEIGHT),
-		Vector2(Const.VIEWPORT) - Vector2(0.0, Const.HUD_BAND_HEIGHT)
-	)
+	var view: Rect2 = visible_rect_local()
 	var seen: Array[Vector2] = far.filter(func(m: Vector2) -> bool: return view.has_point(m))
 	if not seen.is_empty():
 		far = seen
 	return far[_rng.stream(COMBAT_STREAM, _floor_index).randi_range(0, far.size() - 1)]
+
+
+## The part of the room the player sees (camera view minus the HUD band), in room-local pixels.
+func visible_rect_local() -> Rect2:
+	return Rect2(
+		_camera.position - Vector2(Const.VIEWPORT) / 2.0 + Vector2(0.0, Const.HUD_BAND_HEIGHT),
+		Vector2(Const.VIEWPORT) - Vector2(0.0, Const.HUD_BAND_HEIGHT)
+	)
 
 
 ## The countdown is over: the enemy appears through spawn_enemy(). A refusal that leaves the room empty ends the wave.

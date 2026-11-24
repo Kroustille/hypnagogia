@@ -169,6 +169,8 @@ func test_blank_exam_adds_one_drop_laid_beside_the_first() -> void:
 	var parallel: RunRng = RunRng.new(_harness.run.rng.run_seed)
 	var expected: Loot.LootResult = Loot.roll(0, parallel.stream(RunRng.DROPS, 0), Tuning.LUCIDITY, Tuning.ECONOMY, 1)
 	assert_gte(expected.drops.size(), 1, "the guaranteed one")
+	_player.global_position = Vector2(-500, -500)
+	await _harness.ticks(2)
 	await _clear(0)
 	var pickups: Array[Pickup] = _room.pickups()
 	assert_eq(pickups.size(), expected.drops.size())
