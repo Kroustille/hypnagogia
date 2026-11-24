@@ -13,5 +13,7 @@ var link_sides: Array[int] = []
 var already_cleared: bool = false
 ## Door.Side the player comes in by, -1 for the middle of the room (first room of a run).
 var entry_side: int = -1
+## Floor factor on the hit points of the enemies that scale with it (FloorDef.hp_factor, story 5.10).
+var hp_factor: float = 1.0
 ## What lies in the room (items to pick up); null for a stand-alone room, which then makes its own.
 var stock: RoomStock

@@ -98,12 +98,20 @@ func _fire_volley() -> int:
 	var aim: Vector2 = to.normalized()
 	var fired: int = 0
 	_bullet_params.speed = _base_bullet_speed * danger.enemy_bullet_speed_mult # read now: bullets in flight keep theirs
-	for i: int in _volley_count:
-		var angle: float = _spread_radians * (i - (_volley_count - 1) / 2.0)
-		if _bullets.fire(_bullet_params, origin, aim.rotated(angle)):
+	for direction: Vector2 in _volley_directions(aim):
+		if _bullets.fire(_bullet_params, origin, direction):
 			fired += 1
 	Log.debug("combat", "%s fired %d/%d" % [_def.id, fired, _volley_count])
 	return fired
+
+
+## The directions of one volley aimed along aim (unit vector): a fan of bullet_count bullets spread_angle apart. A subclass
+## overrides it for another pattern (the Reflection).
+func _volley_directions(aim: Vector2) -> Array[Vector2]:
+	var found: Array[Vector2] = []
+	for i: int in _volley_count:
+		found.append(aim.rotated(_spread_radians * (i - (_volley_count - 1) / 2.0)))
+	return found
 
 
 func _restart_cycle() -> void:

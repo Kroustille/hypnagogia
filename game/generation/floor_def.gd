@@ -19,6 +19,9 @@ extends Resource
 @export_range(3, 30, 1) var grid_height: int = 7
 ## Chance, for each pair of adjacent start/combat rooms left unconnected, of getting a connection (a loop).
 @export_range(0.0, 1.0, 0.05) var loop_chance: float = 0.2
+## Multiplier on the hit points of the enemies that scale with the floor (the Reflection of the Mirror, story 5.10). 1 on the
+## first floor; the GDD names a floor factor without defining it: tuned with the balance of the floors.
+@export_range(0.1, 10.0, 0.05, "or_greater") var hp_factor: float = 1.0
 ## New draws of the layout allowed when the constraints cannot be met, before the floor is declared invalid.
 @export_range(1, 1000, 1) var max_attempts: int = 100
 

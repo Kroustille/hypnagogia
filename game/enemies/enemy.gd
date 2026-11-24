@@ -26,6 +26,8 @@ var hurtbox: Hurtbox
 var telegraph: Telegraph
 ## The room's danger profile (story 3.6), read when the enemy fires or starts a telegraph. Never null.
 var danger: DangerProfile
+## Multiplier on the hit points of the def, set before add_child() (story 5.10: the floor factor of the Reflection).
+var hp_factor: float = 1.0
 
 var _def: EnemyDef
 var _target: Node2D
@@ -84,7 +86,7 @@ func _ready() -> void:
 	_body.position = Vector2.ZERO
 	_body.add_to_group(Const.GROUP_DEBUG_SHAPES)
 
-	hp = HitPoints.new(_def.max_hp)
+	hp = HitPoints.new(_def.max_hp * hp_factor)
 
 	hurtbox = Hurtbox.new()
 	hurtbox.name = "Hurtbox"

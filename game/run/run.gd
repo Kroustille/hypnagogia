@@ -23,6 +23,8 @@ const FLOOR_DEF_PATH: String = "res://data/floors/onset.tres"
 ## The floor definition played (a variable so that a check can point it at a missing file).
 var floor_def_path: String = FLOOR_DEF_PATH
 var _ended: bool = false
+## FloorDef.hp_factor of the floor played, read once the floor is generated (1 before, and in a stand-alone room).
+var _floor_hp_factor: float = 1.0
 var _options: RunOptions = RunOptions.new()
 ## The random streams of this run (D8): a new one for every run.
 var rng: RunRng
@@ -169,6 +171,7 @@ func _enter_cell(cell: Vector2i, entry_side: int) -> bool:
 	options.link_sides = floor_layout.door_sides(cell)
 	options.already_cleared = floor_map.is_cleared(cell)
 	options.entry_side = entry_side
+	options.hp_factor = _floor_hp_factor
 	var first_visit: bool = not stocks.has(cell)
 	options.stock = stock_of(cell)
 	if not first_visit and _player.carrier.loadout.has_flag(&"blocks_armor"):
@@ -428,6 +431,7 @@ func ensure_floor() -> FloorLayout:
 		floor_layout = FloorLayout.new()
 		floor_layout.failure = "no floor def"
 		return floor_layout
+	_floor_hp_factor = def.hp_factor
 	var pool: Array[RoomInfo] = RoomCatalog.pool(def.pool_dir)
 	floor_layout = FloorGenerator.generate(def, pool, rng, state.floor_index)
 	if floor_layout.valid:

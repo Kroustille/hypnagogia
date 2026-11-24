@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ReflectionDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://enemies/reflection/reflection_def.gd" id="1_def"]
+[ext_resource type="PackedScene" path="res://enemies/reflection/reflection.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_def")
+movement = 1
+preferred_distance = 5.0
+move_speed = 2.0
+fire_interval = 2.0
+telegraph_duration = 0.5
+bullet_speed = 6.0
+bullet_count = 1
+spread_angle = 0.0
+id = &"reflection"
+scene = ExtResource("2_scene")
+max_hp = 60.0
+body_size = Vector2(0.625, 0.625)
+hurtbox_size = Vector2(0.75, 1.25)
+contact_size = Vector2(0.875, 0.875)

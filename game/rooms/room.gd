@@ -149,6 +149,8 @@ var danger: DangerProfile = DangerProfile.new()
 ## Ticks of the enemies group left on the fire hold (story 5.9); the profile says whether it is on.
 var _fire_hold_ticks_left: float = 0.0
 var _fight_started: bool = false
+## The Mirror's reflection: draws at the start of the fight (story 5.10). Null without a player.
+var _reflection: ReflectionSpawner
 
 
 ## Playable tiles of a room of this footprint, walls excluded.
@@ -238,6 +240,9 @@ func _ready() -> void:
 	process_physics_priority = CAMERA_PHYSICS_PRIORITY # after the player (0): the camera reads this tick's position
 	snap_camera()
 
+	if _player != null:
+		_reflection = ReflectionSpawner.new(self, _player, _rng, _floor_index)
+		fight_started.connect(_reflection.on_fight_started) # the Mirror may draw a hostile reflection (story 5.10)
 	if _options != null and _options.already_cleared:
 		_cleared = true # won on an earlier visit: doors open, nobody appears, nothing announced
 	elif _waves_wanted():
@@ -253,7 +258,8 @@ func _ready() -> void:
 ## sits at the world origin). Closer than Tuning.COMBAT.min_spawn_distance to the player, outside the playable
 ## area, or on top of a living enemy: replaced by the nearest valid position (deterministic, no RNG before epic 4).
 ## Returns null when it cannot spawn (Log.error).
-func spawn_enemy(def: EnemyDef, requested: Vector2) -> Enemy:
+## prepare: optional Callable(enemy: Enemy), called between setup() and add_child() (story 5.10).
+func spawn_enemy(def: EnemyDef, requested: Vector2, prepare: Callable = Callable()) -> Enemy:
 	if not is_node_ready():
 		Log.error("room", "spawn_enemy called before the room is ready")
 		_assert_failed("spawn_enemy() before the room is ready")
@@ -275,6 +281,8 @@ func spawn_enemy(def: EnemyDef, requested: Vector2) -> Enemy:
 		_assert_failed("EnemyDef.scene must have an Enemy root")
 		return null
 	enemy.setup(def, _player, _player.hurtbox, _enemy_bullets, danger, _nav) # before add_child()
+	if prepare.is_valid():
+		prepare.call(enemy) # still before add_child(): the caller gives what _ready() reads
 	enemy.position = position_px
 	_spawn_serial += 1
 	enemy.name = "%s_%d" % [_enemy_base_name(def), _spawn_serial] # readable and unique: never a generated "@" name
@@ -293,6 +301,21 @@ func spawn_enemy(def: EnemyDef, requested: Vector2) -> Enemy:
 	enemy.tree_exited.connect(_on_enemy_tree_exited.bind(enemy), CONNECT_ONE_SHOT)
 	Log.debug("room", "spawned %s at %s alive=%d node=%s" % [def.id, position_px, _alive, enemy.name])
 	return enemy
+
+
+## Floor factor on the hit points of the enemies that scale with it (FloorDef.hp_factor); 1 for a stand-alone room.
+func hp_factor() -> float:
+	return _options.hp_factor if _options != null else 1.0
+
+
+## The spawner of the Mirror's reflection (checks).
+func reflection_spawner() -> ReflectionSpawner:
+	return _reflection
+
+
+## Makes the hostile reflection of the Mirror now, without a draw (debug tool, story 5.10). Null when it cannot appear.
+func spawn_reflection() -> Enemy:
+	return _reflection.spawn() if _reflection != null else null
 
 
 ## True when the cell under this global position holds a pit tile.
