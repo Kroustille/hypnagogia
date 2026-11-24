@@ -1,6 +1,6 @@
 # Story 6.5 : S'endormir dans la chambre
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -26,13 +26,13 @@ Hors périmètre : heure affichée (6.6), chambre qui change, histoire, journal 
 
 ## Tâches
 
-- [ ] `project.godot` : action `interact` (E ; manette bouton X), sans toucher aux autres actions.
-- [ ] `bedroom/bedroom.tscn` + `bedroom.gd` : murs et sol (placeholders), lit, bureau, **réveil** (`AlarmClock`, `Label` masqué, rempli par 6.6), `BedZone`, `DeskZone` (`Area2D`), invite (`Label`, texte par `tr()` et touche de l'action), signaux `sleep_requested`, `seed_entry_requested`.
-- [ ] `bedroom/bedroom_walker.gd` : `CharacterBody2D`, `PlayerMotor` (déjà pur : `step(wish, dt)`), `Input.get_vector(move_*)`, `GameClock.scale(PLAYER)`, silhouette placeholder du joueur (16×24).
-- [ ] `main/main.gd` : `static var start_in_bedroom: bool = true` (les vérifications qui attendent une `Run` au démarrage le mettent à `false`, comme `default_mode`) ; `_ready()` appelle `_enter_bedroom()` ou `_start_run()` ; `_enter_bedroom()` (vide `ActiveScene`, masque HUD/carte, ferme les menus, dégèle) ; `_on_bedroom_sleep_requested`, `_on_bedroom_seed_entry_requested` ; `_start_run` réaffiche le HUD ; `Run.Outcome` inchangé.
-- [ ] `ui/menus/wake_screen.gd/.tscn` : bouton et signal `wake_up_requested`. `strings.csv` : `UI_BEDROOM_SLEEP`, `UI_BEDROOM_SEED`, `UI_WAKE_BEDROOM`.
-- [ ] Tests existants qui créent `Main` (`test_floor_start`, `test_seed_flow`, `test_run_requested`, `test_map_hold` et les scènes de `.scratch`) : `Main.start_in_bedroom = false` dans leur préparation ; ne pas modifier leurs assertions.
-- [ ] Tests.
+- [x] `project.godot` : action `interact` (E ; manette bouton X), sans toucher aux autres actions.
+- [x] `bedroom/bedroom.tscn` + `bedroom.gd` : murs et sol (placeholders), lit, bureau, **réveil** (`AlarmClock`, `Label` masqué, rempli par 6.6), `BedZone`, `DeskZone` (`Area2D`), invite (`Label`, texte par `tr()` et touche de l'action), signaux `sleep_requested`, `seed_entry_requested`.
+- [x] `bedroom/bedroom_walker.gd` : `CharacterBody2D`, `PlayerMotor` (déjà pur : `step(wish, dt)`), `Input.get_vector(move_*)`, `GameClock.scale(PLAYER)`, silhouette placeholder du joueur (16×24).
+- [x] `main/main.gd` : `static var start_in_bedroom: bool = true` (les vérifications qui attendent une `Run` au démarrage le mettent à `false`, comme `default_mode`) ; `_ready()` appelle `_enter_bedroom()` ou `_start_run()` ; `_enter_bedroom()` (vide `ActiveScene`, masque HUD/carte, ferme les menus, dégèle) ; `_on_bedroom_sleep_requested`, `_on_bedroom_seed_entry_requested` ; `_start_run` réaffiche le HUD ; `Run.Outcome` inchangé.
+- [x] `ui/menus/wake_screen.gd/.tscn` : bouton et signal `wake_up_requested`. `strings.csv` : `UI_BEDROOM_SLEEP`, `UI_BEDROOM_SEED`, `UI_WAKE_BEDROOM`.
+- [x] Tests existants qui créent `Main` (`test_floor_start`, `test_seed_flow`, `test_run_requested`, `test_map_hold` et les scènes de `.scratch`) : `Main.start_in_bedroom = false` dans leur préparation ; ne pas modifier leurs assertions.
+- [x] Tests.
 
 ## État du code concerné
 
@@ -77,11 +77,24 @@ epics.md (Story 6.5) ; GDD, Point de départ (3 cœurs, 100 de lucidité, 0 Écl
 6. **`Main.start_in_bedroom` statique** (comme `default_mode`) : les vérifications existantes ne changent pas d'assertions.
 7. **Pas de fondu entre la chambre et la run** : même échange immédiat que la relance. Un fondu est possible plus tard (`Transition`).
 8. **La seed saisie est une run unique** (comportement de 4.11 conservé : « Se rendormir » après tire une nouvelle seed).
+9. **Touche d'`interact` = X (clavier) et bouton A/Croix (manette), pas E / X-Carré.** Raison : E (`use_active`) et le bouton 2 de la manette (X/Carré, `use_active`) sont déjà pris ; `F` est pris par le panneau debug F1 (nouvelle run sur l'étage). X est libre côté debug (liste des touches du panneau relue) et sous la main gauche ; le bouton 0 est libre dans l'`InputMap` (il sert aussi à `ui_accept` dans les menus, sans conflit : la chambre est gelée ou les menus ont le focus). Les textes (« Dormir (X) ») lisent la touche dans l'`InputMap`.
+10. **Pas de modification des tests existants** : `Main.start_in_bedroom = false` est posé une fois pour la suite GUT par un script `pre_run_script` (`tests/support/pre_run.gd`, branché dans `.gutconfig.json`) ; les tests de la chambre le remettent à `true` puis à `false`. Les scènes de `.scratch` le posent dans `th.gd` et `t_floor_main.gd`. Le défaut du jeu reste `true`.
+11. **Origine de la fenêtre de seed** : le booléen `_seed_entry_from_wake` devient l'énum `Main.SeedOrigin { PAUSE, WAKE, BEDROOM }` ; Échap depuis la chambre dégèle et lâche le focus (sans rouvrir de menu).
+12. **Chambre construite à la main (nœuds `StaticBody2D`/`ColorRect`), hors générateur de salles et validateur** : l'histoire ne les demande pas.
 
 ## Dev Agent Record
 
 ### Notes de complétion
 
+- `Main` démarre dans la `Bedroom` (`start_in_bedroom`, vrai par défaut) ; `_enter_bedroom()` masque le HUD, délie la carte, ferme les menus, dégèle ; `_start_run` réaffiche le HUD. « Dormir » (`interact` près du lit) passe par `Events.run_requested(FLOOR, -1, false, "")`, le bureau gèle la chambre et ouvre `SeedEntry`.
+- L'écran de réveil a un bouton `BedroomButton` / signal `wake_up_requested` ; « Se rendormir » reste focalisé par défaut. Le bouton partage la garde d'entrée de 0,3 s.
+- Vérifié : GUT complet vert (752 tests dont les 18 nouveaux : walker, flux, seed, réveil vers la chambre, état neuf) ; `run_all.sh` normal ALL PASS ; `--quit-after 120` propre (la caméra de la chambre est en `process_callback = 0` comme celle des salles, sinon avertissement d'interpolation physique).
+- NON ÉVALUÉ (humain) : sensation du marcheur (vitesse identique au joueur, pas d'accélération supplémentaire), lisibilité des placeholders (lit, bureau, invite), manette réelle (bouton A pour `interact`, navigation entre les trois boutons de l'écran de réveil).
+
 ### Liste des fichiers
 
+`game/bedroom/{bedroom.gd,bedroom.tscn,bedroom_walker.gd}` (nouveaux), `game/main/main.gd`, `game/ui/menus/wake_screen.{gd,tscn}`, `game/project.godot` (action `interact`), `game/localization/strings.csv`, `game/.gutconfig.json`, `game/tests/support/pre_run.gd`, `game/tests/unit/bedroom/test_bedroom_walker.gd`, `game/tests/integration/bedroom/{test_bedroom_flow,test_bedroom_seed}.gd`, `game/tests/integration/run/{test_wake_to_bedroom,test_fresh_run_state}.gd`.
+
 ### Journal des modifications
+
+- 2026-11-24 : chambre, marcheur, action `interact`, retour à la chambre depuis l'écran de réveil, tests ; statut `review`.
