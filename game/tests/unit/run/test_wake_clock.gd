@@ -58,3 +58,11 @@ func test_the_tuning_resource_is_valid() -> void:
 	var bad: WakeTuning = WakeTuning.new()
 	bad.death_cap_margin_minutes = bad.phase_minutes
 	assert_false(bad.is_valid())
+
+
+func test_a_margin_larger_than_the_phase_never_goes_before_the_start_of_the_floor() -> void:
+	var tuning: WakeTuning = WakeTuning.new()
+	tuning.death_cap_margin_minutes = tuning.phase_minutes + 50
+	var clock: WakeClock = WakeClock.new(tuning)
+	assert_eq(clock.minute_at_death(0, 6, 12), clock.minute_at(0, 0, 12), "capped at the start of the floor")
+	assert_eq(clock.minute_at_death(1, 12, 12), clock.minute_at(1, 0, 12))

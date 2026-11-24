@@ -111,3 +111,13 @@ func test_the_wake_screen_and_the_bedroom_clock_show_the_time() -> void:
 	assert_eq((bedroom.get_node("%AlarmClock") as Label).text, "23:39")
 	RoomLoader.collect_orphans(true)
 	main.free()
+
+
+func test_a_plan_only_generated_for_the_map_log_does_not_change_the_time_of_an_arena_run() -> void:
+	_harness = RoomHarness.new()
+	add_child(_harness)
+	_harness.start("res://rooms/arena/arena.tscn")
+	_harness.run.ensure_floor() # what F1 G does: a plan that is not played
+	_harness.run.floor_map.mark_cleared(Vector2i.ZERO)
+	_harness.run._on_player_died()
+	assert_eq(_minutes, [1380] as Array[int])

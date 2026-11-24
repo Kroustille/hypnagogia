@@ -506,15 +506,16 @@ func log_floor_map() -> bool:
 func _set_wake_time(outcome: Outcome) -> void:
 	var clock: WakeClock = WakeClock.new()
 	var minute: int = clock.start_minute()
-	if floor_layout == null or not floor_layout.valid:
+	var layout: FloorLayout = floor_map.layout # the floor played: floor_layout may be a plan only generated for the F1 log
+	if layout == null or not layout.valid:
 		Log.info("run", "no floor plan: the wake time is the start of the night") # not a warning: the arena and single rooms have none by design
 	elif outcome == Outcome.VICTORY:
 		minute = clock.minute_after_boss(state.floor_index)
 	else:
-		var total: int = floor_layout.cells_of_type(Room.RoomType.COMBAT).size()
+		var total: int = layout.cells_of_type(Room.RoomType.COMBAT).size()
 		var cleared: int = 0
 		for cell: Vector2i in floor_map.cleared:
-			if floor_layout.has_cell(cell) and floor_layout.cells[cell].room_type == Room.RoomType.COMBAT:
+			if layout.has_cell(cell) and layout.cells[cell].room_type == Room.RoomType.COMBAT:
 				cleared += 1
 		minute = clock.minute_at_death(state.floor_index, cleared, total)
 	state.wake_minute = minute

@@ -131,13 +131,13 @@ func _on_events_item_acquired(item_id: StringName, _copies: int) -> void:
 	_write()
 
 
-## Only a defeat is a death: the cause and the question "was it fair?" belong to it. A victory is its own event.
-## An outcome unknown to this build is a defeat, as for the wake screen.
 ## The wake time arrives just before run_ended (story 6.6).
 func _on_events_wake_time_set(minute: int) -> void:
 	_wake_minute = minute
 
 
+## Only a defeat is a death: the cause and the question "was it fair?" belong to it. A victory is its own event.
+## An outcome unknown to this build is a defeat, as for the wake screen.
 func _on_events_run_ended(outcome: int) -> void:
 	var victory: bool = outcome == Run.Outcome.VICTORY
 	var outcome_name: String = TelemetrySession.OUTCOME_VICTORY if victory else TelemetrySession.OUTCOME_DEATH

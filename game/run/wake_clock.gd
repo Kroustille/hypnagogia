@@ -20,7 +20,7 @@ func start_minute() -> int:
 ## (the end is the victory), unless the cap is disabled.
 func minute_at_death(floor_index: int, cleared_combat_rooms: int, total_combat_rooms: int) -> int:
 	var minute: int = minute_at(floor_index, cleared_combat_rooms, total_combat_rooms)
-	var cap: int = _floor_start(floor_index) + _tuning.phase_minutes - _tuning.death_cap_margin_minutes
+	var cap: int = maxi(_floor_start(floor_index), _floor_start(floor_index) + _tuning.phase_minutes - _tuning.death_cap_margin_minutes)
 	if _tuning.death_cap_margin_minutes > 0:
 		minute = mini(minute, cap)
 	return minute
@@ -53,4 +53,5 @@ static func format(minute: int) -> String:
 	var pattern: String = TranslationServer.translate(&"UI_CLOCK_FORMAT")
 	if pattern == "UI_CLOCK_FORMAT":
 		pattern = "%02d:%02d" # translations not loaded
+	@warning_ignore("integer_division")
 	return pattern % [wrapped / 60, wrapped % 60]
