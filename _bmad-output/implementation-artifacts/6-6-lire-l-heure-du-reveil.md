@@ -1,6 +1,6 @@
 # Story 6.6 : Lire l'heure du réveil
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -71,6 +71,16 @@ epics.md (Story 6.6) ; GDD, Conditions de victoire (l'heure du réveil, exemple 
 4. **Dénominateur = cellules `COMBAT` du plan réel**, pas la constante `combat_rooms` de `onset.tres`.
 5. **Avant toute run : le réveil marque 23:00** (début de la nuit). Le GDD ne dit rien du premier lancement.
 6. **L'heure de la dernière run est gardée en mémoire par `Main`** ici et persistée par 6.7 (dépendance dans l'ordre des stories, pas de lecture de `profile.json` avant qu'il existe).
+7. **(revue) `Log.info` et non `Log.warn` sans plan d'étage (écart à l'AC6) : accepté.** Un warning à chaque mort en arène ou en salle seule (sans plan par conception) serait du bruit, et filtrer ce warning dans `run_all.sh` cacherait le motif. Le seul cas anormal (repli AR28) journalise déjà un `Log.error`. L'AC6 se lit « 23:00, journalisé ».
+8. **(revue) Victoire sans plan d'étage (F1, salle du boss seule) : 23:00**, comme le dit l'AC6, et non 00:18 : chemin de débogage seulement, l'heure n'y mesure rien.
+9. **(revue) Plafond de la mort à 00:17 confirmé** comme lecture fidèle de l'intention du GDD (« un score déguisé » : une mort ne se lit jamais comme une victoire) ; seul le cas 12/12 change ; reste à valider (décision 1).
+
+### Review Findings
+
+- [ ] [Review][Patch] L'heure lit `floor_layout`, qui peut être un plan jamais joué : F1 G (`log_floor_map()` → `ensure_floor()`) en run d'arène ou de salle seule le génère, et les vagues de l'arène marquent `Vector2i.ZERO` vidée ⇒ l'heure d'une mort (ou d'une victoire, 00:18) dépend du journal de la carte [game/run/run.gd:509-517] — lire le plan joué : `var layout: FloorLayout = floor_map.layout`, `if layout == null or not layout.valid:` (branche 23:00), puis `layout.cells_of_type(...)`, `layout.has_cell(cell)`, `layout.cells[cell]` ; `floor_map.layout` n'est posé que par `_start_floor` et remis à null à chaque repli.
+- [ ] [Review][Patch] `WakeTuning.is_valid()` n'est appelé qu'en test : une marge ≥ phase (permise par `@export_range … "or_greater"`) donne une mort avant le début de l'étage, voire une minute négative (heure masquée, `Log.error`) [game/run/wake_clock.gd:23] — `var cap: int = maxi(_floor_start(floor_index), _floor_start(floor_index) + _tuning.phase_minutes - _tuning.death_cap_margin_minutes)`.
+- [ ] [Review][Patch] Division entière sans annotation, contrairement à la convention du projet (`game/ui/hud/hud.gd:45`) [game/run/wake_clock.gd:56] — ajouter `@warning_ignore("integer_division")` sur la ligne au-dessus du `return pattern % [wrapped / 60, wrapped % 60]`.
+- [ ] [Review][Patch] Le commentaire de `_on_events_run_ended` (« Only a defeat is a death… ») documente maintenant `_on_events_wake_time_set`, inséré entre lui et sa fonction [game/telemetry/telemetry.gd:134-139] — déplacer `_on_events_wake_time_set` et sa ligne de doc au-dessus du bloc « Only a defeat is a death… ».
 
 ## Dev Agent Record
 
@@ -92,3 +102,4 @@ Modifiés : `core/tuning.gd`, `autoloads/events.gd`, `run/run_state.gd`, `run/ru
 ### Journal des modifications
 
 - 2026-11-24 : implémentation de la story 6.6 (heure du réveil), passée en review.
+- 2026-11-24 : revue de code (3 couches) : 4 correctifs à appliquer, 2 reports, 3 décisions ; retour en in-progress.
