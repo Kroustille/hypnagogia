@@ -711,6 +711,22 @@ func add_offer(def: ItemDef, requested: Vector2, price: int = 0) -> RoomStock.Of
 	return offer
 
 
+## Adds a consumable offer to the room, in the stock of the cell. requested: room coordinates, moved to the nearest cell the
+## player can reach (never a wall or a pit). armed false: it cannot be taken until the player has stepped off it.
+func add_consumable_offer(def: ConsumableDef, requested: Vector2, armed: bool = true) -> RoomStock.Offer:
+	if not is_node_ready() or _stock == null or def == null:
+		Log.error("room", "add_consumable_offer() needs a ready room and a consumable")
+		return null
+	var spot: Vector2 = requested
+	if _nav != null:
+		var cell: Vector2i = _nav.nearest_free_cell(_nav.cell_of(requested))
+		if _nav.is_in_grid(cell) and _nav.is_blocked(_nav.cell_of(requested)):
+			spot = _nav.center_of(cell)
+	var offer: RoomStock.Offer = _stock.add_consumable(def, spot, armed)
+	_add_pickup(offer)
+	return offer
+
+
 ## The Pickups on the floor now (untaken offers).
 func pickups() -> Array[Pickup]:
 	var found: Array[Pickup] = []
@@ -724,9 +740,15 @@ func pickups() -> Array[Pickup]:
 
 func _add_pickup(offer: RoomStock.Offer) -> void:
 	var pickup: Pickup = Pickup.new()
-	pickup.name = "Pickup_%s" % offer.item.id
+	pickup.name = "Pickup_%s" % offer.id()
 	pickup.setup(offer, _player)
+	pickup.consumable_replaced.connect(_on_consumable_replaced)
 	_pickups.add_child(pickup)
+
+
+## The player took a consumable while carrying another: the old one lies where the player stands, not armed yet.
+func _on_consumable_replaced(def: ConsumableDef, at_global: Vector2) -> void:
+	add_consumable_offer(def, to_local(at_global), false)
 
 
 ## Gives every piece of furniture and every trigger its place in the BulletManagers (they exist by now).
