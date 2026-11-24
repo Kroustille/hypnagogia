@@ -1,6 +1,6 @@
 # Story 4.1 : Tester la logique du jeu sans le lancer
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -34,6 +34,20 @@ Hors périmètre : réécrire les scènes jetables de `game/.scratch` (elles res
 - [x] Écrire les trois fichiers de test (critères 4 à 6). Lire `player/lucidity.gd`, `core/stat_block.gd`, `core/run_rng.gd` et `core/lucidity_tuning.gd` pour viser les vraies bornes ; construire `Lucidity.new(Tuning.LUCIDITY)` ou une `LucidityTuning` locale (jamais de valeur du GDD recopiée en dur : lire le tuning).
 - [x] Relier au code : `.gitignore` n'ignore pas `game/addons/` ni `game/tests/` ; `CLAUDE.md` n'est pas modifié (le fichier est à la racine, hors périmètre de la story).
 - [x] Documenter dans la story (Pièges rencontrés) la commande exacte, le temps de la suite, et quels contrôles de `.scratch` couvrent encore ce que les tests ne couvrent pas.
+
+### Review Findings
+
+Revue du 2026-11-24 (diff `437b6de..21b7a96`, addon `game/addons/gut` exclu de la relecture ligne à ligne). Codes de sortie de `run_tests.sh` vérifiés sur une copie du dépôt : test en échec 1, `SCRIPT ERROR` à l'exécution 1, erreur de parse d'un test 1 (même si les autres passent), filtre sans correspondance 1, fichier sans test 1, test sans assertion (risky) 1, `quit()` en plein test 1, crash moteur 134, `push_error` 1, lancé depuis `/` ou `/tmp` : OK. Addon : version 9.7.1 (`plugin.cfg` et tag notés), `LICENSE.md` présent, plugin non activé, `project.godot` intact, `exclude_addons` actif, `--quit-after 120` propre.
+
+- [ ] [Review][Patch] Chaque lancement de la suite écrit une session dans le vrai `user://telemetry/` (l'autoload `Telemetry` démarre avec GUT) et déclenche l'élagage des sessions au-delà de 100 : relancer les tests efface des sessions de jeu réelles (constaté : 1 fichier créé par lancement, et 3 anciennes sessions élaguées pendant la revue) ; `Settings` lit aussi le vrai `settings.cfg` [tools/run_tests.sh:6] — Correctif : après `trap`, `DATA_DIR="$(mktemp -d)"; export XDG_DATA_HOME="$DATA_DIR"` et `trap 'rm -f "$OUT"; rm -rf "$DATA_DIR"' EXIT` (vérifié : `user://` passe alors dans le dossier temporaire, la suite passe, rien n'arrive dans `~/.local/share/godot/app_userdata/Hypnagogia/`). Commentaire d'en-tête : « tests never touch the player's user:// data ».
+- [ ] [Review][Patch] Faux échec sur un dépôt fraîchement cloné (sans `game/.godot/`) : le premier `--import` affiche des `Parse Error` de ressources (`theme.tres` référence une police pas encore importée, `strings.fr.translation` absent), et le script s'arrête sur « errors during import » ; le second lancement passe [tools/run_tests.sh:10-15] — Correctif : avant l'import contrôlé, `if [ ! -d game/.godot ]; then godot --headless --path game --import >/dev/null 2>&1; fi` (premier import non contrôlé), puis garder l'import contrôlé tel quel.
+- [ ] [Review][Patch] Aucune limite de temps : un test qui attend un signal jamais émis (les tests d'intégration de la 4.2 attendent des ticks) bloque la commande indéfiniment (constaté avec `await create_timer(3600)`) [tools/run_tests.sh:22] — Correctif : `timeout --kill-after=10 "${TEST_TIMEOUT:-300}" godot --headless ...` et, après `status=${PIPESTATUS[0]}`, `if [ "$status" -eq 124 ] || [ "$status" -eq 137 ]; then echo "run_tests: timed out" >&2; exit 1; fi`.
+- [ ] [Review][Patch] Le critère 3 annonce « chemin ou filtre », mais un chemin (`game/tests/unit/player/test_lucidity.gd` ou `tests/unit/...`) ne trouve aucun test : `-gselect` n'accepte qu'un nom de script [tools/run_tests.sh:17-20] — Correctif : `case "$1" in *.gd) ARGS+=("-gtest=res://${1#game/}") ;; */) ARGS+=("-gdir=res://${1#game/}") ;; *) ARGS+=("-gselect=$1") ;; esac` (et `-gconfig` garde `include_subdirs`) ; mettre à jour la ligne d'usage.
+- [ ] [Review][Patch] `test_spike.gd.uid` versionné sans son script (reste du spike) [game/tests/unit/core/test_spike.gd.uid] — Correctif : `git rm game/tests/unit/core/test_spike.gd.uid`.
+- [ ] [Review][Patch] Seuil recopié en dur : `set_value(30)` puis `Tier.DRIFT` attendu ne tient qu'avec les paliers du GDD (critère « lire le tuning ») [game/tests/unit/player/test_lucidity.gd:108-112] — Correctif : `var amount: int = _tuning.tier_floors[Lucidity.Tier.DRIFT]`, `set_value(amount)`, `try_spend(amount, &"power")`, attendre `[&"power", amount, Lucidity.Tier.DRIFT]`.
+- [x] [Review][Defer] `game/tests/integration/` absent du commit (Git ne versionne pas un dossier vide) : GUT affiche « The path [res://tests/integration/] does not exist » et compte `Errors 1` à chaque lancement [game/.gutconfig.json:2] — reporté à la 4.2, qui crée ce dossier en ce moment.
+- [x] [Review][Defer] Exclure `addons/gut/*`, `tests/*` et `.gutconfig.json` de l'export (aucun `export_presets.cfg` n'existe encore) — reporté à la story 1.8.
+- [x] [Review][Defer] Pas de valeur de référence pour `seed_code()` ni pour les premiers tirages d'un flux : un défaut cohérent des deux côtés (ordre des caractères inversé) ou un changement de dérivation des flux passerait les tests, alors que les codes de seed se partagent entre versions — reporté à la 4.7 (le générateur d'étages fige des seeds de référence).
 
 ## Rapport entre `.scratch` et le framework
 
@@ -94,6 +108,12 @@ Hors périmètre : réécrire les scènes jetables de `game/.scratch` (elles res
 
 5. **Dépôt GUT : `bitwes/Gut`** (officiel) et non `bitwarden/Gut` (inexistant), version 9.7.1 épinglée sur le tag.
 6. **Pas de `runner.tscn`** : la ligne de commande suffit (spike concluant).
+
+### Décisions prises sans Kroustille (à valider en fin d'epic) — revue de code
+
+7. **Un test « pending » ou « risky » (sans assertion) fait échouer `run_tests.sh`** (GUT rend 0, le script ne trouve pas « All tests passed ») : gardé, c'est le critère 7 appliqué par l'outil. Seul le message (« no tests run? ») est trompeur ; rejeté comme correctif.
+8. **Isoler `user://` par `XDG_DATA_HOME` dans le script** plutôt que par un interrupteur dans `Telemetry` : aucun code de jeu touché, couvre aussi `settings.cfg` et les fichiers de GUT. Ne vaut que sous Linux/WSL, seul environnement de la commande.
+9. **Tests de `Lucidity` sur `LucidityTuning.new()`** (valeurs par défaut du script) et non sur `Tuning.LUCIDITY` (le `.tres`) : accepté, la story l'autorise ; les tests restent écrits en fonction du tuning.
 
 ### File List
 
