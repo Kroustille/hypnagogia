@@ -28,6 +28,15 @@ func _ready() -> void:
 		assert(false, "Telegraph.setup() must be called before add_child()")
 
 
+## The duration of a telegraph in seconds: base x multiplier, never under Tuning.COMBAT.min_telegraph. start() uses it; whoever
+## has no Telegraph node (the attack runners of the bosses) applies the same rule through it. A base or multiplier that is not
+## finite or negative is bounded as start() does (to 0 and 1), without the error.
+static func duration_for(base_seconds: float, multiplier: float) -> float:
+	var base: float = base_seconds if is_finite(base_seconds) and base_seconds >= 0.0 else 0.0
+	var factor: float = multiplier if is_finite(multiplier) and multiplier >= 0.0 else 1.0
+	return maxf(base * factor, Tuning.COMBAT.min_telegraph)
+
+
 ## Starts (or restarts) the telegraph. Returns its duration in seconds.
 func start(base_seconds: float, sound: AudioStream, multiplier: float = 1.0) -> float:
 	var base: float = base_seconds
@@ -41,7 +50,7 @@ func start(base_seconds: float, sound: AudioStream, multiplier: float = 1.0) -> 
 	if not base_valid or not factor_valid:
 		Log.error("combat", "invalid telegraph base=%s multiplier=%s, bounded to %s x %s" % [base_seconds, multiplier, base, factor])
 		_assert_failed("Telegraph.start() needs a finite base >= 0 and multiplier >= 0")
-	var duration: float = maxf(base * factor, Tuning.COMBAT.min_telegraph)
+	var duration: float = duration_for(base, factor)
 	_ticks_left = duration * Engine.physics_ticks_per_second
 	_ticks_total = _ticks_left
 	var owner_name: String = String(get_parent().name) if get_parent() != null else String(name)

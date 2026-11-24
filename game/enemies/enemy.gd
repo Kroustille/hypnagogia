@@ -192,8 +192,19 @@ func _on_hurtbox_damage_received(info: DamageInfo) -> void:
 		return
 	_feedback.play(info.direction) # flash and knockback of story 1.5
 	Log.debug("combat", "%s hit amount=%s hp=%s" % [_def.id, removed, hp.current])
+	_on_hit_applied()
 	if hp.is_dead():
 		_die()
+
+
+## Hook: the hit is applied (hit points removed, feedback played), before a lethal hit kills. Empty for most enemies (the boss reads it).
+func _on_hit_applied() -> void:
+	pass
+
+
+## Hook: the enemy dies, called once from _die() before it is disabled and freed. Empty for most enemies.
+func _on_death() -> void:
+	pass
 
 
 ## Once. Disabling the process mode stops the enemy and its children (Hitbox, Telegraph, HitFeedback) and removes
@@ -204,6 +215,7 @@ func _die() -> void:
 	_dead = true
 	process_mode = Node.PROCESS_MODE_DISABLED
 	visible = false # no death animation before epic 7
+	_on_death()
 	Log.debug("combat", "%s died" % _def.id)
 	queue_free()
 

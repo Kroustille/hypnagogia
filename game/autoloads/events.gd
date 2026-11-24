@@ -125,3 +125,20 @@ signal shop_purchased(item_id: StringName, price: int)
 ## Listener: the HUD.
 @warning_ignore("unused_signal")
 signal exam_timer_changed(seconds_left: float)
+
+## A boss came into a room (story 6.1). boss_id: BossDef.id; max_hp: its hit points at full health. Listeners: the health bar.
+@warning_ignore("unused_signal")
+signal boss_engaged(boss_id: StringName, max_hp: float)
+
+## The boss's hit points changed (every hit), or the boss left the room (hp 0). Listeners: the health bar, telemetry.
+@warning_ignore("unused_signal")
+signal boss_health_changed(hp: float, max_hp: float)
+
+## The boss starts a phase and writes its title on the blackboard. text_key: the translation key of the title.
+## Listeners: the chalk title.
+@warning_ignore("unused_signal")
+signal boss_announced(boss_id: StringName, text_key: StringName)
+
+## The boss entered phase phase_index (0 = the first, also emitted at the start of the fight). Listeners: telemetry.
+@warning_ignore("unused_signal")
+signal boss_phase_changed(boss_id: StringName, phase_index: int)

@@ -20,6 +20,8 @@ const SHOP: StringName = &"shop"
 const DROPS: StringName = &"drops"
 const COMBAT: StringName = &"combat"
 const COSMETIC: StringName = &"cosmetic"
+## The attacks of the bosses (story 6.1): one stream per floor, never shared with combat or drops.
+const BOSS: StringName = &"boss"
 
 var run_seed: int = 0
 var _streams: Dictionary = {}
