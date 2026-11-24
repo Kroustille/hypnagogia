@@ -49,6 +49,11 @@ signal player_health_changed(half_hearts: int, max_half_hearts: int, armor: int)
 @warning_ignore("unused_signal")
 signal run_started
 
+## The floor of the run is ready to be played (story 6.9, NFR3). startup_ms: what the run took to set up; load_ms: from the
+## request of the player (the bed, "sleep again", a typed seed) to now. Listeners: telemetry.
+@warning_ignore("unused_signal")
+signal floor_ready(startup_ms: int, load_ms: int)
+
 ## The player answered "was this death fair?" on the wake screen. Never emitted when they restart without
 ## answering: the telemetry derives the absence of answer from the next run_started. Listeners: telemetry (story 2.8).
 @warning_ignore("unused_signal")

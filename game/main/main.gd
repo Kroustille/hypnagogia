@@ -36,6 +36,8 @@ var _load_test_active: bool = false
 ## True while the wake screen is open (the run is over, the game is frozen behind it).
 var _run_over: bool = false
 var _run_ended_msec: int = 0
+## When the last run was asked for (a bed, "sleep again", a typed seed, a resume), for the load time of NFR3.
+var _start_requested_msec: int = 0
 ## Wake time of the last run (story 6.6), -1 before any run: the bedroom alarm clock shows it. Starts from the profile (6.7);
 ## a run on a typed seed changes it here but not the profile.
 var _last_wake_minute: int = -1
@@ -201,6 +203,7 @@ func _unhandled_input(event: InputEvent) -> void:
 ## Starts a new run: the old Run (if any) is destroyed, a fresh one is instantiated (AR20). Without options the run
 ## repeats the last ones (restart, F5 back from the load test): the floor unless something else was asked for.
 func _start_run(options: RunOptions = null) -> void:
+	_start_requested_msec = Time.get_ticks_msec()
 	if options != null:
 		_run_options = options
 	else:
@@ -323,12 +326,16 @@ func _show_scene(scene: PackedScene) -> bool:
 func _on_events_run_started() -> void:
 	if not is_inside_tree():
 		return # a Main already removed from the tree still hears the bus
+	var load_msec: int = Time.get_ticks_msec() - _start_requested_msec
 	var run: Run = null
 	for child: Node in _active_scene.get_children():
 		if child is Run:
 			run = child as Run
 			break
 	_map_view.bind(run.floor_map if run != null else null)
+	if run != null:
+		Log.info("run", "floor ready in %d ms since the request (run %d ms)" % [load_msec, run.startup_msec()])
+		Events.floor_ready.emit(run.startup_msec(), load_msec)
 
 
 ## The wake time of the run that is ending (published by Run just before run_ended).

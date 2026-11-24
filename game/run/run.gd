@@ -28,6 +28,7 @@ const TICK_EPSILON: float = 1e-6
 ## The floor definition played (a variable so that a check can point it at a missing file).
 var floor_def_path: String = FLOOR_DEF_PATH
 var _ended: bool = false
+var _startup_msec: int = -1
 ## FloorDef.hp_factor of the floor played, read once the floor is generated (1 before, and in a stand-alone room).
 var _floor_hp_factor: float = 1.0
 var _options: RunOptions = RunOptions.new()
@@ -64,6 +65,7 @@ func setup(options: RunOptions) -> void:
 
 
 func _ready() -> void:
+	var ready_msec: int = Time.get_ticks_msec()
 	add_to_group(Const.GROUP_RUN)
 	if _options.resume != null:
 		state = _options.resume.state # the seed, whether it was typed, the floor, the shards, the wake time
@@ -89,6 +91,8 @@ func _ready() -> void:
 		if not _start_single_room():
 			return
 	Log.info("run", "run started seed=%s seeded=%s" % [rng.seed_code(), state.seeded])
+	_startup_msec = Time.get_ticks_msec() - ready_msec
+	Log.info("run", "floor ready in %d ms" % _startup_msec)
 	Events.run_started.emit()
 	Events.run_seeded.emit(rng.seed_code(), state.seeded) # after run_started: the telemetry run exists
 	Events.shards_changed.emit(state.shards) # 0: the HUD and the telemetry start the run from it
@@ -123,6 +127,11 @@ func stock_of(cell: Vector2i) -> RoomStock:
 ## Floor index of the deepest nightmare unlocked (0: only The Professor exists).
 func deepest_floor_index() -> int:
 	return DEEPEST_FLOOR_INDEX
+
+
+## What the run took to set up, from _ready() to Events.run_started, in ms (story 6.9); -1 while it has not started.
+func startup_msec() -> int:
+	return _startup_msec
 
 
 ## The room that is active now, null between two rooms.
