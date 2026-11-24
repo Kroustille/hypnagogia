@@ -1,6 +1,6 @@
 # Story 4.11 : Afficher et saisir une seed
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -67,11 +67,30 @@ Hors périmètre : écran-titre (il n'y en a pas : la chambre est à l'epic 8), 
 5. **« Nouvelle partie avec une seed » aussi à l'écran de réveil**, comme le GDD (« saisissable avant une run », « affichée à la mort ») ; pas d'écran-titre.
 6. **`seeded` ne bloque que les déblocages** (indicateur pour l'epic 8) ; une seed saisie reste rejouable à l'identique à déblocages égaux.
 7. **Commandes F1 : seed courante et presse-papiers**, pas de champ de saisie dans le panneau (le panneau n'a que des touches).
+8. **Une relance (« Se rendormir », retour du test de charge) tire une nouvelle seed** : elle ne rejoue pas la seed saisie de la run précédente (sinon un joueur ayant saisi une seed la rejouerait à chaque mort). Le mode et la salle sont conservés. Pour rejouer la seed : bouton « Nouvelle partie avec une seed » ou F1 `C`.
+9. **La seed dans la télémétrie est écrite sur l'événement `run_start`** (champs `seed`, `seeded`) et non dans un événement à part : l'ordre des événements lu par `t_telemetry` reste inchangé.
+10. **Une salle impossible à jouer (`room_path` invalide) retombe sur l'arène** au lieu d'échouer (plus d'`assert`), journalisé en erreur.
+11. **Saisie à la manette** : NON VÉRIFIÉ / non faite (décision 1) ; à noter dans `deferred-work.md` par la revue.
 
 ## Dev Agent Record
 
 ### Agent Model Used
 
+Claude Sonnet 5.5
+
 ### Completion Notes
 
+- Tous les critères 1 à 8 sont couverts par des tests GUT (`tools/run_tests.sh` : 339 tests verts) ; `run_all.sh` en mode normal : ALL PASS (1164 contrôles) ; `--quit-after 120` propre (journal `run started seed=… seeded=false`).
+- Fenêtre de saisie `SeedEntry` : modale pour le clavier (toute touche est consommée tant qu'elle est ouverte, Échap annule sans fermer la pause en dessous). Le champ accepte 16 caractères (pour les séparateurs collés), la validation se fait sur le code normalisé.
+- `Main._start_run()` ferme désormais lui-même pause, réglages et fenêtre de saisie (`_close_menus`).
+- F1 : touche `C` (nouvel étage sur la seed courante) et `V` (code du presse-papiers, refus lisible si invalide) ; `replay_current_seed()` / `replay_seed_code()` sont publiques et testées sans presse-papiers.
+- Reports soldés (deferred-work.md, à marquer RÉSOLU par la revue) : `room_path` invalide (nœud libéré, repli sur l'arène, `Main` relit `Run.played_options()` : plus de rejeu des options fautives ; les deux `assert(false)` retirés) ; `RoomLoader.drain()` ne bloque plus (les chargements en cours passent à `collect_orphans()` du prochain chargeur, qui les attend seulement avant un `load()` synchrone) ; relance « Se rendormir » après une seed saisie : nouvelle seed tirée (voir décision 8) ; la touche `B` de F1 ramène déjà à l'arène.
+- Fuite de sortie de `t_enemy_bullets` (scratch, hors dépôt) : cause = le contrôle « couleurs réservées » chargeait tous les scripts de `res://`, dont `tests/` (scripts GUT à `static var` typé) ; charger ces scripts laisse des cycles à la sortie (6-8 lignes « leaked at exit »). Aucun objet du jeu ne fuit. Corrigé dans la scène (le balayage ignore `res://tests`), sans filtrer l'avertissement.
+
 ### File List
+
+`core/run_rng.gd`, `run/run.gd`, `run/room_loader.gd`, `autoloads/events.gd`, `main/main.gd`, `ui/menus/{pause_menu,wake_screen}.gd/.tscn`, `ui/menus/seed_entry.gd/.tscn`, `localization/strings.csv`, `telemetry/{telemetry,telemetry_session}.gd`, `debug/debug_panel.gd`, tests : `tests/unit/core/test_run_rng.gd`, `tests/unit/ui/test_seed_entry.gd`, `tests/integration/run/{test_seed_flow,test_room_loader_drain}.gd`, `tests/integration/telemetry/test_run_seed_record.gd`.
+
+### Change Log
+
+- 2026-11-24 : implémentation de la story 4.11.
