@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="EconomyTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/economy_tuning.gd" id="1_tuning"]
+
+[resource]
+script = ExtResource("1_tuning")
+shards_min = 1
+shards_max = 3
+drop_chance = 0.3
+shard_drop_amount = 3
+heart_drop_half_hearts = 1
+armor_drop_half_hearts = 1

@@ -26,3 +26,4 @@ fx_transition = 0.5
 fx_photosensitive_cap = 1.0
 shake_pixels = 2
 shake_duration = 0.15
+tier_loot_mult = PackedFloat32Array(1, 1.25, 1.5, 2, 2)

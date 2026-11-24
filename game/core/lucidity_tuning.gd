@@ -56,3 +56,7 @@ extends Resource
 ## Awakening screen shake (the only consumer): largest offset per axis in pixels (before the setting) and duration.
 @export_range(0, 8, 1, "or_greater") var shake_pixels: int = 2
 @export_range(0.05, 2.0, 0.05, "or_greater") var shake_duration: float = 0.15
+
+## Loot of a cleared combat room per room tier, in the order of Lucidity.Tier (Lucid, Floating, Drift, Abandon, Total
+## abandon): multiplier on the shards and on the drop chance (story 5.4: x1, x1.25, x1.5, x2, x2).
+@export var tier_loot_mult: PackedFloat32Array = PackedFloat32Array([1.0, 1.25, 1.5, 2.0, 2.0])

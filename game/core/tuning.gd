@@ -11,3 +11,4 @@ const LUCIDITY: LucidityTuning = preload("res://data/tuning/lucidity_tuning.tres
 const AWAKENING: AwakeningTuning = preload("res://data/tuning/awakening_tuning.tres")
 const GLIDE: GlideTuning = preload("res://data/tuning/glide_tuning.tres")
 const ROOM: RoomTuning = preload("res://data/tuning/room_tuning.tres")
+const ECONOMY: EconomyTuning = preload("res://data/tuning/economy_tuning.tres")

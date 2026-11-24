@@ -146,3 +146,15 @@ func test_drawing_the_treasure_stream_does_not_move_shop_drops_or_combat() -> vo
 	_draws(mixed.stream(RunRng.TREASURE, 0))
 	for name: StringName in expected:
 		assert_eq(_draws(mixed.stream(name)), expected[name], "%s is untouched by treasure" % name)
+
+
+func test_drawing_the_drops_stream_does_not_move_treasure_shop_or_combat() -> void:
+	var alone: RunRng = RunRng.new(4321)
+	var expected: Dictionary[StringName, Array] = {}
+	for name: StringName in [RunRng.TREASURE, RunRng.SHOP, RunRng.COMBAT]:
+		expected[name] = _draws(alone.stream(name))
+	var mixed: RunRng = RunRng.new(4321)
+	_draws(mixed.stream(RunRng.DROPS, 0))
+	Loot.roll(3, mixed.stream(RunRng.DROPS, 0), Tuning.LUCIDITY, Tuning.ECONOMY)
+	for name: StringName in expected:
+		assert_eq(_draws(mixed.stream(name)), expected[name], "%s is untouched by drops" % name)
