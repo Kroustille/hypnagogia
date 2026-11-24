@@ -1,6 +1,6 @@
 # Story 6.3 : Subir l'Interro surprise en Abandon total
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -67,6 +67,16 @@ epics.md (Story 6.3) ; GDD, Le Professeur, « En Abandon total : Interro surpris
 3. **Annonce de l'Interro sans pause des attaques.** Le GDD dit qu'elle « s'ajoute » ; suspendre ferait un répit en récompense d'un abandon total.
 4. **`ChalkTitle` affiche une seule ligne à la fois** : le titre de phase s'efface après 3 s, l'Interro s'écrit ensuite seule (ou remplace le titre s'il est encore là). Détail visuel NON ÉVALUÉ.
 5. **Pas d'événement de télémétrie dédié** (journal INFO seulement).
+6. **Revue — l'Interro est gelée pendant une annonce de phase** (`_extra_runner.tick` n'est appelé qu'en FIGHTING) : un signe en anneau commencé juste avant un seuil reste affiché, figé, jusqu'à 1,5 s, puis le cercle part. Gardé : une annonce retient toutes les attaques, comme `fire_hold` ; l'Interro ne redémarre pas et ne se double pas. Lisibilité NON ÉVALUÉE.
+7. **Revue — une phase refusée par `BossPhase.validate()` fait tourner tous ses ensembles à la fois** (`Boss._alternates`) : un Examen final refusé deviendrait Dictée + Calcul mental + règle ensemble. Gardé : donnée fautive seulement, signalée une fois à l'apparition (`Log.error` + `assert`), `professor.tres` passe (`alternate_seconds` 8) ; aucune donnée existante n'est refusée par le nouveau plancher de 1 s.
+8. **Revue — `ChalkTitle` : l'Interro remplace le titre de phase encore affiché** (décision 4 confirmée). Au plus tôt, elle remplace « Dictée » (déjà écrit, 0,5 s) au premier tick de combat ; en cours de combat elle ne peut tomber pendant l'écriture d'un titre (vérifiée en FIGHTING seulement), seulement pendant sa tenue (1,2 s).
+
+### Review Findings
+
+Revue de code (2026-11-24, Opus, trois couches en passes isolées : Blind Hunter, Edge Case Hunter, Acceptance Auditor) sur `fd2c428..5e06b50`. Arbre propre de `5e06b50` (worktree, `XDG_DATA_HOME` jetable) : `run_all.sh` ALL PASS (190 contrôles, 1164 ok de scènes, aucun échec : celui vu par le dev n'est pas reproduit) ; GUT `integration/bosses/` 38/38 (296 assertions), dont la capacité 60 s Examen final + Interro en Abandon total, `refused_count == 0`. Vérifiés sans défaut : verrou `_extra_active` posé à la première lecture vraie en FIGHTING, jamais remis à faux (jauge qui remonte, `begin_room()`), atteint pendant une annonce ⇒ démarre après, atteint avant le combat ⇒ démarre après l'annonce de phase 1 ; `_extra_runner` hors ensemble, ni arrêté par l'alternance ni par `_stop_runners()` au changement de phase, arrêté et vidé par `_halt()` (mort, `run_ended`, sortie de l'arbre) ; gelé sous `fire_hold` et `GameClock` à 0, cadence en horloge × `pace_mult`, signe en horloge seule, plancher 0,4 s par `Telegraph.duration_for` (0,6 × 0,85 = 0,51 s en Abandon total) ; vitesse × `enemy_bullet_speed_mult` ; aucun tirage du flux `BOSS` (décalage `fired_rings × 15°`) ; annonce sans changement d'état (`ChalkTitle` seul abonné de `boss_announced`) ; clé `BOSS_PROFESSOR_EXTRA` dans `strings.csv`. Passage : les couloirs du cercle sont radiaux, corde libre entre deux craies = 2d·sin 15° − 0,5 tuile (diamètre de craie) ≈ 0,52d − 0,5, plus d'une tuile au-delà de ~2,9 tuiles du centre du boss (bord du corps à 1,125) ; le cercle suivant est décalé d'un demi-pas, il faut glisser de 0,26d tuile en 6 s ; contre la règle, la parade reste le dash. Superposition aux trois phases : NON ÉVALUÉ (déjà en `deferred-work.md`).
+
+- [ ] [Review][Patch] Une phase `null` est signalée par `_validate_def()` mais le combat la déréférence quand même [`game/bosses/boss.gd:57`] — `_enter(ANNOUNCING)` (`:110`, `.title_key`), `_phase_for_share()` (`:221`, `.hp_from`, à chaque coup) et `_start_phase()` (`:254`) lèvent une erreur de script. Ajouter `or _boss_def.phases.has(null)` à la garde de `_ready()` (boss inerte, `PROCESS_MODE_DISABLED`, un seul `Log.error` + `assert`) ; test GUT : un `BossDef` dont `phases = [phase_valide, null]` ne combat pas et ne lève aucune erreur de script.
+- [ ] [Review][Patch] Une attaque `null` dans un ensemble ou dans `extras` (signalée par `BossPhase.validate()` : « a null attack ») plante au démarrage de sa phase [`game/bosses/boss.gd:292`] — `_make_runner()` appelle `attack.validate()` sur `null`. En tête de `_make_runner()` : `if attack == null:` `Log.error("combat", "boss %s attack skipped: null attack" % _boss_def.id)`, `_assert_failed("BossAttack is null")`, `return null` ; même garde pour `extra_attack` (déjà couverte par `_check_extra`, qui teste `null` avant). Test GUT : une phase avec `extras = [null]` démarre ses autres attaques.
 
 ## Dev Agent Record
 

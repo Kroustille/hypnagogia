@@ -552,3 +552,7 @@
 ## Deferred from: dev of 6-3-subir-l-interro-surprise-en-abandon-total (2026-11-24)
 
 - **NON ÉVALUÉ (humain) : lisibilité de l'Interro surprise** (playtest du jalon A) : cercle de 12 craies à 5 t/s × 1,1 toutes les 6 s superposé à l'Examen final (règle + rangée + spirale), signe en anneau de 0,6 s (0,51 s en Abandon total) ; l'annonce « Interro surprise » remplace le titre de phase s'il est encore écrit (`ChalkTitle` n'affiche qu'une ligne).
+
+## Deferred from: code review of 6-3-subir-l-interro-surprise-en-abandon-total (2026-11-24)
+
+- **Titre de l'Interro en dur dans la classe générique `Boss`** (story qui ajoute un deuxième boss avec un `extra_attack`) : `game/bosses/boss.gd:17` `EXTRA_TITLE_KEY = &"BOSS_PROFESSOR_EXTRA"` ; tout autre boss afficherait « Interro surprise ». Passer la clé dans la donnée (`BossDef.extra_title_key`, comme `BossPhase.title_key`), validée non vide quand `extra_attack` existe.
