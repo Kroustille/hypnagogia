@@ -1,6 +1,6 @@
 # Story 4.5 : Des ennemis qui contournent les obstacles
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -33,6 +33,15 @@ Hors périmètre : lignes de vue des tireuses (elles tirent toujours à toute di
 - [x] Salle 006 (ASCII) ; validateur : rien de nouveau (l'accessibilité est celle de la 4.3).
 - [x] F2 (`CollisionDrawer`) : tracer le chemin de l'ennemi sélectionné n'est pas exigé ; un `Log.debug` par recalcul suffit.
 - [x] Tests GUT : `tests/unit/rooms/test_room_nav.gd` (contournement, pas de coin coupé, murs/trous/meubles bloqués, mise à jour d'une cellule, inatteignable, départ bloqué, ligne directe avec demi-largeur), `tests/integration/enemies/test_enemy_pathing.gd` (un Somnambule derrière le mur central atteint le joueur en un nombre de ticks borné ; le nombre de calculs sur 120 ticks avec 8 ennemis reste ≤ budget × ticks ; la Berceuse contourne ; la cible disparue arrête l'ennemi), `test_sheep_stun.gd` (haut : étourdi ; bas : repos sans étourdissement).
+
+### Review Findings
+
+Revue complète (3 couches, passes isolées) du 2026-11-24 sur `dfc8283..83e109d`. Numéros de ligne à `83e109d`. GUT de la story verts (12 + 7 + 3), suite GUT 159/159 hors sondes. Deux sondes GUT jetables (`game/.scratch/review45/`) confirment les deux actions. 2 actions, 2 reportés, une dizaine d'écartés (coin d'un corps carré en diagonale : 6 px testés contre 7,07 px, la physique glisse ; budget de 4 par tick : capacité 96 calculs par intervalle, aucune famine possible sous ~96 ennemis ; portes toujours bloquées : leurs cellules sont dans le cadre, inatteignables de toute façon ; garde de contact : la fuite de la Berceuse, la charge du Mouton et `knock_back` ne sont pas affectées ; salle 006 : sondes passage d'une tuile sous le trou et U dans les deux sens atteints en < 400 ticks).
+
+- [ ] [Review][Patch] **Chemin périmé repris après une interruption de la poursuite** [`game/enemies/enemy.gd:238-249`] : `_plan_ticks_left` et `_path` ne bougent pas tant que `_chase()` n'est pas appelée (éblouissement, télégraphe et ruée du Somnambule, Berceuse entrée dans sa bande de distance) ; à la reprise l'ennemi suit un chemin vieux de plusieurs secondes jusqu'à l'échéance (piège « ne pas conserver un chemin plus d'un intervalle »). Sonde : Somnambule ébloui 2 s pendant que le joueur passe de son côté, il repart à l'opposé du joueur (cos −0,36) pendant ~14 ticks. Correctif : `var _last_chase_frame: int = -2` ; dans `_chase()`, après le test `_nav == null` : `var frame: int = Engine.get_physics_frames()` ; `if frame != _last_chase_frame + 1: _plan_ticks_left = 0.0; _path = PackedVector2Array(); _path_index = 0` ; `_last_chase_frame = frame`. Test : le scénario de la sonde (déplacement vers le joueur, cos > 0,9 sur 20 ticks après l'éblouissement).
+- [ ] [Review][Patch] **Le Somnambule télégraphie à travers un mur et boucle** [`game/enemies/sleepwalker/sleepwalker.gd:68`] : la portée de déclenchement (2 tuiles) est une distance à vol d'oiseau ; joueur collé de l'autre côté d'un mur d'une tuile, le Somnambule enchaîne TELEGRAPH → RUSH (dans le mur) → CHASE → TELEGRAPH sans jamais contourner (sonde `nav_wall` : joueur (394, 168), Somnambule (424, 168), 44 changements d'état en 900 ticks, jamais passé) : critère 4 mis en échec et exploitable par le joueur. Correctif : extraire la demi-largeur de `_plan_path` dans `Enemy._path_half_width() -> float`, ajouter `Enemy._has_clear_line(point: Vector2) -> bool` (`return _nav == null or _nav.is_line_clear(global_position - _nav.origin, point - _nav.origin, _path_half_width())`), et dans `_process_chase` : `if _distance_to_target() < _trigger_range_px and _has_clear_line(_target_position()):`. Segment court (≤ 2 tuiles), hors budget. Test : la sonde (le Somnambule passe du côté du joueur en ≤ 900 ticks). Décision 12.
+- [x] [Review][Defer] **`RoomNav.origin` lu une seule fois dans `Room._ready()`** [`game/rooms/room_nav.gd:41`] — reporté à la 4.8 (si une salle est placée ailleurs qu'à l'origine ou déplacée après son `_ready()`).
+- [x] [Review][Defer] **Aucune mesure de coût du pathing** [`game/enemies/enemy.gd`, `game/rooms/room_nav.gd`] — reporté à la 4.6 (grandes salles, vagues de 7 + renfort ; une cible inatteignable coûte un A* complet en échec par ennemi toutes les 0,4 s).
 
 ## État du code concerné
 
@@ -67,6 +76,7 @@ Hors périmètre : lignes de vue des tireuses (elles tirent toujours à toute di
 9. **Le test de ligne directe est planifié comme le chemin** (toutes les 0,4 s, sous le budget) : coût borné, au prix d un frottement d au plus 0,4 s contre un coin si la cible bouge.
 10. **La garde « ne pas avancer dans la cible » devient la règle de `_move_toward`** (Somnambule, Berceuse, recul du Mouton) ; la charge du Mouton et la poussée de `knock_back` n en dépendent pas.
 11. **Retour de chute sur un ennemi (deferred 4.3)** : non traité, ce n est pas une tâche de la story et touche `PitGuard`/le joueur ; reste dans `deferred-work.md`.
+12. **(revue) Le Somnambule ne télégraphie qu'avec une ligne libre vers le joueur** : sinon il boucle télégraphe/ruée contre un mur d'une tuile ; alternative écartée : ruée pathée (change la lecture, décision 2). Coût : un test de ligne court par tick dans la portée.
 
 ## Dev Agent Record
 
@@ -95,3 +105,4 @@ Claude Sonnet 5.5
 ### Change Log
 
 - 2026-11-24 : implémentation de la story 4.5.
+- 2026-11-24 : revue de code (2 actions, 2 reportés) ; retour en `in-progress`.
