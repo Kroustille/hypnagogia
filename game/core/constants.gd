@@ -60,6 +60,9 @@ const COLOR_ENEMY_BULLET_OUTLINE: Color = Color(0.4, 0.0, 0.2)
 ## whatever its place in the tree (AR19, NFR8). Below the reticle (100), an aim aid that stays in the world: the HUD canvas layer draws above it, so the reticle keeps out of the band.
 const Z_INDEX_ENEMY_BULLETS: int = 10
 
+## Node group of the Run (one at a time), found by debug tools without a node path.
+const GROUP_RUN: StringName = &"run"
+
 ## Node group of the player, found by debug tools without a node path.
 const GROUP_PLAYER: StringName = &"player"
 

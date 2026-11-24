@@ -1,7 +1,7 @@
 class_name Run
 extends Node
 ## One night: the player and the active room (RoomSlot). Destroyed and recreated by Main on restart (AR20).
-## Holds the run state (only "has it ended" for now). Notifies the end of the run on Events.run_ended.
+## Holds the run state (RunState: seed, floor index) and whether the run has ended. Notifies the end of the run on Events.run_ended.
 
 ## How a run ended. Values are explicit because they travel as ints on Events.run_ended:
 ## new outcomes are appended at the end (VICTORY: story 6.4).
@@ -10,10 +10,16 @@ enum Outcome { DEATH = 0 }
 ## Kept in the resource cache for the whole session: Main preloads run.tscn, which preloads this (AC 3).
 const ARENA_SCENE: PackedScene = preload("res://rooms/arena/arena.tscn")
 
+const FLOOR_DEF_PATH: String = "res://data/floors/onset.tres"
+
 var _ended: bool = false
 var _options: RunOptions = RunOptions.new()
 ## The random streams of this run (D8): a new one for every run.
 var rng: RunRng
+## The seed, the floor index (story 4.7).
+var state: RunState = RunState.new()
+## The generated floor of a FLOOR run (story 4.7); playing it arrives with story 4.8. Null in the other modes.
+var floor_layout: FloorLayout
 
 @onready var _player: Player = %Player
 @onready var _room_slot: Node = %RoomSlot
@@ -25,14 +31,19 @@ func setup(options: RunOptions) -> void:
 
 
 func _ready() -> void:
-	rng = RunRng.new(_options.seed_value if _options.seeded else RunRng.draw_seed())
+	add_to_group(Const.GROUP_RUN)
+	state.seeded = _options.seeded and _options.seed_value >= 0
+	state.run_seed = _options.seed_value if state.seeded else RunRng.draw_seed()
+	rng = RunRng.new(state.run_seed)
 	Log.info("run", "seed %s" % rng.seed_code())
 	# First, so that the end of the run is notified even when the room below fails to load (AR28).
 	_player.died.connect(_on_player_died)
+	if _options.mode == RunOptions.Mode.FLOOR:
+		ensure_floor()
 	var room: Room = _make_room()
 	if room == null:
 		return
-	room.setup(_player, rng) # before add_child()
+	room.setup(_player, rng, state.floor_index) # before add_child()
 	_room_slot.add_child(room)
 	_player.global_position = room.player_spawn_position()
 	_player.reset_physics_interpolation() # the player does not trail from (0, 0)
@@ -63,3 +74,24 @@ func _on_player_died() -> void:
 	_ended = true
 	Log.info("run", "run ended outcome=death")
 	Events.run_ended.emit(Outcome.DEATH)
+
+
+
+## The floor of this run, generated on the first request and kept: it depends on the seed only, never on the player.
+## The streams used (layout, rooms) are not the ones of the fight, so asking for it changes nothing else.
+func ensure_floor() -> FloorLayout:
+	if floor_layout != null:
+		return floor_layout
+	var def: FloorDef = load(FLOOR_DEF_PATH) as FloorDef
+	var pool: Array[RoomInfo] = RoomCatalog.pool(def.pool_dir)
+	floor_layout = FloorGenerator.generate(def, pool, rng, state.floor_index)
+	if floor_layout.valid:
+		Log.info("gen", "floor generated seed=%s attempts=%d" % [rng.seed_code(), floor_layout.attempts])
+	else:
+		Log.error("gen", "floor of seed %s is invalid: %s" % [rng.seed_code(), floor_layout.failure])
+	return floor_layout
+
+
+## Writes the map of the floor in the journal (F1 panel).
+func log_floor_map() -> void:
+	Log.info("gen", "floor map seed=%s\n%s" % [rng.seed_code(), ensure_floor().to_text()])

@@ -79,6 +79,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_next_wave()
 		KEY_R:
 			_next_pool_room()
+		KEY_G:
+			_log_floor_map()
 		_:
 			handled = false
 	if handled:
@@ -168,6 +170,16 @@ func _next_wave() -> void:
 		return
 	runner.force_next_wave()
 	_log("next wave (%d)" % runner.wave_number())
+
+
+## Writes the ASCII map of the floor of this run's seed in the journal (story 4.7).
+func _log_floor_map() -> void:
+	var run: Run = get_tree().get_first_node_in_group(Const.GROUP_RUN) as Run
+	if run == null:
+		_log("no run")
+		return
+	run.log_floor_map()
+	_log("floor map of seed %s in the journal" % run.rng.seed_code())
 
 
 ## Restarts the run in the next room of the pool (sorted by path), then loops back to the first one.
@@ -282,6 +294,7 @@ func _refresh_text() -> void:
 		"L lucidity cycle, a dive deepens the room until the next wave (%s)" % ", ".join(Array(_lucidity_presets).map(str)),
 		"- next wave (keypad -; ) on AZERTY)",
 		"R next room of the pool (new run)",
+		"G floor map of the seed (journal)",
 	])
 	if player != null:
 		var health: Health = player.health
