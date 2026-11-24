@@ -1,6 +1,6 @@
 # Story 4.10 : Remplir le pool de l'Endormissement
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -39,12 +39,12 @@ La première vague d'une salle ne contient ni Mouton ni plus de 2 tireuses. Le t
 
 ## Tâches
 
-- [ ] Rédiger les salles 013 à 030 (et plus si utile) comme textes `art_source/rooms/onset_combat_<nnn>.txt` (format de la 4.2), par lots de 6 : écrire, `tools/build_room.sh`, `tools/validate_rooms.sh`, corriger. Varier les motifs (colonnes, anneau, croix, couloirs, îlots, banc de meubles) ; ne pas dupliquer une salle avec un simple retournement sans le dire (une symétrie par miroir est acceptable si les vagues diffèrent).
-- [ ] Enrichir 009 à 012 si besoin pour tenir les quotas.
-- [ ] Script de statistiques du pool dans les tests (`tests/integration/rooms/test_pool_content.gd`) : compte les salles, trous, types d'ennemis, tailles, meubles, lampes, portes, ordre de numérotation.
-- [ ] `tests/integration/generation/test_floor_real_pool.gd` (critère 8) et `tests/integration/rooms/test_pool_smoke.gd` (critère 9).
-- [ ] Mettre à jour la liste des salles dans le Dev Agent Record (nom, taille, ennemis, trous, meubles) : le jalon B s'en servira pour équilibrer.
-- [ ] Ne rien réécrire dans `game/.scratch` ; `run_all.sh` une fois.
+- [x] Rédiger les salles 013 à 030 (et plus si utile) comme textes `art_source/rooms/onset_combat_<nnn>.txt` (format de la 4.2), par lots de 6 : écrire, `tools/build_room.sh`, `tools/validate_rooms.sh`, corriger. Varier les motifs (colonnes, anneau, croix, couloirs, îlots, banc de meubles) ; ne pas dupliquer une salle avec un simple retournement sans le dire (une symétrie par miroir est acceptable si les vagues diffèrent).
+- [x] Enrichir 009 à 012 si besoin pour tenir les quotas.
+- [x] Script de statistiques du pool dans les tests (`tests/integration/rooms/test_pool_content.gd`) : compte les salles, trous, types d'ennemis, tailles, meubles, lampes, portes, ordre de numérotation.
+- [x] `tests/integration/generation/test_floor_real_pool.gd` (critère 8) et `tests/integration/rooms/test_pool_smoke.gd` (critère 9).
+- [x] Mettre à jour la liste des salles dans le Dev Agent Record (nom, taille, ennemis, trous, meubles) : le jalon B s'en servira pour équilibrer.
+- [x] Ne rien réécrire dans `game/.scratch` ; `run_all.sh` une fois.
 
 ## État du code concerné
 
@@ -79,6 +79,71 @@ La première vague d'une salle ne contient ni Mouton ni plus de 2 tireuses. Le t
 
 ### Agent Model Used
 
+Claude Sonnet 5.5
+
 ### Completion Notes
 
+- 18 nouvelles salles (013 à 030) écrites par un script jetable (hors dépôt) qui compose les formes et vérifie, avant `tools/build_room.sh`, la case du joueur au centre, les bandes d'entrée des portes, les apparitions (obstacle, 4 tuiles des portes), les renforts et les poches de sol non atteintes (aucune). `tools/validate_rooms.sh` : 34 salles valides. Les salles 005 et 009 à 012 sont enrichies sans changer de nom (005 : Mouton en vague 2 et lampe rapprochée des apparitions ; 009, 011 : deuxième vague ; 009 à 012 : trous ; 010 : Mouton en vague 2).
+- Quotas du pool (test `test_pool_content`) : 30 salles, 24 avec trous (80 %), 18 avec au moins 40 cases de trou, 4 larges (007, 019, 021, 028), 4 hautes (008, 020, 026, 030), 7 salles à meubles, 6 à lampe, quatre portes dans 28 salles sur 30 (018 : N, E, S ; 025 : E, S, O), au plus 4 salles à une vague (003, 004, et aucune autre).
+- Test d'intégration du générateur sur le vrai pool : 10 seeds, 10 ensembles de 12 combats tous différents, au moins 20 salles distinctes. Les empreintes de référence de `test_floor_generator` utilisent `FakePool` : inchangées.
+- Dettes soldées (code, petites) : `RoomCatalog.all()` rejette un identifiant déjà vu (`Log.error`, la première salle dans l'ordre des chemins gagne) ; `RoomInfo.from_scene` rend `null` quand l'instanciation échoue ; lampe de la 005 rapprochée des apparitions (28, 5).
+- Non traités ici (code de jeu ou fichiers de la 4.8 hors périmètre) : poches atteignables seulement au Glissement (aucune dans le pool, la règle du validateur n'est pas ajoutée), ennemis qui télégraphient hors écran en grande salle, avertissement de danger dans une salle calme ou vidée (`room.gd`) : restent dans `deferred-work.md`.
+- Vérifications : `tools/run_tests.sh` 309 tests verts ; `run_all.sh` en mode normal : tout passe sauf `t_enemy_bullets` ("no engine WARNING/ERROR line" : fuites à la sortie du moteur, 6 lignes), identique sans mes salles, donc antérieur à cette story.
+- NON ÉVALUÉ (humain) : lisibilité et plaisir des salles (pas de capture WSLg faite), équilibrage des vagues (jalon B).
+
+### Décisions prises sans Kroustille (ajouts)
+
+7. **Deux salles à trois portes** (018, 025) pour que le générateur ait des salles à portes partielles ; les 28 autres ont les quatre portes (93 %).
+8. **« Beaucoup de trous » = au moins 40 cases de trou** (seuil du test) ; ce sont des seuils de test, pas une règle de level design.
+9. **Le Mouton passe en vague 2 dans 005 et 010** pour respecter « première vague douce » (le critère s'applique aussi aux salles déjà livrées) ; le test de la 005 (2 vagues, meubles, lampe) reste vrai.
+10. **Les salles sont composées par un script jetable** (formes + vérifications) puis passent par l'outil ASCII ; seuls les `.txt` et les `.tscn` sont versionnés.
+11. **Fixtures `tests/fixtures/catalog_dupes/`** : deux scènes de même nom dans deux sous-dossiers, pour tester le rejet d'identifiant en double.
+
+### Liste des salles (jalon B)
+
+Som = Somnambule, Vei = Veilleuse, Ber = Berceuse, Mou = Mouton. Ennemis par vague (séparées par `/`), cases de trou, obstacles hauts/bas, meubles, lampes, portes.
+
+| Salle | Taille | Vagues | Trous | H/L | Meubles | Lampes | Portes |
+|---|---|---|---|---|---|---|---|
+| 001 | screen | 3Som / 2Vei,1Som | 0 | 10/12 | 0 | 0 | NESW |
+| 002 | screen | 2Som / 1Vei,1Ber,1Mou / 1Som,1Ber,1Vei,1Mou | 0 | 16/10 | 0 | 0 | NESW |
+| 003 | screen | 2Som,1Vei,1Ber | 0 | 0/0 | 0 | 0 | NESW |
+| 004 | screen | 2Som,1Vei,1Ber | 75 | 0/0 | 0 | 0 | NESW |
+| 005 | screen | 1Som,1Ber / 1Mou,1Vei,1Som | 0 | 0/0 | 4 | 1 | NESW |
+| 006 | screen | 1Som,1Ber / 1Som,1Mou,1Vei | 2 | 13/0 | 0 | 0 | NESW |
+| 007 | wide | 2Som,1Ber / 1Som,1Vei,1Mou | 0 | 40/0 | 0 | 0 | NESW |
+| 008 | tall | 2Som,1Ber / 1Mou,1Vei,1Som | 16 | 0/0 | 1 | 0 | NESW |
+| 009 | screen | 2Som / 1Vei,2Som | 18 | 24/0 | 0 | 0 | NESW |
+| 010 | screen | 2Som / 1Mou,2Vei | 16 | 8/0 | 0 | 0 | NESW |
+| 011 | screen | 1Ber,2Som / 1Vei,1Som | 18 | 0/16 | 0 | 0 | NESW |
+| 012 | screen | 2Som / 2Som,1Vei | 18 | 0/4 | 0 | 0 | NESW |
+| 013 | screen | 2Som / 1Vei,2Som | 52 | 0/0 | 0 | 0 | NESW |
+| 014 | screen | 2Som / 1Ber,1Mou,1Som | 68 | 0/0 | 0 | 0 | NESW |
+| 015 | screen | 2Som / 1Vei,1Ber,1Som | 208 | 0/0 | 0 | 0 | NESW |
+| 016 | screen | 1Som,1Vei / 2Mou,1Vei,1Som | 51 | 16/0 | 0 | 0 | NESW |
+| 017 | screen | 1Som,1Ber / 1Vei,2Som,1Ber | 18 | 0/3 | 4 | 1 | NESW |
+| 018 | screen | 2Som / 1Vei,1Ber,2Som | 12 | 4/32 | 0 | 0 | NES |
+| 019 | wide | 3Som / 1Vei,1Ber,2Som / 2Mou,1Vei,1Ber,1Som | 156 | 0/0 | 0 | 0 | NESW |
+| 020 | tall | 2Som / 1Vei,1Ber,1Som / 1Mou,1Vei,1Ber,2Som | 32 | 12/12 | 5 | 1 | NESW |
+| 021 | wide | 2Som / 1Ber,1Vei,1Som / 1Mou,1Vei,1Ber,2Som | 18 | 12/0 | 7 | 1 | NESW |
+| 022 | screen | 2Som / 1Vei,1Ber,1Mou / 2Som,1Vei,1Ber,1Mou | 39 | 0/5 | 4 | 1 | NESW |
+| 023 | screen | 2Som / 1Vei,1Ber,1Som / 2Mou,1Vei,1Ber,1Som | 209 | 0/0 | 0 | 0 | NESW |
+| 024 | screen | 2Som / 1Vei,1Ber,1Mou / 2Som,1Vei,1Ber | 36 | 8/0 | 0 | 0 | NESW |
+| 025 | screen | 2Som / 1Vei,1Mou,1Som / 2Ber,1Vei,1Som | 42 | 0/0 | 0 | 0 | ESW |
+| 026 | tall | 2Som / 1Vei,1Ber,2Som / 2Mou,1Vei,1Ber,2Som | 156 | 12/0 | 0 | 0 | NESW |
+| 027 | screen | 2Som,1Ber / 1Vei,1Mou,2Som / 1Ber,1Vei,2Som,1Mou | 36 | 12/0 | 0 | 2 | NESW |
+| 028 | wide | 4Som / 1Vei,1Ber,3Som / 2Mou,2Vei,1Ber,1Som | 142 | 6/18 | 0 | 0 | NESW |
+| 029 | screen | 3Som,1Vei / 1Ber,1Vei,2Som,1Mou / 2Mou,2Vei,1Ber,1Som | 50 | 4/4 | 2 | 0 | NESW |
+| 030 | tall | 4Som,1Vei / 1Ber,1Vei,3Som,1Mou / 2Mou,2Vei,2Ber | 112 | 8/8 | 4 | 2 | NESW |
+
 ### File List
+
+- `art_source/rooms/onset_combat_005.txt`, `009` à `012` (enrichies), `013` à `030` (nouvelles)
+- `game/rooms/pool/onset/onset_combat_005.tscn`, `009` à `012`, `013` à `030`
+- `game/generation/room_catalog.gd`, `game/generation/room_info.gd`
+- `game/tests/unit/generation/test_room_catalog.gd`, `game/tests/fixtures/catalog_dupes/` (3 scènes)
+- `game/tests/integration/rooms/test_pool_content.gd`, `test_pool_smoke.gd`, `game/tests/integration/generation/test_floor_real_pool.gd`
+
+### Change Log
+
+- 2026-11-24 : pool de l'Endormissement porté à 30 salles de combat, tests de contenu, de variété sur 10 seeds et de fumée, rejet des identifiants de salle en double.
