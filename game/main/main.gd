@@ -17,10 +17,17 @@ const SETTINGS_MENU_SCENE: PackedScene = preload("res://ui/menus/settings_menu.t
 const SEED_ENTRY_SCENE: PackedScene = preload("res://ui/menus/seed_entry.tscn")
 const HUD_SCENE: PackedScene = preload("res://ui/hud/hud.tscn")
 const MAP_VIEW_SCENE: PackedScene = preload("res://ui/map/floor_map_view.tscn")
+const BEDROOM_SCENE: PackedScene = preload("res://bedroom/bedroom.tscn")
 
 ## What a new game plays: the generated floor (story 4.8). Checks that rely on the arena of milestone A set it back
 ## to ARENA before creating Main. Not a setting: nothing in the game writes it.
 static var default_mode: RunOptions.Mode = RunOptions.Mode.FLOOR
+## Whether the game starts in the bedroom (story 6.5) rather than in a run. Checks that expect a Run at launch set it to
+## false before creating Main, like default_mode. Not a setting: nothing in the game writes it.
+static var start_in_bedroom: bool = true
+
+## Where the seed window was opened from: it gives the focus (or the freeze) back where it came from when cancelled.
+enum SeedOrigin { PAUSE, WAKE, BEDROOM }
 
 var _last_scale_factor: int = -1
 var _last_window_size: Vector2i = Vector2i.ZERO
@@ -33,8 +40,8 @@ var _wake_screen: WakeScreen
 var _pause_menu: PauseMenu
 var _settings_menu: SettingsMenu
 var _seed_entry: SeedEntry
-## What the seed window was opened from, to give the focus back when it is cancelled.
-var _seed_entry_from_wake: bool = false
+var _seed_origin: SeedOrigin = SeedOrigin.PAUSE
+var _hud: Hud
 var _map_view: FloorMapView
 
 @onready var _active_scene: Node = %ActiveScene
@@ -45,9 +52,9 @@ func _ready() -> void:
 	_run_options = RunOptions.new()
 	_run_options.mode = default_mode
 	get_window().min_size = Const.VIEWPORT
-	var hud: Hud = HUD_SCENE.instantiate() as Hud
-	_ui.add_child(hud)
-	_ui.move_child(hud, 0) # below every overlay and menu; added before the run starts, so it gets the first health state
+	_hud = HUD_SCENE.instantiate() as Hud
+	_ui.add_child(_hud)
+	_ui.move_child(_hud, 0) # below every overlay and menu; added before the run starts, so it gets the first health state
 	_map_view = MAP_VIEW_SCENE.instantiate() as FloorMapView
 	_ui.add_child(_map_view) # over the HUD, under the menus
 	_ui.move_child(_map_view, 1)
@@ -69,7 +76,10 @@ func _ready() -> void:
 	Events.run_ended.connect(_on_events_run_ended)
 	Events.run_requested.connect(_on_run_requested)
 	Events.run_started.connect(_on_events_run_started)
-	_start_run()
+	if start_in_bedroom:
+		_enter_bedroom()
+	else:
+		_start_run()
 	_check_window_scale()
 
 
@@ -103,6 +113,7 @@ func _setup_menus() -> void:
 	_wake_screen.restart_requested.connect(_on_wake_screen_restart_requested)
 	_wake_screen.verdict_given.connect(_on_wake_screen_verdict_given)
 	_wake_screen.new_seed_requested.connect(_on_wake_screen_new_seed_requested)
+	_wake_screen.wake_up_requested.connect(_on_wake_screen_wake_up_requested)
 	_pause_menu.resume_requested.connect(_on_pause_menu_resume_requested)
 	_pause_menu.settings_requested.connect(_on_pause_menu_settings_requested)
 	_pause_menu.quit_requested.connect(_on_pause_menu_quit_requested)
@@ -181,6 +192,7 @@ func _start_run(options: RunOptions = null) -> void:
 	_wake_screen.hide()
 	_close_menus()
 	_run_over = false
+	_hud.visible = true
 	# Remove the old run while still frozen, unfreeze, then add the new one: it must enter an enabled tree.
 	_clear_active_scene()
 	_freeze(false)
@@ -189,6 +201,36 @@ func _start_run(options: RunOptions = null) -> void:
 	_active_scene.add_child(run)
 	_run_options = run.played_options() # the options actually played: a room that could not load fell back to the arena
 	_load_test_active = false
+
+
+## The bedroom replaces whatever is active (story 6.5): the hub where a night starts. The HUD and the map belong to a run
+## and are hidden; nothing is frozen. Called at launch and from the wake screen, never during run_ended.
+func _enter_bedroom() -> void:
+	_wake_screen.hide()
+	_close_menus()
+	_run_over = false
+	_hud.visible = false
+	_clear_active_scene() # also unbinds the map
+	_freeze(false)
+	var bedroom: Bedroom = BEDROOM_SCENE.instantiate() as Bedroom
+	bedroom.sleep_requested.connect(_on_bedroom_sleep_requested)
+	bedroom.seed_entry_requested.connect(_on_bedroom_seed_entry_requested)
+	_active_scene.add_child(bedroom)
+	_load_test_active = false
+	Log.info("run", "entered the bedroom")
+
+
+## The player went to bed: a night on a seed drawn at random, from the one place that starts runs.
+func _on_bedroom_sleep_requested() -> void:
+	Log.info("run", "going to sleep")
+	Events.run_requested.emit(RunOptions.Mode.FLOOR, -1, false, "")
+
+
+## The desk: the seed window opens over a frozen bedroom (the typed letters would also move and interact).
+func _on_bedroom_seed_entry_requested() -> void:
+	_seed_origin = SeedOrigin.BEDROOM
+	_freeze(true)
+	_seed_entry.open()
 
 
 ## The same mode and room as options, with a seed to draw: a restart never replays the seed of the run before.
@@ -261,6 +303,12 @@ func _on_events_run_ended(outcome: int) -> void:
 	_wake_screen.open(_seed_code(), outcome)
 
 
+## "Back to the bedroom" on the wake screen: the signal of a button, so the dead Run is removed after run_ended.
+func _on_wake_screen_wake_up_requested() -> void:
+	Log.info("run", "back to the bedroom %d ms after the end of the run" % (Time.get_ticks_msec() - _run_ended_msec))
+	_enter_bedroom()
+
+
 func _on_wake_screen_restart_requested() -> void:
 	Log.info("run", "restart requested %d ms after the end of the run" % (Time.get_ticks_msec() - _run_ended_msec))
 	_start_run()
@@ -289,13 +337,13 @@ func _on_settings_menu_back_requested() -> void:
 
 ## The player wants to type a seed, from the pause menu or from the wake screen.
 func _on_pause_menu_new_seed_requested() -> void:
-	_seed_entry_from_wake = false
+	_seed_origin = SeedOrigin.PAUSE
 	_pause_menu.hide()
 	_seed_entry.open()
 
 
 func _on_wake_screen_new_seed_requested() -> void:
-	_seed_entry_from_wake = true
+	_seed_origin = SeedOrigin.WAKE
 	_seed_entry.open()
 
 
@@ -308,10 +356,15 @@ func _on_seed_entry_seed_submitted(seed_value: int) -> void:
 ## Escape on the seed window: back to the menu it came from, nothing else changed.
 func _on_seed_entry_cancelled() -> void:
 	_seed_entry.hide()
-	if _seed_entry_from_wake:
-		_wake_screen.focus_new_seed()
-	else:
-		_pause_menu.open(_seed_code(), PauseMenu.Focus.NEW_SEED)
+	match _seed_origin:
+		SeedOrigin.WAKE:
+			_wake_screen.focus_new_seed()
+		SeedOrigin.BEDROOM:
+			get_viewport().gui_release_focus() # a focused control would eat the interact key
+			_freeze(false)
+		_:
+			_pause_menu.open(_seed_code(), PauseMenu.Focus.NEW_SEED)
+
 
 ## A new run was requested on the bus. The game is unfrozen first (the pause menu may be what asked).
 func _on_run_requested(mode: int, seed_value: int, seeded: bool, room_path: String) -> void:
