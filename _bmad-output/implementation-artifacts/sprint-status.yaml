@@ -81,7 +81,7 @@ development_status:
   epic-3-retrospective: optional
 
   # Epic 4: Explorer un étage né d'une seed
-  epic-4: in-progress
+  epic-4: done
   4-1-tester-la-logique-du-jeu-sans-le-lancer: done
   4-2-jouer-une-salle-predessinee: done
   4-3-tomber-dans-les-trous: done
