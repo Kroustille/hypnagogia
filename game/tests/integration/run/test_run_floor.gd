@@ -89,3 +89,12 @@ func test_a_room_keeps_the_floor_index_of_its_stream() -> void:
 	room.setup(null, RunRng.new(1), 3)
 	assert_eq(room._floor_index, 3)
 	room.free()
+
+
+func test_logging_the_map_generates_the_floor_once() -> void:
+	var run: Run = _start(_options(RunOptions.Mode.ARENA, 31337, true))
+	assert_null(run.floor_layout)
+	run.log_floor_map() # what the F1 panel's G key calls
+	assert_not_null(run.floor_layout)
+	assert_eq(run.floor_layout.signature(), _expected_signature(31337))
+	assert_true(run.floor_layout.to_text().contains("N"), "the map shows the nightmare room")
