@@ -81,7 +81,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_next_pool_room()
 		KEY_G:
 			_log_floor_map()
-		KEY_A:
+		KEY_B:
 			_new_run(RunOptions.Mode.ARENA, "arena (milestone A)")
 		KEY_F:
 			_new_run(RunOptions.Mode.FLOOR, "floor")
@@ -309,7 +309,7 @@ func _refresh_text() -> void:
 		"- next wave (keypad -; ) on AZERTY)",
 		"R next room of the pool (new run)",
 		"G floor map of the seed (journal)",
-		"A new run in the arena (milestone A)",
+		"B new run in the arena (milestone A)",
 		"F new run on a floor (rooms joined by doors)",
 	])
 	if player != null:

@@ -36,6 +36,7 @@ func _ready() -> void:
 	Events.player_hit.connect(_on_events_player_hit)
 	Events.run_started.connect(_on_events_run_started)
 	Events.run_ended.connect(_on_events_run_ended)
+	Events.room_entered.connect(_on_events_room_entered)
 	Events.lucidity_tier_changed.connect(_on_events_lucidity_tier_changed)
 	Events.lucidity_spent.connect(_on_events_lucidity_spent)
 	Events.death_judged.connect(_on_events_death_judged)
@@ -88,6 +89,11 @@ func _on_events_player_hit(_damage: int, source: int) -> void:
 func _on_events_run_started() -> void:
 	_last_hit_source = -1
 	_session.run_started(_now())
+	_write()
+
+
+func _on_events_room_entered(room_id: StringName, cell_x: int, cell_y: int) -> void:
+	_session.room_entered(_now(), String(room_id), Vector2i(cell_x, cell_y))
 	_write()
 
 

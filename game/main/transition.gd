@@ -37,6 +37,13 @@ func play(on_black: Callable, on_done: Callable) -> void:
 	_set_alpha(0.0)
 
 
+## Drops the fade in progress without calling anyone: the run that asked for it is leaving.
+func cancel() -> void:
+	_on_black = Callable()
+	_on_done = Callable()
+	_abort()
+
+
 func is_playing() -> bool:
 	return _phase != Phase.IDLE
 
@@ -47,6 +54,7 @@ func is_black() -> bool:
 
 
 func _physics_process(_delta: float) -> void:
+	_veil.visible = _phase != Phase.IDLE and not GameClock.paused # no veil over the pause menu
 	if _phase == Phase.IDLE or GameClock.paused:
 		return
 	if not _callable_alive(_on_black if _phase == Phase.TO_BLACK else _on_done):

@@ -122,7 +122,11 @@ func _make_exit_zone() -> void:
 	var shape_node: CollisionShape2D = CollisionShape2D.new()
 	var shape: RectangleShape2D = RectangleShape2D.new()
 	var width_px: float = Tuning.ROOM.door_width_tiles * Const.TILE_SIZE
-	shape.size = Vector2(width_px, Const.TILE_SIZE) if side == Side.N or side == Side.S else Vector2(Const.TILE_SIZE, width_px)
+	# Deep towards the outside: the doorway is open to the void and a Glide (several tiles) must not jump over the zone.
+	var depth: float = (1.0 + Tuning.GLIDE.max_distance + 1.0) * Const.TILE_SIZE
+	var outward: Vector2 = Vector2(FloorLayout.SIDE_STEPS[side]) * (depth - Const.TILE_SIZE) / 2.0
+	shape.size = Vector2(width_px, depth) if side == Side.N or side == Side.S else Vector2(depth, width_px)
+	shape_node.position = outward
 	shape_node.shape = shape
 	_exit_zone.add_child(shape_node)
 	_exit_zone.body_entered.connect(_on_exit_zone_body_entered)

@@ -46,6 +46,11 @@ func run_started(at: float) -> void:
 	_add("run_start", at)
 
 
+## The player came into a room of the floor.
+func room_entered(at: float, room_id: String, cell: Vector2i) -> void:
+	_add("room_entered", at, {"room_id": room_id, "cell": [cell.x, cell.y]})
+
+
 ## The live lucidity tier changed: the time since the previous change goes to the previous tier.
 ## Ignored outside a run (a fresh player announces itself before run_started).
 func tier_changed(at: float, tier: int) -> void:

@@ -54,3 +54,14 @@ func test_a_still_stick_does_not_change_the_device() -> void:
 	motion.axis_value = 0.9
 	_tutorial._input(motion)
 	assert_eq(_tutorial.device(), ControlsTutorial.Device.GAMEPAD)
+
+
+func test_the_keyboard_help_follows_the_active_layout_with_a_us_fallback() -> void:
+	var key: InputEventKey = InputMap.action_get_events(&"move_up")[0] as InputEventKey
+	var headless: bool = DisplayServer.get_name() == "headless"
+	var label: Key = KEY_NONE if headless else DisplayServer.keyboard_get_label_from_physical(key.physical_keycode)
+	var expected: String = OS.get_keycode_string(label) if label != KEY_NONE else key.as_text_physical_keycode()
+	_tutorial.show_device(ControlsTutorial.Device.KEYBOARD)
+	assert_string_contains(_tutorial.line_text(0), expected)
+	if headless:
+		assert_string_contains(_tutorial.line_text(0), "W/A/S/D", "headless: the US names")

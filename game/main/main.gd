@@ -135,12 +135,14 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("debug_load_test"):
 		var wants_load_test: bool = not _load_test_active
 		if wants_load_test:
+			_clear_active_scene() # the run releases its pending background loads before a synchronous load()
 			var load_test: PackedScene = load(BULLET_LOAD_TEST_PATH) as PackedScene
 			# Flip the flag only after a successful load, so a failed load cannot desynchronize it.
 			if load_test != null and _show_scene(load_test):
 				_load_test_active = true
 			else:
 				Log.warn("ui", "scene not found at %s" % BULLET_LOAD_TEST_PATH)
+				_start_run() # the run was cleared above
 		else:
 			_start_run()
 		get_viewport().set_input_as_handled()

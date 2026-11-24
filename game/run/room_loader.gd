@@ -36,6 +36,7 @@ func scene_for(path: String) -> PackedScene:
 		_requested.erase(path)
 		scene = ResourceLoader.load_threaded_get(path) as PackedScene
 	else:
+		_collect_pending() # a synchronous load() while threaded requests run can deadlock
 		scene = load(path) as PackedScene
 	if scene == null:
 		Log.error("run", "room scene %s cannot be loaded" % path)
@@ -46,8 +47,14 @@ func scene_for(path: String) -> PackedScene:
 
 ## Collects every request still pending (the run ends before the player went everywhere).
 func drain() -> void:
+	_collect_pending()
+
+
+func _collect_pending() -> void:
 	for path: String in _requested.keys():
-		ResourceLoader.load_threaded_get(path)
+		var scene: PackedScene = ResourceLoader.load_threaded_get(path) as PackedScene
+		if scene != null:
+			_scenes[path] = scene
 	_requested.clear()
 
 

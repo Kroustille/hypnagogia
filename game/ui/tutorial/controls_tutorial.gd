@@ -112,12 +112,21 @@ func keys_text(actions: Array, device_used: Device) -> String:
 	return "/".join(parts) if device_used == Device.KEYBOARD and actions.size() > 1 else " ".join(parts)
 
 
+## The name of the key as the player's layout prints it (AZERTY: Z/Q/S/D); the US name when the layout is unknown (headless).
+func _key_label(key: InputEventKey) -> String:
+	if DisplayServer.get_name() != "headless": # the headless server has no layout and logs an error
+		var label: Key = DisplayServer.keyboard_get_label_from_physical(key.physical_keycode)
+		if label != KEY_NONE:
+			return OS.get_keycode_string(label)
+	return key.as_text_physical_keycode()
+
+
 func _event_text(action: StringName, device_used: Device) -> String:
 	for event: InputEvent in InputMap.action_get_events(action):
 		if device_used == Device.KEYBOARD:
 			var key: InputEventKey = event as InputEventKey
 			if key != null:
-				return key.as_text_physical_keycode()
+				return _key_label(key)
 			var click: InputEventMouseButton = event as InputEventMouseButton
 			if click != null:
 				return tr(&"UI_TUTORIAL_MOUSE_LEFT") if click.button_index == MOUSE_BUTTON_LEFT else tr(&"UI_TUTORIAL_MOUSE_RIGHT")

@@ -65,6 +65,10 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
+	if _traveling:
+		var transition: Transition = _find_transition()
+		if transition != null:
+			transition.cancel() # the swap it holds belongs to a run that is leaving
 	if _loader != null:
 		_loader.drain() # no background request left behind
 		_loader = null
@@ -96,6 +100,7 @@ func _start_floor() -> bool:
 	var layout: FloorLayout = ensure_floor()
 	if not layout.valid:
 		Log.error("run", "floor is invalid (%s): playing the arena" % layout.failure)
+		floor_layout = null
 		return false
 	var start_path: String = layout.cells[layout.start].info.path
 	var others: PackedStringArray = PackedStringArray()
@@ -122,9 +127,12 @@ func _enter_cell(cell: Vector2i, entry_side: int) -> bool:
 	var scene: PackedScene = _loader.scene_for(placement.info.path)
 	if scene == null:
 		return false
-	var room: Room = scene.instantiate() as Room
+	var node: Node = scene.instantiate()
+	var room: Room = node as Room
 	if room == null:
 		Log.error("run", "scene %s has no Room root" % placement.info.path)
+		if node != null:
+			node.free() # never entered the tree
 		return false
 	var options: RoomOptions = RoomOptions.new()
 	options.cell = cell
@@ -213,6 +221,9 @@ func _on_room_door_taken(side: int) -> void:
 ## Walks through the door of this side of the active room: fade to black, the old room is released, the neighbour
 ## replaces it, the player appears inside the opposite door, fade back. Called by the door signal, deferred.
 func travel(side: int) -> void:
+	if _ended:
+		_traveling = false # the player died on the very frame of the door
+		return
 	_traveling = true
 	var neighbor: Vector2i = _cell + FloorLayout.SIDE_STEPS[side]
 	if _room == null or floor_layout == null or not floor_layout.are_connected(_cell, neighbor):
@@ -220,12 +231,17 @@ func travel(side: int) -> void:
 		_traveling = false
 		return
 	_player.process_mode = Node.PROCESS_MODE_DISABLED # no move, no shot, no hit during the fade
-	var transition: Transition = get_tree().get_first_node_in_group(Const.GROUP_TRANSITION) as Transition
+	_room.process_mode = Node.PROCESS_MODE_DISABLED # the room left stops too: no bullet in flight reaches the frozen player
+	var transition: Transition = _find_transition()
 	if transition == null:
 		_swap_room(neighbor, (side + 2) % 4)
 		_end_travel()
 	else:
 		transition.play(_swap_room.bind(neighbor, (side + 2) % 4), _end_travel)
+
+
+func _find_transition() -> Transition:
+	return get_tree().get_first_node_in_group(Const.GROUP_TRANSITION) as Transition
 
 
 ## Under the black: the room left is released, the next one comes in.
@@ -254,6 +270,10 @@ func _end_travel() -> void:
 func _fall_back_to_arena(reason: String) -> void:
 	Log.error("run", "%s: playing the arena" % reason)
 	floor_layout = null
+	if _loader != null:
+		_loader.drain() # no pending request left for a later load()
+		_loader = null
+	_player.stop_motion() # a dash in flight must not carry on into the arena
 	_options = RunOptions.new() # the arena
 	_release_room()
 	_start_single_room()
