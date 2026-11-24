@@ -475,3 +475,8 @@
 - **Gains d'Éclats en télémétrie** (5.5, achats) : `run_end.shards` est le solde final (`game/telemetry/telemetry_session.gd:96`, `:182`) ; pour juger la cible du GDD (≈16 par étage Lucide, ≈32 en Abandon), l'enregistrement d'achat doit porter le prix (gains = solde + somme des prix), ou ajouter `shards_earned` (somme des hausses).
 - **Doc d'architecture** (fin d'epic 5, après validation de la décision 7 de 5.4) : `Drops.spawn(kind, position, rng)` y est écrit ; le code a `Drops.spawn(room, kind, position, consumable_roll)`.
 - **Test du vrai chemin « salle vidée → drop »** (5.4, faible) : `test_loot_flow.gd` émet `room_cleared` à la main et appelle `Drops.spawn` depuis le test ; aucun test ne tue le dernier ennemi pour vérifier le drop différé (sans « busy ») à `last_kill_position()`.
+
+## Deferred from: story 5-5 (2026-11-24)
+
+- **NON ÉVALUÉ (humain) : boutique** : lisibilité des étals, des prix et de la bannière de lecture, équilibre 15 / 5 / 4 / 5 face aux Éclats gagnés par étage ; décor définitif de la salle (epic 7).
+- **`Offer.price` pour les objets de F1 `I`** : `Room.add_offer(..., price > 0)` donne désormais un article payant (le défer 5.1 est soldé).

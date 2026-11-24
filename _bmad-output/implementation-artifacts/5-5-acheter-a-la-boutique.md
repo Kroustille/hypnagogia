@@ -1,6 +1,6 @@
 # Story 5.5 : Acheter à la boutique
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -26,13 +26,13 @@ Hors périmètre : variante « Être nu en public » (5.9), articles de l'acte 1
 
 ## Tâches
 
-- [ ] `EconomyTuning` : `item_price`, `consumable_price`, `heart_price`, `armor_price`, `heal_half_hearts` 2, `armor_half_hearts` 2 (le GDD parle de « 1 cœur » soigné et de « 1 cœur d'armure »).
-- [ ] `economy/shop_stock.gd` (fonction statique `ShopStock.draw(pool_items, consumables, owned, health, rng, tuning) -> Array[Offer]`, pure et testable) ; un seul flux, ordre fixe : objet 1, objet 2, consommable.
-- [ ] `Run._enter_cell` : première entrée en boutique, remplit le `RoomStock` ; `Room` pose les offres sur les spots du bon `slot`.
-- [ ] `Pickup` : mode payant (`price`), `try_purchase(player)` appelé en différé, étiquette de prix, armement/refus.
-- [ ] `RoomBuilder` / `RoomValidator` / `art_source/rooms/onset_shop_001.txt` / scène regénérée.
-- [ ] `strings.csv` (`UI_SHOP_PRICE`), télémétrie : achats (id, prix).
-- [ ] Tests.
+- [x] `EconomyTuning` : `item_price`, `consumable_price`, `heart_price`, `armor_price`, `heal_half_hearts` 2, `armor_half_hearts` 2 (le GDD parle de « 1 cœur » soigné et de « 1 cœur d'armure »).
+- [x] `economy/shop_stock.gd` (fonction statique `ShopStock.draw(pool_items, consumables, owned, health, rng, tuning) -> Array[Offer]`, pure et testable) ; un seul flux, ordre fixe : objet 1, objet 2, consommable.
+- [x] `Run._enter_cell` : première entrée en boutique, remplit le `RoomStock` ; `Room` pose les offres sur les spots du bon `slot`.
+- [x] `Pickup` : mode payant (`price`), `try_purchase(player)` appelé en différé, étiquette de prix, armement/refus.
+- [x] `RoomBuilder` / `RoomValidator` / `art_source/rooms/onset_shop_001.txt` / scène regénérée.
+- [x] `strings.csv` (`UI_SHOP_PRICE`), télémétrie : achats (id, prix).
+- [x] Tests.
 
 ## État du code concerné
 
@@ -66,3 +66,15 @@ epics.md (Story 5.5) ; GDD « Économie » (boutique : 2 objets à 15, 1 consomm
 3. **Pas de revente ni de réapprovisionnement** : l'étal est tiré une fois par boutique.
 4. **Exclusion des objets déjà proposés au trésor non pris : non faite** ; seul le doublon avec le `Loadout` est exclu (comme 5.2).
 5. **Consommable porté** : l'achat reste permis, l'ancien est déposé (cohérent avec 5.3).
+6. **(Dev)** Achat dans `Pickup.try_purchase()`, appelé depuis le tick physique (jamais depuis `body_entered`) ; un refus désarme l'article (`_armed = false`) jusqu'à ce que le joueur sorte de la zone, ce qui donne un seul son de refus par passage. Le `Run` est retrouvé par le groupe `run` (dépenser passe par `Run.spend_shards`, qui tient le bus à jour).
+7. **(Dev)** `ShopStock.draw` prend `max_half_hearts` (int) au lieu de `health`, et renvoie des `Offer` sans position : `Run._stock_shop` les pose sur le premier `PickupSpot` libre de leur slot. Un article sans candidat (pool vide après exclusions) est simplement absent, les 3 tirages restent faits.
+8. **(Dev)** Bannière de lecture : `Events.banner_requested` est émis une fois par approche à moins de 2 tuiles, pour les objets et les consommables seulement. Le prix est un `Label` enfant du pickup (`UI_SHOP_PRICE`, « %d Éclats »).
+9. **(Dev)** Télémétrie : nouveau signal `Events.shop_purchased(id, price)` et évènement `purchase` (id, prix) ; répond au report de la revue 5.4 (gains d'Éclats = solde final + somme des prix d'achat).
+10. **(Dev)** Disposition provisoire de `onset_shop_001` : 5 étals hors des axes porte à porte (rangées y = 5 et y = 14), pour qu'on ne marche pas dessus en traversant.
+
+### Dev Agent Record
+
+- Fichiers : `core/economy_tuning.gd`, `data/tuning/economy_tuning.tres`, `economy/shop_stock.gd`, `economy/room_stock.gd`, `items/pickup.gd`, `run/run.gd`, `autoloads/events.gd`, `telemetry/*`, `rooms/validator/room_validator.gd`, `art_source/rooms/onset_shop_001.txt` + scène, `localization/strings.csv`, tests GUT (`test_shop_stock`, `test_shop_purchase`, `test_purchase_record`, `test_room_validator_pickups`).
+- Vérifié : `tools/run_tests.sh` vert (504 tests), `run_all.sh` normal ALL PASS (`economy/shop_stock.gd` ajouté à l'exclusion `randi` du scan scratch), `validate_rooms.sh` 34 salles valides.
+- NON ÉVALUÉ (humain) : lisibilité des étals et de leurs prix, rythme des prix (15 / 5 / 4 / 5) face aux gains d'Éclats, placement final de la salle (epic 7).
+- Les 3 correctifs de revue 5.4 ont été appliqués à part (commit `9d920a8`).
