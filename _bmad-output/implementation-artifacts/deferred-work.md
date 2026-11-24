@@ -319,3 +319,16 @@
 - **NON ÉVALUÉ (humain) : les trois salles du pool** : `onset_combat_001` à `003` sont posées par un agent depuis un texte ASCII ; lisibilité, plaisir, équilibre des vagues à juger au playtest (jalon B).
 - **Dépôt non importable au commit `4dee128`** : `door.gd` y précède `RoomTuning` (commit `0049fd0`) ; sans conséquence au-delà (historique déjà poussé).
 - **Une salle ne peut pas surcharger `first_wave_delay` / `wave_pause`** : valeurs globales de `RoomTuning`, suffisant pour le pool de départ.
+
+## Deferred from: code review of 4-2-jouer-une-salle-predessinee (2026-11-24)
+
+- **Cases inatteignables** (story 4.3, en cours) : le validateur de la 4.2 ne cherche pas les poches fermées par `#`/`H`/`P` (ennemi hors d'atteinte, salle bloquée). Le `_check_reachability` de la 4.3 doit partir de toutes les portes et atteindre aussi les `ReinforcementSpawn` et la case du joueur.
+- **Porte ouverte = trou vers le vide ; porte qui se ferme sur un corps** (story 4.8) : sans franchissement, le joueur sort du cadre par une porte ouverte (salle vidée, salle sans ennemi) hors de la caméra fixe ; `Door.close()` ne vérifie pas qu'un joueur, un ennemi ou un ramassable est dans l'embrasure (aujourd'hui fermée seulement au `_ready`, avant le placement du joueur).
+- **Salle bloquée si aucune vague n'est valide** (story 4.8) : avec des `EnemySpawn` tous sans ennemi (ou sans scène), les portes se ferment et le `WaveRunner` reste inerte : elles ne s'ouvrent jamais. Le validateur l'attrape ; correction : `end_room()` si le runner n'a aucune vague.
+- **Outil ASCII** (story 4.10, contenu du pool ; `phase` en 4.7) : identifiants `ext_resource` et `unique_id` aléatoires à chaque reconstruction (diffs bruyants, contenu identique) ; `phase` jamais lue (toujours `onset`) et dossier `pool/<phase>/` non créé ; sortie écrite même quand un script de la salle ne compile pas (écrire dans un fichier temporaire puis déplacer, et passer le `RoomValidator` sur la salle construite) ; toute ligne contenant `:` est lue comme en-tête ; `wave` hors de 0..20 accepté.
+- **`room_path` invalide** (story 4.11, menus) : une scène dont la racine n'est pas une `Room` fuit (`instantiate() as Room` sans `free()`), et `Main` garde les options fautives, rejouées à chaque redémarrage ; aucune touche F1 ne ramène à l'arène.
+- **Validateur en coordonnées locales** (story 4.6) : `spawn.position` au lieu de `to_local(global_position)` comme `Room._make_wave_list()` ; faux si un conteneur de marqueurs est déplacé dans l'éditeur.
+- **Trous de tests** : aucune salle ne met un marqueur de vague 1 avant un marqueur de vague 0 (tri par `wave` non prouvé) ; pas de fixture « salle COMBAT sans `EnemySpawn` » ; lignes `furniture`/`trigger` jamais exercées (4.4) ; code de sortie de `validate_rooms.sh` vérifié à la main seulement ; `test_run_requested.gd` laisse 113 orphelins.
+- **Renfort annulé audible** : une vague sans apparition annonce le renfort (son, signe une image) avant de l'annuler. Mineur.
+- **`is_nightmare` et `RoomType.NIGHTMARE` en double** (story 4.7) : une salle COMBAT retouchée avec `is_nightmare = true` échappe au contrôle du renfort.
+- **Audio en temps réel sous `--fixed-fps 60`** : le pool d'`Audio` libère ses voix sur `finished` (temps réel) ; un futur test qui compte les sons joués serait instable.

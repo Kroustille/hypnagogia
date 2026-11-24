@@ -1,6 +1,6 @@
 # Story 4.2 : Jouer une salle prédessinée
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -39,6 +39,19 @@ Hors périmètre : trous (4.3), meubles et déclencheurs (4.4), pathfinding (4.5
 - [x] `RoomValidator` (pur), `validate_rooms.gd/.tscn`, `tools/validate_rooms.sh`, `tools/build_room.sh`, builder, les trois salles.
 - [x] `tests/support/room_harness.gd` : instancie une `Run` en mode ROOM, `await ticks(n)` (priorité physique 200, comme `th.gd`), accès à la salle, au joueur, aux ennemis. `tests/integration/rooms/test_room_waves.gd`, `test_room_doors.gd`, `test_room_obstacles.gd`, `tests/unit/rooms/test_room_validator.gd`.
 - [x] `run_all.sh` du `.scratch` une fois à la fin ; `--quit-after 120` propre.
+
+### Review Findings
+
+Revue de code 2026-11-24 (Opus, trois couches : Blind Hunter, Edge Case Hunter, Acceptance Auditor), sur `21b7a96..acf0b83` hors fichiers de la 4.1 (`c65d11a`). Lignes = HEAD `acf0b83`. 8 correctifs, 11 reports, 3 décisions, 9 rejets. Rien de perdu d'`Arena` (vagues, obstacles, danger, renfort, poussée de l'Éveil, tremblement, `LucidityFx`) ; aucun test GUT ne dépend du temps réel ni de l'audio avec `--fixed-fps 60` ; les `.tscn` du pool se reconstruisent à l'identique depuis `art_source/` (aux identifiants près, voir reports).
+
+- [ ] [Review][Patch] **F1 `-` sur la dernière vague d'une salle peinte rejoue la vague 0** [`game/rooms/waves/wave_runner.gd:72-76`] : `_waves[_next_index % size]` avec `_next_index == size`. Dans `force_next_wave()`, après `_room.kill_all_enemies()` : `if not _list.loop and _next_index >= _waves.size(): _finish(); return`, puis `_start_next_wave()`.
+- [ ] [Review][Patch] **Une apparition déplacée peut tomber dans un mur intérieur ou sur un trou** [`game/rooms/room.gd:709-717`] : `_overlaps_obstacle()` ne lit que `HighObstacles`/`LowObstacles` ; l'outil ASCII permet `#` et `P` dans la zone jouable. Ajouter `_walls.get_cell_source_id(cell) != -1` et la couche `%Pits` (mise en cache au `_ready`, nulle dans l'arène) au test. À faire sur le `room.gd` de la 4.3 (modifié en parallèle).
+- [ ] [Review][Patch] **Une vague sans apparition consomme le seul renfort de la salle** [`game/rooms/room.gd:316-319`] : `cancel_pending_reinforcements()` vide la file mais laisse `_reinforcement_used = true` ; `begin_wave()` ne réarme pas, donc plus de renfort pour les vagues suivantes. `var dropped: bool = not _pending.is_empty()` avant `_clear_pending()`, puis `if dropped: _reinforcement_used = false`.
+- [ ] [Review][Patch] **Emplacements décalés quand un marqueur est écarté** [`game/rooms/room.gd:498-503`, `game/rooms/waves/wave_runner.gd:154-163`] : `_make_wave_list()` ajoute un emplacement par marqueur, `WaveRunner._validate()` écarte les entrées sans `enemy`/`scene` et tronque au-delà de `MAX_WAVE_ENEMIES` sans avancer `_slot_cursor` : les ennemis suivants paraissent sur le marqueur d'un autre. Dans `_make_wave_list()`, sauter (`continue`) les marqueurs dont `enemy == null or enemy.scene == null` (ni entrée ni emplacement) ; dans `RoomValidator._check_enemies`, signaler une vague de plus de `WaveRunner.MAX_WAVE_ENEMIES` marqueurs.
+- [ ] [Review][Patch] **Trous de sol et cadre incomplet non détectés** [`game/rooms/validator/room_validator.gd:51-59`, `game/rooms/validator/room_builder.gd` `_paint`] : seul le rectangle englobant du `Floor` est comparé ; une ligne ASCII trop courte laisse une case sans sol ni mur, une tuile de cadre retirée dans Godot ouvre une brèche. Validateur : exiger `floor_layer.get_used_cells().size() == playable.x * playable.y` et une tuile `Walls` sur chaque case du bord du cadre (les portes y sont des murs dans le `.tscn`, décision 10). Outil : erreur si une ligne de grille ≠ `playable.x` caractères ou si le nombre de lignes ≠ `playable.y`.
+- [ ] [Review][Patch] **`ReinforcementSpawn`, côtés de porte en double et case du joueur non contrôlés** [`game/rooms/validator/room_validator.gd:96-106`] : les marqueurs de renfort sont seulement comptés (un `reinforce 36 2` hors grille passe). Leur appliquer le contrôle « dans la zone jouable, ni mur, ni obstacle, ni trou » d'`EnemySpawn` (factoriser la boucle des `blockers`) ; signaler deux `Door` du même côté (une scellée et une ouverte partagent les cellules) ; signaler une case de `room.player_spawn_position()` occupée par un mur, un obstacle ou un trou (le joueur paraît au centre jusqu'à la 4.8).
+- [ ] [Review][Patch] **Les outils de salle écrivent la télémétrie de l'utilisateur** [`tools/build_room.sh`, `tools/validate_rooms.sh`] : ils lancent une scène avec les autoloads sans isoler `XDG_DATA_HOME` (chaque appel crée un `user://telemetry/*.json` réel). Exporter un `XDG_DATA_HOME` temporaire (`mktemp -d`, nettoyé par `trap`) comme `tools/run_tests.sh` ; citer `"$OUTPUT"` dans `build_room.sh:16`.
+- [ ] [Review][Patch] **`var name` masque `Node.name`** [`game/rooms/validator/room_builder.gd:58`] : `RoomBuilder extends Node` (avertissement `SHADOWED_VARIABLE_BASE_CLASS`). Renommer en `room_name`.
 
 ## État du code concerné
 
@@ -90,6 +103,10 @@ Vagues par marqueurs dans l'ordre ; une seule `room_cleared` ; portes fermées �
 16. **`tools/run_tests.sh` passe `--fixed-fps 60`** (fichier de la 4.1) : les tests d'intégration attendent des secondes de jeu (1 s avant la première vague, 2 s entre les vagues) ; le temps virtuel les fait tourner en 3 s au lieu de 25 s. Les ticks restent des ticks.
 17. **Le harnais n'utilise pas `add_child_autofree`** : GUT libérait le harnais depuis sa propre émission de `ticked` (« locked object »). `release()` en `after_each`.
 
+18. **Revue : distance porte–apparition mesurée au centre de la porte** (et non à sa cellule la plus proche) : règle documentée et testée, le pool est à 4 tuiles ou plus ; la 4.8 la revisitera avec la distance d'entrée du joueur.
+19. **Revue : ordre de fin de salle gardé** (`end_room()` ouvre les portes, puis `room_cleared`) au lieu de l'ordre littéral du CA 6 : un écouteur voit une salle déjà gagnée (`is_cleared()` vrai, portes ouvertes), ce qu'attendront la récompense (epic 5) et le changement de salle (4.8).
+20. **Revue : salles du pool aplaties** (copie complète de `room_base.tscn`, pas de scène héritée) : un nœud ajouté à la base plus tard se propage en reconstruisant les salles depuis `art_source/rooms/*.txt` (le texte reste la source des agents, une retouche à la main dans Godot doit être reportée dans le texte). Identifiants instables reportés (`deferred-work.md`).
+
 ## Dev Agent Record
 
 ### Agent Model Used
@@ -115,4 +132,5 @@ Claude Sonnet 5.5
 
 ### Change Log
 
+- 2026-11-24 : revue de code : 8 correctifs à faire, 11 reports, 3 décisions ; story repassée `in-progress`.
 - 2026-11-24 : `Room` extraite d'`Arena`, salles prédessinées (marqueurs, portes, vagues, validateur, outil ASCII, trois salles), `RunOptions` et F1 `R`.
