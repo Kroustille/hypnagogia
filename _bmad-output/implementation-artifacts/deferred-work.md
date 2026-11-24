@@ -472,7 +472,7 @@
 ## Deferred from: code review of 5-4-gagner-des-eclats-et-des-drops-selon-son-palier (2026-11-24)
 
 - **Flux `drops` et `extra_drops`** (5.9, Copie d'examen) : `Loot.roll` ajoute un tirage de type par drop garanti, plus un tirage de consommable si c'est le type (`game/economy/loot.gd:28-29`, `:41-42`) ; tenir la Copie d'examen décalerait le flux de toutes les salles suivantes (contraire à AC3 « ni l'inventaire »). Tirer toujours `consumable_roll` (pas fixe de 4 tirages) et donner aux drops garantis un nombre fixe d'emplacements ou un sous-flux.
-- **Gains d'Éclats en télémétrie** (5.5, achats) : `run_end.shards` est le solde final (`game/telemetry/telemetry_session.gd:96`, `:182`) ; pour juger la cible du GDD (≈16 par étage Lucide, ≈32 en Abandon), l'enregistrement d'achat doit porter le prix (gains = solde + somme des prix), ou ajouter `shards_earned` (somme des hausses).
+- **[Fait en 5.5] Gains d'Éclats en télémétrie** (5.5, achats) : `run_end.shards` est le solde final (`game/telemetry/telemetry_session.gd:96`, `:182`) ; pour juger la cible du GDD (≈16 par étage Lucide, ≈32 en Abandon), l'enregistrement d'achat doit porter le prix (gains = solde + somme des prix), ou ajouter `shards_earned` (somme des hausses).
 - **Doc d'architecture** (fin d'epic 5, après validation de la décision 7 de 5.4) : `Drops.spawn(kind, position, rng)` y est écrit ; le code a `Drops.spawn(room, kind, position, consumable_roll)`.
 - **Test du vrai chemin « salle vidée → drop »** (5.4, faible) : `test_loot_flow.gd` émet `room_cleared` à la main et appelle `Drops.spawn` depuis le test ; aucun test ne tue le dernier ennemi pour vérifier le drop différé (sans « busy ») à `last_kill_position()`.
 
@@ -480,3 +480,9 @@
 
 - **NON ÉVALUÉ (humain) : boutique** : lisibilité des étals, des prix et de la bannière de lecture, équilibre 15 / 5 / 4 / 5 face aux Éclats gagnés par étage ; décor définitif de la salle (epic 7).
 - **`Offer.price` pour les objets de F1 `I`** : `Room.add_offer(..., price > 0)` donne désormais un article payant (le défer 5.1 est soldé).
+
+## Deferred from: code review of 5-5-acheter-a-la-boutique (2026-11-24)
+
+- **Stocks des salles à la reprise** (story de sauvegarde/reprise, jalon B) : epics.md (Story 5.5) veut les étals persistés « à la reprise » ; `run.json` (game-architecture.md, table des sauvegardes) ne liste pas les `RoomStock` (offres, prises, prix, armement). Ajouter la ligne à l'architecture et sérialiser `Run.stocks`.
+- **Bannière de lecture sans hystérésis** (epic 7, lisibilité de la boutique) : `game/items/pickup.gd:169-175`, `_read = near` sur un seul seuil ; longer le cercle de 2 tuiles réémet `banner_requested`. Réarmer seulement au-delà de `READ_DISTANCE_PX + TILE_SIZE / 2`.
+- **Doc d'architecture** (fin d'epic 5) : ligne `economy/` (`shop.tscn/.gd`, `treasure.tscn/.gd` n'existent pas ; le code a `shop_stock.gd`, `item_picker.gd`, `room_stock.gd`) ; lexique : « Boutique ; étal ; achat ; prix | shop ; stall ; purchase ; price ».

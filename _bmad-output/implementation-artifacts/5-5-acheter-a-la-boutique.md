@@ -1,6 +1,6 @@
 # Story 5.5 : Acheter à la boutique
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -71,6 +71,10 @@ epics.md (Story 5.5) ; GDD « Économie » (boutique : 2 objets à 15, 1 consomm
 8. **(Dev)** Bannière de lecture : `Events.banner_requested` est émis une fois par approche à moins de 2 tuiles, pour les objets et les consommables seulement. Le prix est un `Label` enfant du pickup (`UI_SHOP_PRICE`, « %d Éclats »).
 9. **(Dev)** Télémétrie : nouveau signal `Events.shop_purchased(id, price)` et évènement `purchase` (id, prix) ; répond au report de la revue 5.4 (gains d'Éclats = solde final + somme des prix d'achat).
 10. **(Dev)** Disposition provisoire de `onset_shop_001` : 5 étals hors des axes porte à porte (rangées y = 5 et y = 14), pour qu'on ne marche pas dessus en traversant.
+11. **(Revue)** Consommable identique à celui porté : l'étal est grisé et refuse (son), car `can_take_consumable` refuse le même id depuis la 5.4 ; payer pour un échange à l'identique ne donnerait rien. Le tirage n'exclut pas le consommable porté (il reste à 1 tirage fixe ; avec 2 consommables, l'étal serait sinon toujours « l'autre »). Le joueur peut utiliser le sien puis acheter.
+12. **(Revue)** Soin ou armure partiels au prix plein : le cœur à PV max − 1 demi-cœur soigne 1 et coûte 4 (comme Isaac) ; refus seulement quand rien n'est gagné (AC4).
+13. **(Revue)** Objet de l'étal pris ailleurs entre-temps (trésor) : l'étal reste, grisé et refusant ; conforme à la décision 4, pas de retrait.
+14. **(Revue)** Nombre d'étals d'objets (2) écrit dans `ShopStock.draw` et `RoomValidator.SHOP_SLOTS` : structure de la salle, pas un réglage d'équilibre ; laissé hors d'`EconomyTuning`.
 
 ### Dev Agent Record
 
@@ -78,3 +82,13 @@ epics.md (Story 5.5) ; GDD « Économie » (boutique : 2 objets à 15, 1 consomm
 - Vérifié : `tools/run_tests.sh` vert (504 tests), `run_all.sh` normal ALL PASS (`economy/shop_stock.gd` ajouté à l'exclusion `randi` du scan scratch), `validate_rooms.sh` 34 salles valides.
 - NON ÉVALUÉ (humain) : lisibilité des étals et de leurs prix, rythme des prix (15 / 5 / 4 / 5) face aux gains d'Éclats, placement final de la salle (epic 7).
 - Les 3 correctifs de revue 5.4 ont été appliqués à part (commit `9d920a8`).
+
+### Review Findings
+
+Revue de code (2026-11-24, Opus, trois couches : Blind Hunter, Edge Case Hunter, Acceptance Auditor ; plage `8568035..b07113b` + `9d920a8`). AC 1 à 7 tenus ; tests GUT `test_shop*` verts (15 tests, 109 assertions). 1 correctif, 4 décisions (11 à 14), 3 reports, le reste écarté.
+
+- [ ] [Review][Patch] Un étal peut être posé sous le point d'entrée d'une porte : achat (ou son de refus) à l'arrivée [`game/rooms/validator/room_validator.gd:362-366`] — `_check_pickups` exige seulement 3,0 tuiles du centre de porte, or `Room.entry_position()` place le joueur à `player_entry_distance` = 3,0 tuiles ; un spot à 3,04 tuiles (centre de tuile à 8 px de l'axe d'une porte de 2 tuiles) passe et chevauche le joueur qui entre, l'étal étant armé par défaut. Correctif : `const MIN_PICKUP_DOOR_DISTANCE_TILES: float = 4.0` (entrée 3 + 1 tuile, au-delà du rayon 8 px + corps du joueur) utilisée pour les `PickupSpot` à la place de `MIN_SPAWN_DOOR_DISTANCE_TILES` ; ajouter à `tests/unit/rooms/test_room_validator_pickups.gd` une boutique avec un spot à 3 tuiles d'une porte, refusée. `onset_shop_001` (≥ 7,5 tuiles) et `onset_treasure_001` (≈ 9 tuiles) restent valides.
+- [x] [Review][Defer] Persistance « à la reprise » (epics.md, Story 5.5) — `run.json` (game-architecture.md, table des sauvegardes) ne liste pas les stocks des salles. → reporté à la story de sauvegarde/reprise (jalon B).
+- [x] [Review][Defer] Bannière de lecture sans hystérésis [`game/items/pickup.gd:169-175`] — longer le cercle des 2 tuiles la réémet. → epic 7 (lisibilité de la boutique, NON ÉVALUÉ).
+- [x] [Review][Defer] Doc d'architecture : ligne `economy/` (shop.gd/treasure.gd n'existent pas ; `shop_stock.gd`, `item_picker.gd`, `room_stock.gd`) et lexique (boutique, étal, achat, prix). → passe de doc de fin d'epic 5.
+- Écartés : `_must_leave` bloqué après une pause (le joueur ré-entre à la reprise, la sortie suivante le remet) ; position `spot.position` relative à `PickupSpots` (même convention que le trésor 5.2, nœud à l'origine) ; plantage si la clé `UI_SHOP_PRICE` manque (traductions importées) ; recherche du `Run` par groupe à chaque tick (négligeable, décision 6) ; pas de son à l'achat (hors AC, comme le ramassage) ; doublons dans le pool (aucun) ; remboursement compté en gains (chemin impossible) ; 9d920a8 conforme.
