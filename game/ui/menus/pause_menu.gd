@@ -34,8 +34,9 @@ func _ready() -> void:
 
 
 ## Shows the menu with the seed of the run in progress, focus on Resume (or on Settings when coming back from the
-## settings menu, or on the seed button when the seed window closes).
-func open(seed_code: String, focus: Focus = Focus.RESUME) -> void:
+## settings menu, or on the seed button when the seed window closes). in_run: a floor run is saved, so Quit says so.
+func open(seed_code: String, focus: Focus = Focus.RESUME, in_run: bool = false) -> void:
+	_quit_button.text = tr(&"UI_PAUSE_SAVE_QUIT" if in_run else &"UI_PAUSE_QUIT") # in a floor run the night stays saved
 	_seed_label.text = tr(&"UI_PAUSE_SEED") % seed_code
 	_seed_label.visible = not seed_code.is_empty() # no run behind it (the bedroom)
 	show()

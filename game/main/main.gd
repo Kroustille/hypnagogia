@@ -15,6 +15,7 @@ const WAKE_SCREEN_SCENE: PackedScene = preload("res://ui/menus/wake_screen.tscn"
 const PAUSE_MENU_SCENE: PackedScene = preload("res://ui/menus/pause_menu.tscn")
 const SETTINGS_MENU_SCENE: PackedScene = preload("res://ui/menus/settings_menu.tscn")
 const SEED_ENTRY_SCENE: PackedScene = preload("res://ui/menus/seed_entry.tscn")
+const RESUME_PROMPT_SCENE: PackedScene = preload("res://ui/menus/resume_prompt.tscn")
 const HUD_SCENE: PackedScene = preload("res://ui/hud/hud.tscn")
 const MAP_VIEW_SCENE: PackedScene = preload("res://ui/map/floor_map_view.tscn")
 const BEDROOM_SCENE: PackedScene = preload("res://bedroom/bedroom.tscn")
@@ -43,6 +44,9 @@ var _wake_screen: WakeScreen
 var _pause_menu: PauseMenu
 var _settings_menu: SettingsMenu
 var _seed_entry: SeedEntry
+var _resume_prompt: ResumePrompt
+## The saved night the prompt offers, until the player answers.
+var _saved_night: RunSnapshot
 var _seed_origin: SeedOrigin = SeedOrigin.PAUSE
 var _hud: Hud
 var _map_view: FloorMapView
@@ -87,10 +91,7 @@ func _ready() -> void:
 	Events.run_ended.connect(_on_events_run_ended)
 	Events.run_requested.connect(_on_run_requested)
 	Events.run_started.connect(_on_events_run_started)
-	if start_in_bedroom:
-		_enter_bedroom()
-	else:
-		_start_run()
+	_boot()
 	_check_window_scale()
 
 
@@ -117,9 +118,11 @@ func _setup_menus() -> void:
 	_pause_menu = PAUSE_MENU_SCENE.instantiate() as PauseMenu
 	_settings_menu = SETTINGS_MENU_SCENE.instantiate() as SettingsMenu
 	_seed_entry = SEED_ENTRY_SCENE.instantiate() as SeedEntry
+	_resume_prompt = RESUME_PROMPT_SCENE.instantiate() as ResumePrompt
 	_ui.add_child(_wake_screen)
 	_ui.add_child(_pause_menu)
 	_ui.add_child(_settings_menu)
+	_ui.add_child(_resume_prompt)
 	_ui.add_child(_seed_entry) # last: it takes the input before the menus below it
 	_wake_screen.restart_requested.connect(_on_wake_screen_restart_requested)
 	_wake_screen.verdict_given.connect(_on_wake_screen_verdict_given)
@@ -132,6 +135,8 @@ func _setup_menus() -> void:
 	_settings_menu.back_requested.connect(_on_settings_menu_back_requested)
 	_seed_entry.seed_submitted.connect(_on_seed_entry_seed_submitted)
 	_seed_entry.cancelled.connect(_on_seed_entry_cancelled)
+	_resume_prompt.resume_chosen.connect(_on_resume_prompt_resume_chosen)
+	_resume_prompt.new_night_chosen.connect(_on_resume_prompt_new_night_chosen)
 
 
 func _notification(what: int) -> void:
@@ -150,11 +155,11 @@ func _freeze(frozen: bool) -> void:
 
 ## Pause and resume. Ignored behind the wake screen: no pause menu over it (it would reopen the dead game).
 func _set_paused(value: bool, reason: String = "") -> void:
-	if _run_over or value == GameClock.paused:
+	if _run_over or _resume_prompt.visible or value == GameClock.paused:
 		return
 	_freeze(value)
 	if value:
-		_pause_menu.open(_seed_code())
+		_pause_menu.open(_seed_code(), PauseMenu.Focus.RESUME, _in_saved_run())
 	else:
 		_close_menus()
 	var suffix: String = " (%s)" % reason if not reason.is_empty() else ""
@@ -200,7 +205,9 @@ func _start_run(options: RunOptions = null) -> void:
 		_run_options = options
 	else:
 		_run_options = _fresh_seed_options(_run_options) # a restart is a new night, not a replay of the typed seed
-	_run_options.unlocks.assign(_unlocks_for(_run_options))
+	if _run_options.resume == null:
+		_run_options.unlocks.assign(_unlocks_for(_run_options)) # a resumed night keeps the unlocks it started with
+		SaveService.delete_run() # a night given up: a new one never leaves the old save behind
 	_wake_screen.hide()
 	_close_menus()
 	_run_over = false
@@ -280,6 +287,7 @@ func _close_menus() -> void:
 	_settings_menu.hide()
 	_pause_menu.hide()
 	_seed_entry.hide()
+	_resume_prompt.hide()
 	get_viewport().gui_release_focus()
 
 
@@ -366,14 +374,14 @@ func _on_pause_menu_settings_requested() -> void:
 
 ## No title screen at milestone A: Quit closes the game (settings are already saved).
 func _on_pause_menu_quit_requested() -> void:
-	Log.info("ui", "quit requested from the pause menu")
+	Log.info("ui", "quit requested from the pause menu (saved night: %s)" % SaveService.has_run()) # run.json already holds the last room entered: nothing is written
 	_release_for_quit()
 	get_tree().quit()
 
 
 func _on_settings_menu_back_requested() -> void:
 	_settings_menu.hide()
-	_pause_menu.open(_seed_code(), PauseMenu.Focus.SETTINGS)
+	_pause_menu.open(_seed_code(), PauseMenu.Focus.SETTINGS, _in_saved_run())
 
 
 ## The player wants to type a seed, from the pause menu or from the wake screen.
@@ -404,7 +412,7 @@ func _on_seed_entry_cancelled() -> void:
 			get_viewport().gui_release_focus() # a focused control would eat the interact key
 			_freeze(false)
 		_:
-			_pause_menu.open(_seed_code(), PauseMenu.Focus.NEW_SEED)
+			_pause_menu.open(_seed_code(), PauseMenu.Focus.NEW_SEED, _in_saved_run())
 
 
 ## A new run was requested on the bus. The game is unfrozen first (the pause menu may be what asked).
@@ -434,3 +442,68 @@ func _check_window_scale() -> void:
 ## Relays the answer on the bus: the telemetry listens to Events only.
 func _on_wake_screen_verdict_given(just: bool) -> void:
 	Events.death_judged.emit(just)
+
+
+## Starts the game: a saved night is offered first (story 6.8), over the bedroom where a new night would start. The checks
+## that skip the bedroom start a run at once, and a run that is not resumed erases the save.
+func _boot() -> void:
+	_saved_night = _read_saved_night() if start_in_bedroom else null
+	if start_in_bedroom:
+		_enter_bedroom()
+	else:
+		_start_run()
+	if _saved_night != null:
+		_freeze(true)
+		_resume_prompt.open()
+
+
+## The night saved in run.json when it can be played again, null otherwise. A file that is not readable, or that points
+## outside the floor its seed makes (the pool changed between two versions), is set aside as run.json.corrupt with a notice.
+func _read_saved_night() -> RunSnapshot:
+	if not SaveService.has_run():
+		return null
+	var snapshot: RunSnapshot = SaveService.read_run()
+	if snapshot == null:
+		if SaveService.last_read_status == SaveService.Status.CORRUPT:
+			_notice.show_key(&"UI_RESUME_CORRUPT")
+		return null
+	var problem: String = snapshot.validate()
+	if problem.is_empty():
+		var plan: FloorLayout = Run.plan_for(Run.FLOOR_DEF_PATH, snapshot.unlocks, RunRng.new(snapshot.state.run_seed), snapshot.state.floor_index)
+		problem = snapshot.validate(plan)
+	if not problem.is_empty():
+		Log.warn("save", "saved night refused: %s" % problem)
+		SaveService.quarantine(SaveService.path_of(RunSnapshot.FILE_NAME))
+		_notice.show_key(&"UI_RESUME_CORRUPT")
+		return null
+	return snapshot
+
+
+## "Resume": the night continues from the start of the room it was in. The file is erased now: the entry of the room writes it again.
+func _on_resume_prompt_resume_chosen() -> void:
+	var snapshot: RunSnapshot = _saved_night
+	_saved_night = null
+	SaveService.delete_run()
+	var options: RunOptions = RunOptions.new()
+	options.mode = RunOptions.Mode.FLOOR
+	options.seeded = snapshot.state.seeded
+	options.seed_value = snapshot.state.run_seed
+	options.unlocks.assign(snapshot.unlocks)
+	options.resume = snapshot
+	Log.info("run", "resuming the saved night")
+	_start_run(options)
+
+
+## "New night": the saved one is given up, the bedroom is where it goes on.
+func _on_resume_prompt_new_night_chosen() -> void:
+	_saved_night = null
+	SaveService.delete_run()
+	_resume_prompt.hide()
+	get_viewport().gui_release_focus()
+	_freeze(false)
+
+
+## True while a floor run is on: pausing offers "save and quit" then.
+func _in_saved_run() -> bool:
+	var run: Run = get_tree().get_first_node_in_group(Const.GROUP_RUN) as Run
+	return run != null and run.is_resumable()

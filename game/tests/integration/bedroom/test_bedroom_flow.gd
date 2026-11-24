@@ -10,6 +10,7 @@ var _main: Main
 
 
 func before_each() -> void:
+	SaveService.delete_run() # a night saved by an earlier test would open the resume prompt
 	Main.start_in_bedroom = true
 	_main = MAIN_SCENE.instantiate() as Main
 	add_child(_main)

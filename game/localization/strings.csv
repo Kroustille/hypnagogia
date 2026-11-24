@@ -98,3 +98,8 @@ UI_WAKE_BEDROOM,Retourner dans la chambre
 UI_WAKE_TIME,Réveil : %s
 UI_CLOCK_FORMAT,%02d:%02d
 UI_PROFILE_CORRUPT,"Ta sauvegarde était illisible : elle est mise de côté, une nouvelle commence."
+UI_PAUSE_SAVE_QUIT,Sauvegarder et quitter
+UI_RESUME_TITLE,Reprendre la nuit ?
+UI_RESUME_YES,Reprendre
+UI_RESUME_NO,Nouvelle nuit
+UI_RESUME_CORRUPT,"Ta nuit en cours était illisible : elle est mise de côté, une nouvelle commence."
