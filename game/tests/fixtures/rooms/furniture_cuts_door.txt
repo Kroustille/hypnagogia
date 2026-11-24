@@ -22,23 +22,23 @@ size: screen
 ....................................
 ....................................
 
-furniture desk 0 7
-furniture desk 2 7
-furniture desk 4 7
-furniture desk 6 7
-furniture desk 8 7
-furniture desk 10 7
-furniture desk 12 7
-furniture desk 14 7
-furniture desk 16 7
-furniture desk 18 7
-furniture desk 20 7
-furniture desk 22 7
-furniture desk 24 7
-furniture desk 26 7
-furniture desk 28 7
-furniture desk 30 7
-furniture desk 32 7
-furniture desk 34 7
+furniture desk 0 12
+furniture desk 2 12
+furniture desk 4 12
+furniture desk 6 12
+furniture desk 8 12
+furniture desk 10 12
+furniture desk 12 12
+furniture desk 14 12
+furniture desk 16 12
+furniture desk 18 12
+furniture desk 20 12
+furniture desk 22 12
+furniture desk 24 12
+furniture desk 26 12
+furniture desk 28 12
+furniture desk 30 12
+furniture desk 32 12
+furniture desk 34 12
 door N
 door S

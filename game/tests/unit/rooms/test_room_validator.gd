@@ -98,6 +98,14 @@ func test_an_enemy_marker_enclosed_by_pits_is_reported() -> void:
 	_assert_single_problem("enemy_cut_off", "is cut off from the doors")
 
 
+func test_a_reinforcement_marker_enclosed_by_pits_is_reported() -> void:
+	_assert_single_problem("reinforcement_cut_off", "ReinforcementSpawn")
+
+
+func test_a_player_spawn_enclosed_by_pits_is_reported() -> void:
+	_assert_single_problem("player_cut_off", "player spawn is cut off from the doors")
+
+
 func test_a_reinforcement_marker_on_a_pit_is_reported() -> void:
 	_assert_single_problem("reinforcement_on_pit", "ReinforcementSpawn")
 

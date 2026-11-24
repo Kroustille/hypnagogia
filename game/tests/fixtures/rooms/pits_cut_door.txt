@@ -26,7 +26,7 @@ spawn sleepwalker 0 5 5
 spawn sleepwalker 0 5 14
 
 reinforce 2 2
-reinforce 33 16
+reinforce 2 16
 door N
 door E
 door S

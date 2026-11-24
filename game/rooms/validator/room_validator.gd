@@ -218,6 +218,19 @@ static func _check_reachability(room: Room, playable: Vector2i, frame: Vector2i,
 		var spawn_cell: Vector2i = Vector2i((spawn.position / Const.TILE_SIZE).floor())
 		if walkable.call(spawn_cell) and not reached.has(spawn_cell): # one on a blocker is reported by _check_enemies
 			problems.append("EnemySpawn %s at %s is cut off from the doors" % [spawn.name, spawn.position])
+	# The player's cell and the reinforcement markers too (a blocked one is reported by _check_marker_cell).
+	var player_cell: Vector2i = Vector2i((room.to_local(room.player_spawn_position()) / Const.TILE_SIZE).floor())
+	if walkable.call(player_cell) and not reached.has(player_cell):
+		problems.append("player spawn is cut off from the doors")
+	var container: Node = room.get_node_or_null("ReinforcementSpawns")
+	if container != null:
+		for child: Node in container.get_children():
+			var marker: ReinforcementSpawn = child as ReinforcementSpawn
+			if marker == null:
+				continue
+			var marker_cell: Vector2i = Vector2i((marker.position / Const.TILE_SIZE).floor())
+			if walkable.call(marker_cell) and not reached.has(marker_cell):
+				problems.append("ReinforcementSpawn %s at %s is cut off from the doors" % [marker.name, marker.position])
 
 
 ## The playable cells right behind the wall cells of a door (frame coordinates).
