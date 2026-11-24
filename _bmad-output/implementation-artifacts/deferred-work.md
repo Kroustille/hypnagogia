@@ -502,3 +502,8 @@
 ## Story 5.8 : Réveil cassé
 
 - **NON ÉVALUÉ (humain)** : ressenti du ralenti (50 % pendant 4 s sur ennemis, tirs ennemis et décor ; joueur, tirs du joueur et FX inchangés : écart au « tout sauf le joueur » du GDD, à valider), coût de 15 de lucidité, recharge en 3 salles, son et anneau provisoires, barre de charge du HUD ; manette X non testée.
+
+## Deferred from: code review of 5-8-utiliser-l-objet-actif-reveil-casse (2026-11-24)
+
+- **Jeton du ralenti du Réveil cassé** (prochaine story qui ajoute un objet actif ou une autre source de `GameClock.apply_slow`) : le jeton est l'instance de `BrokenAlarmEffect` (`game/items/effects/broken_alarm_effect.gd:19`) ; reposer puis reprendre l'objet crée un nouvel effet, donc deux usages à moins de 4 s s'empilent (×0,25) au lieu de relancer. Inatteignable en jeu aujourd'hui (charge 0 après usage), seulement avec F1 `U`. Si la règle « relancer, pas empiler » doit tenir par définition : jeton par `def.id` (un `RefCounted` partagé par `ItemDef`, ou un dictionnaire de jetons dans `GameClock`).
+- **Groupe `WORLD` sans lecteur** (première story qui fait lire `GameClock.Group.WORLD` à quelque chose : pièges, mobilier animé, décor) : le Réveil cassé le ralentit mais rien ne le lit, donc sans effet aujourd'hui. Vérifier alors que le ralenti y est voulu.

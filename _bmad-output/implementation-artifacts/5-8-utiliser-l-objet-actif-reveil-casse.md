@@ -1,6 +1,6 @@
 # Story 5.8 : Utiliser l'objet actif : Réveil cassé
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -75,6 +75,9 @@ epics.md (Story 5.8) ; GDD « Objet actif » (un seul, dépôt avec charge, règ
 9. **Jeton du ralenti = l'instance de l'effet** (un `RefCounted` propre à l'exemplaire). Un objet lâché pendant le ralenti ne l'annule pas (il s'éteint seul ou à `run_started` / `run_ended`).
 10. **Pas de ligne dans l'aide des touches** (`controls_tutorial`) : hors périmètre de la story. Objet ajouté aux deux pools (trésor et boutique, test existant qui exige le catalogue entier).
 11. **Son** `sfx_broken_alarm.wav` : provisoire, généré par script (epic 7). Anneau : `Room.add_ring` (public, rayon 6 tuiles, groupe FX donc non ralenti).
+12. **Revue — décision 10 renversée** : l'aide des touches (`controls_tutorial`) liste le consommable depuis 5.3 ; l'objet actif doit y être aussi (sinon E / X ne se découvre pas avant le playtest). Converti en patch (voir Review Findings).
+13. **Revue — écart PLAYER_BULLETS / FX maintenu** : FR51 et l'epic disent « tous les groupes sauf `PLAYER` » ; on garde ENEMIES, ENEMY_BULLETS, WORLD seulement (décision 1), à trancher par Kroustille au playtest. Changer d'avis = une constante (`BrokenAlarmEffect.SLOWED_GROUPS`).
+14. **Revue — ralenti qui traverse les portes, maintenu** : il continue dans la salle suivante et se décompte aussi pendant le fondu de porte (le `Player` et la `Room` sont désactivés, `GameClock` n'est pas en pause) : une partie des 4 s peut se perdre dans le fondu. Voulu par la spec (Pièges) ; ressenti NON ÉVALUÉ.
 
 ## Dev Agent Record
 
@@ -93,3 +96,14 @@ epics.md (Story 5.8) ; GDD « Objet actif » (un seul, dépôt avec charge, règ
 ### Non évalué (humain)
 
 - Ressenti du ralenti à 50 % pendant 4 s (lisibilité, coût de 15, recharge en 3 salles), son et anneau provisoires, barre de charge du HUD, manette X non testée.
+
+### Review Findings
+
+Revue de code (2026-11-24, Opus, trois couches : Blind Hunter, Edge Case Hunter, Acceptance Auditor) sur `0da81f8..b79b8b7`. GUT : 578/578 (l'arbre contient aussi les correctifs 5.6 / 5.7 en cours). Aucun bogue bloquant : `apply_slow` / `reset_slows`, ordre test → dépense → vidage de `use_active`, refus sans rien consommer, dépôt avec charge, pause (gel), F4 (produit et durée × multiplicateur), entrée bloquée en pause / transition / écran de réveil / fenêtre de graine (échelle `PLAYER` à 0 ou joueur désactivé) vérifiés.
+
+- [ ] [Review][Patch] L'objet actif manque à l'aide des touches [`game/ui/tutorial/controls_tutorial.gd:11`, `:29`, `game/localization/strings.csv:72`] — ajouter `{"label": &"UI_TUTORIAL_ACTIVE_ITEM", "actions": [&"use_active"]}` après la ligne du consommable dans `LINES`, `2: "X"` dans `JOY_BUTTON_NAMES`, la chaîne `UI_TUTORIAL_ACTIVE_ITEM,Objet actif` après `UI_TUTORIAL_CONSUMABLE`, et « and the active item » dans le commentaire d'en-tête (ligne 3). Comme 5.3 l'a fait pour le consommable.
+- [ ] [Review][Patch] La touche F1 `U` n'est pas dans l'aide du panneau [`game/debug/debug_panel.gd:424`] — ajouter `"U recharge the active item",` après la ligne `"Y give the four Fall items (synergy thresholds)",`.
+- [ ] [Review][Patch] Ordre et espacement (guide de style GDScript) [`game/items/owned_item.gd:15-17`, `game/autoloads/game_clock.gd:95-101`, `game/items/build_carrier.gd:179`, `game/debug/debug_panel.gd:280`, `game/ui/hud/hud.gd:161`] — déplacer `charge` / `charge_max` (et leur commentaire) au-dessus de `_init` ; déplacer `_ready` de `GameClock` avant `_physics_process` ; deux lignes vides entre les fonctions là où il n'y en a qu'une (après `use_active`, après `_recharge_active_item`, après `_on_events_active_item_changed`).
+- [x] [Review][Defer] Jeton du ralenti = instance de l'effet : un objet reposé puis repris a un nouvel effet, donc un nouveau jeton ; deux usages à moins de 4 s s'empileraient (0,25) au lieu de relancer. Inatteignable en jeu (charge 0 après usage, 3 salles à vider), seulement avec F1 `U`. Voir `deferred-work.md`.
+- [x] [Review][Defer] Le groupe `WORLD` n'a aucun lecteur : le ralentir ne change rien aujourd'hui. Voir `deferred-work.md`.
+
