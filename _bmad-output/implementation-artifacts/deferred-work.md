@@ -350,3 +350,10 @@
 - **`max_charge_distance = 45` calé sur une salle d'un écran** (story 4.6) : en salle WIDE/TALL une charge légitime mur à mur peut dépasser 45 tuiles et finir sans étourdissement ; dériver la limite de la taille de la salle.
 - **Poches atteignables seulement au Glissement** (story 4.10, contenu du pool) : un îlot de sol entouré de trous plus larges que le dash (3 tuiles) mais à portée de Glissement (6) passe le validateur ; sans 20 de lucidité, le joueur y retombe à chaque pas. Signaler les cases de sol non atteintes par le flood fill.
 - **Invulnérabilité du dash et chute de fin de dash** (réglage) : avec `invulnerability_duration >= duration` (aujourd'hui 0,15 s < 0,18 s), un dash qui finit dans un trou renverrait toujours sans dégâts. Le documenter dans `DashTuning`.
+
+## Deferred from: story 4-4-jouer-avec-la-salle-meubles-et-elements-declenchables (2026-11-24)
+
+- **NON ÉVALUÉ (humain) : lisibilité de l'éblouissement et de la lampe** : teinte jaune et disque provisoires, aucun son ni sprite avant l'epic 7 ; à juger au jeu avec `onset_combat_005`.
+- **NON ÉVALUÉ (humain) : meubles comme couvert** : 30 PV, 1 PV par demi-cœur ennemi, tailles provisoires (lit 3×2, chaise 1×1, pupitre 2×1) ; équilibre de `onset_combat_005`.
+- **Story 4.5** : la grille de chemin lit l'état des meubles par `Furniture.is_destroyed()` / signal `destroyed` ; la poursuite directe derrière un meuble reste bloquée jusque-là. Le Mouton arrête sa charge sur un meuble sans étourdissement : à revoir avec les obstacles hauts.
+- **`Telegraph` sans annulation** : résolu par `Telegraph.cancel()` (le son déjà joué n'est pas coupé).

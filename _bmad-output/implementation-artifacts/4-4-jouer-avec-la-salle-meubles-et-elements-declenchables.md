@@ -1,6 +1,6 @@
 # Story 4.4 : Jouer avec la salle : meubles et éléments déclenchables
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -28,13 +28,13 @@ Hors périmètre : les autres éléments déclenchables (un seul : la lampe), so
 
 ## Tâches
 
-- [ ] `FurnitureDef`, `data/furniture/{bed,chair,desk}.tres`, `RoomTuning` (lampe), `Furniture` (marqueur → corps + `HitPoints` + deux `Hurtbox`), `Trigger` (marqueur → `Hurtbox` + logique lampe), `Const` : masques inchangés (les couches existent).
-- [ ] Deux `Hurtbox` par meuble : `camp = ENEMY` inscrite au `BulletManager` du joueur, `camp = PLAYER` inscrite à celui des ennemis (`register_hurtbox` refuse le même camp). Les deux écoutent `damage_received` et appliquent à un seul `HitPoints`. La lampe n'a que la hurtbox ENEMY.
-- [ ] Masques : `Player.collision_mask`, `Enemy.collision_mask`, `Glide` (rayon et requête de forme) gagnent `LAYER_FURNITURE` ; `Sheep.STUNNING_LAYERS` : le meuble arrête la charge comme un obstacle bas (sans étourdissement, la 4.5 décide des hauts).
-- [ ] `Telegraph.cancel()`, `Enemy.dazzle(seconds)`, `Enemy.is_dazzled()`, point d'entrée `_tick_dazzle()` appelé en tête du `_physics_process` de chaque sous-classe (Somnambule, Veilleuse, Berceuse, Mouton), `_on_dazzled()` surchargé : `_enter(<état de départ>)` (la règle `.scratch` n'autorise l'écriture de `_state` que dans `_enter`).
-- [ ] Enregistrement des meubles et lampes à l'entrée de salle, après les `BulletManager` (ordre d'`Arena._ready`). `Room.enemies_within(point, radius_px)` (ennemis vivants du nœud `Enemies`).
-- [ ] Salle `onset_combat_005` (ASCII) ; validateur (critère 8).
-- [ ] Tests GUT : `tests/integration/rooms/test_furniture.gd` (tir joueur, tir ennemi, 30 PV, destruction, déblocage, Glissement), `test_lamp.gd` (portée exacte, une fois, télégraphe annulé, éblouissement 1 s en ticks, contact actif, tir ennemi sans effet), `tests/unit/combat/test_telegraph_cancel.gd`, validateur.
+- [x] `FurnitureDef`, `data/furniture/{bed,chair,desk}.tres`, `RoomTuning` (lampe), `Furniture` (marqueur → corps + `HitPoints` + deux `Hurtbox`), `Trigger` (marqueur → `Hurtbox` + logique lampe), `Const` : masques inchangés (les couches existent).
+- [x] Deux `Hurtbox` par meuble : `camp = ENEMY` inscrite au `BulletManager` du joueur, `camp = PLAYER` inscrite à celui des ennemis (`register_hurtbox` refuse le même camp). Les deux écoutent `damage_received` et appliquent à un seul `HitPoints`. La lampe n'a que la hurtbox ENEMY.
+- [x] Masques : `Player.collision_mask`, `Enemy.collision_mask`, `Glide` (rayon et requête de forme) gagnent `LAYER_FURNITURE` ; `Sheep.STUNNING_LAYERS` : le meuble arrête la charge comme un obstacle bas (sans étourdissement, la 4.5 décide des hauts).
+- [x] `Telegraph.cancel()`, `Enemy.dazzle(seconds)`, `Enemy.is_dazzled()`, point d'entrée `_tick_dazzle()` appelé en tête du `_physics_process` de chaque sous-classe (Somnambule, Veilleuse, Berceuse, Mouton), `_on_dazzled()` surchargé : `_enter(<état de départ>)` (la règle `.scratch` n'autorise l'écriture de `_state` que dans `_enter`).
+- [x] Enregistrement des meubles et lampes à l'entrée de salle, après les `BulletManager` (ordre d'`Arena._ready`). `Room.enemies_within(point, radius_px)` (ennemis vivants du nœud `Enemies`).
+- [x] Salle `onset_combat_005` (ASCII) ; validateur (critère 8).
+- [x] Tests GUT : `tests/integration/rooms/test_furniture.gd` (tir joueur, tir ennemi, 30 PV, destruction, déblocage, Glissement), `test_lamp.gd` (portée exacte, une fois, télégraphe annulé, éblouissement 1 s en ticks, contact actif, tir ennemi sans effet), `tests/unit/combat/test_telegraph_cancel.gd`, validateur.
 
 ## État du code concerné
 
@@ -66,11 +66,32 @@ Hors périmètre : les autres éléments déclenchables (un seul : la lampe), so
 5. **Reprise à l'état de départ** après l'éblouissement, pas à l'état interrompu.
 6. **La lampe n'est pas détruite** et ne coupe pas les tirs au-delà de leur consommation.
 7. **Meubles obligatoires à détruire interdits** par le validateur : une salle ne peut pas exiger de les casser.
+8. **Portée de la lampe inclusive** : un ennemi à exactement 3 tuiles (centre à centre) est ébloui (`<=`), le GDD dit « moins de 3 tuiles » sans trancher la borne.
+9. **Pose d'un meuble** : le marqueur est le centre de la tuile en haut à gauche, la pièce couvre `size` tuiles vers la droite et le bas (lit 3×2, chaise 1×1, pupitre 2×1 : tailles provisoires, le GDD ne les donne pas).
+10. **Éblouissement** : l'ennemi ébloui est teinté de jaune (provisoire) ; le minuteur de tir des tireurs est gelé pendant l'éblouissement ; un Mouton étourdi est ramené au repos par l'éblouissement ; la lampe n'a ni corps ni PV, sa hurtbox refuse le coup (pas de chiffre de dégâts) ; les meubles affichent un chiffre de dégâts aux tirs du joueur (feedback gardé).
+11. **Arrêt de la charge du Mouton** : aucun changement de `STUNNING_LAYERS` ; toucher le meuble termine déjà la charge sans étourdir (collision non « étourdissante »).
+12. **Salles de test** : `onset_combat_005` plus des fixtures `furniture_*`/`trigger_no_kind` ; les lignes `furniture none` et `trigger none` du constructeur ASCII servent aux fixtures (pièce sans def, déclencheur sans genre).
 
 ## Dev Agent Record
 
 ### Agent Model Used
 
+Claude Sonnet 5.5
+
 ### Completion Notes
 
+- `FurnitureDef` (`core/furniture_def.gd`, `data/furniture/{bed,chair,desk}.tres`, 30 PV) ; `Furniture` construit à l'entrée un `StaticBody2D` sur `LAYER_FURNITURE`, un `HitPoints` et deux `Hurtbox` (ENEMY pour les tirs du joueur, PLAYER pour ceux des ennemis) qui écrivent dans le même `HitPoints` ; destruction : signal `destroyed`, `is_destroyed()`, désactivations différées, filtre de coup immédiat.
+- Masques : `Player`, `Enemy`, `Glide` (rayon et requête de forme) ; `Room._overlaps_obstacle` compte les meubles vivants.
+- `Trigger` (lampe) : hurtbox ENEMY seule, une fois par salle, `Room.enemies_within()` ; réglages `Tuning.ROOM.lamp_radius_tiles` / `lamp_dazzle_duration`.
+- `Telegraph.cancel()`, `Enemy.dazzle()/is_dazzled()/_tick_dazzle()/_on_dazzled()` ; les quatre ennemis appellent `_tick_dazzle` en tête de `_physics_process` et reviennent à leur état de départ.
+- Validateur : meuble sans def, hors zone, sur mur/obstacle/trou, chevauchement, accessibilité (le meuble bloque le flood fill), marqueur sur un meuble, déclencheur sans genre ou de genre inconnu.
+- Vérifications : `tools/run_tests.sh` 127 + 10 nouveaux tests GUT verts ; `tools/validate_rooms.sh` 5 salles valides ; `run_all.sh` : ALL PASS en mode normal (aucune scène scratch ajoutée : les nouvelles vérifications sont en GUT).
+- NON ÉVALUÉ (humain) : lisibilité de l'éblouissement (teinte jaune provisoire, pas de son), équilibre de `onset_combat_005`, ressenti des meubles comme couvert (30 PV, 1 PV par demi-cœur).
+
 ### File List
+
+`core/furniture_def.gd`, `data/furniture/*.tres`, `core/room_tuning.gd`, `data/tuning/room_tuning.tres`, `rooms/furniture.gd`, `rooms/markers/trigger.gd`, `rooms/room.gd`, `rooms/validator/room_builder.gd`, `rooms/validator/room_validator.gd`, `rooms/pool/onset/onset_combat_005.tscn`, `art_source/rooms/onset_combat_005.txt`, `combat/telegraph.gd`, `enemies/enemy.gd` + les quatre ennemis, `player/player.gd`, `player/powers/glide.gd`, `tests/**` (test_furniture, test_lamp, test_telegraph_cancel, test_room_validator_furniture, fixtures).
+
+### Change Log
+
+- 2026-11-24 : implémentation de la story 4.4 (meubles, lampe, éblouissement, validateur, salle `onset_combat_005`).
