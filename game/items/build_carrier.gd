@@ -60,6 +60,9 @@ func _exit_tree() -> void:
 func refusal_of(def: ItemDef) -> String:
 	if player == null or player.health.is_dead():
 		return "dead"
+	var problem: String = ItemCatalog.problem_of(def)
+	if not problem.is_empty():
+		return "invalid definition: %s" % problem
 	if not def.stackable and loadout.copies_of(def.id) > 0:
 		return "not stackable"
 	if def.max_half_hearts_delta < 0 and player.health.max_half_hearts + def.max_half_hearts_delta < Health.MIN_MAX_HALF_HEARTS:

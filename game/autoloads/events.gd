@@ -97,3 +97,12 @@ signal banner_requested(title_key: StringName, bonus_key: StringName, cost_key: 
 ## The consumable slot changed (story 5.3): the id and name key of what is carried, both empty when the slot is free.
 @warning_ignore("unused_signal")
 signal consumable_changed(id: StringName, name_key: StringName)
+
+## The player's shards changed (story 5.4); total: what is held now. Emitted with 0 when a run starts.
+## Listeners: HUD, telemetry.
+@warning_ignore("unused_signal")
+signal shards_changed(total: int)
+
+## The player picked up shards from the floor (story 5.4). amount: shards to add. Listener: Run, which owns the count.
+@warning_ignore("unused_signal")
+signal shards_collected(amount: int)

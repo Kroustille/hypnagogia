@@ -15,6 +15,10 @@ const COLOR: Color = Color(0.95, 0.85, 0.4)
 const RIM_COLOR: Color = Color(1.0, 1.0, 1.0)
 ## Consumables are drawn as a round bottle-like disc in this color.
 const CONSUMABLE_COLOR: Color = Color(0.5, 0.85, 0.95)
+## Placeholder colors of the drops: heart, armor, shards.
+const HEART_COLOR: Color = Color(0.9, 0.25, 0.3)
+const ARMOR_COLOR: Color = Color(0.6, 0.7, 0.85)
+const SHARD_COLOR: Color = Color(0.85, 0.8, 0.4)
 ## Physics ticks a disarmed pickup waits before looking at the overlaps (the first ones report nothing yet).
 const ARMING_SETTLE_TICKS: int = 3
 ## A disarmed pickup the player never touched arms only when the player is farther than this (a deposit moved to a free
@@ -30,6 +34,8 @@ var _touching: bool = false
 var _collected: bool = false
 var _armed: bool = true
 var _alive_ticks: int = 0
+## Set when another pickup was taken from under the player in the same breath: this one waits until the player steps off.
+var _must_leave: bool = false
 
 
 ## Dependency injection: call before add_child().
@@ -69,7 +75,7 @@ func _physics_process(_delta: float) -> void:
 		# A player already there when the pickup appeared never entered: look at the overlaps.
 		_touching = get_overlapping_bodies().has(_player)
 	_refresh_look()
-	if _touching and _can_take():
+	if _touching and not _must_leave and _can_take():
 		_collect()
 
 
@@ -81,11 +87,15 @@ func is_available() -> bool:
 func _collect() -> void:
 	_collected = true
 	set_physics_process(false)
+	if offer.kind != RoomStock.Kind.ITEM and offer.kind != RoomStock.Kind.CONSUMABLE:
+		_collect_drop()
+		return
 	if offer.kind == RoomStock.Kind.CONSUMABLE:
 		var previous: ConsumableDef = _player.carrier.acquire_consumable(offer.consumable)
 		offer.taken = true
 		if previous != null:
 			consumable_replaced.emit(previous, _player.global_position)
+		_hold_stacked_pickups()
 		queue_free()
 		return
 	if _player.carrier.acquire(offer.item) == null:
@@ -94,6 +104,7 @@ func _collect() -> void:
 		_touching = false
 		return
 	offer.taken = true
+	_hold_stacked_pickups()
 	queue_free()
 
 
@@ -105,16 +116,31 @@ func _on_body_entered(body: Node2D) -> void:
 func _on_body_exited(body: Node2D) -> void:
 	if body == _player:
 		_touching = false
+		_must_leave = false
 		# A pause or a door fade switches the physics off, which also reports the exit: that is not the player stepping off.
 		if not _armed and can_process() and _player.can_process():
 			_arm()
 
 
-## Whether the player could take what lies here now (armed apart).
+## Whether this player could take what lies here now (armed apart). A heart or armor drop is refused, silently, while
+## it would add nothing: it stays on the floor and is taken as soon as the player is hurt.
+func can_collect(player: Player) -> bool:
+	if player == null or player.health.is_dead():
+		return false
+	match offer.kind:
+		RoomStock.Kind.CONSUMABLE:
+			return player.carrier.can_take_consumable(offer.consumable)
+		RoomStock.Kind.HEART:
+			return player.health.can_heal()
+		RoomStock.Kind.ARMOR:
+			return player.health.can_add_armor()
+		RoomStock.Kind.SHARDS:
+			return true
+	return player.carrier.can_take(offer.item)
+
+
 func _can_take() -> bool:
-	if offer.kind == RoomStock.Kind.CONSUMABLE:
-		return _player.carrier.can_take_consumable(offer.consumable)
-	return _player.carrier.can_take(offer.item)
+	return can_collect(_player)
 
 
 ## A disarmed pickup arms when the player steps off it; one the player never touched (a room visited again) arms after
@@ -142,6 +168,11 @@ func _refresh_look() -> void:
 func _draw() -> void:
 	var points: PackedVector2Array = PackedVector2Array([
 		Vector2(0, -6), Vector2(5, 0), Vector2(0, 6), Vector2(-5, 0)])
+	var drop_color: Color = _drop_color()
+	if drop_color.a > 0.0:
+		draw_circle(Vector2.ZERO, 4.0, drop_color)
+		draw_arc(Vector2.ZERO, 4.0, 0.0, TAU, 10, RIM_COLOR, 1.0)
+		return
 	if offer.kind == RoomStock.Kind.CONSUMABLE:
 		draw_circle(Vector2.ZERO, 5.0, CONSUMABLE_COLOR)
 		draw_arc(Vector2.ZERO, 5.0, 0.0, TAU, 12, RIM_COLOR, 1.0)
@@ -149,3 +180,46 @@ func _draw() -> void:
 	draw_colored_polygon(points, COLOR)
 	points.append(points[0])
 	draw_polyline(points, RIM_COLOR, 1.0)
+
+
+## A heart, armor or shards drop: applied at once. A refusal at that point (it changed since the check) leaves it there.
+func _collect_drop() -> void:
+	var done: bool = false
+	match offer.kind:
+		RoomStock.Kind.HEART:
+			done = _player.health.heal(offer.amount)
+		RoomStock.Kind.ARMOR:
+			done = _player.health.add_armor(offer.amount)
+		RoomStock.Kind.SHARDS:
+			Events.shards_collected.emit(offer.amount)
+			done = true
+	if not done:
+		_collected = false
+		set_physics_process(true)
+		return
+	offer.taken = true
+	_hold_stacked_pickups()
+	queue_free()
+
+
+## Pickups laid under the player that could be taken too are not taken in the same breath: two Falling Teeth would be
+## two prices at once, two consumables would swap with each other. They wait until the player steps off.
+func _hold_stacked_pickups() -> void:
+	for sibling: Node in get_parent().get_children():
+		var other: Pickup = sibling as Pickup
+		if other == null or other == self or other._collected or other._must_leave or not other._can_take():
+			continue
+		if other._touching or other.get_overlapping_bodies().has(_player):
+			other._must_leave = true
+
+
+## Placeholder color of a drop (heart, armor, shards); transparent for an item or a consumable.
+func _drop_color() -> Color:
+	match offer.kind:
+		RoomStock.Kind.HEART:
+			return HEART_COLOR
+		RoomStock.Kind.ARMOR:
+			return ARMOR_COLOR
+		RoomStock.Kind.SHARDS:
+			return SHARD_COLOR
+	return Color(0, 0, 0, 0)

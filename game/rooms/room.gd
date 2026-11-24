@@ -125,6 +125,9 @@ var _options: RoomOptions
 ## What lies in the room and the node holding its Pickups (created in _ready()).
 var _stock: RoomStock
 var _pickups: Node2D
+## Where the last enemy left the tree (a kill, or a room cleared by the check tools): where the drops of the room appear.
+var _last_kill_position: Vector2 = Vector2.ZERO
+var _has_kill: bool = false
 ## The floor of the run this room belongs to (stream key).
 var _floor_index: int = 0
 ## Enemies planned for the current wave, dead ones included (null-free): decides the type of the reinforcement.
@@ -279,7 +282,7 @@ func spawn_enemy(def: EnemyDef, requested: Vector2) -> Enemy:
 	if _player_bullets != null:
 		_player_bullets.register_hurtbox(enemy.hurtbox)
 	_alive += 1
-	enemy.tree_exited.connect(_on_enemy_tree_exited, CONNECT_ONE_SHOT)
+	enemy.tree_exited.connect(_on_enemy_tree_exited.bind(enemy), CONNECT_ONE_SHOT)
 	Log.debug("room", "spawned %s at %s alive=%d node=%s" % [def.id, position_px, _alive, enemy.name])
 	return enemy
 
@@ -706,6 +709,10 @@ func add_offer(def: ItemDef, requested: Vector2, price: int = 0) -> RoomStock.Of
 	if not is_node_ready() or _stock == null or def == null:
 		Log.error("room", "add_offer() needs a ready room and an item")
 		return null
+	var problem: String = ItemCatalog.problem_of(def)
+	if not problem.is_empty():
+		Log.error("room", "add_offer() refused item %s: %s" % [def.id, problem])
+		return null
 	var offer: RoomStock.Offer = _stock.add_item(def, requested, price)
 	_add_pickup(offer)
 	return offer
@@ -717,15 +724,35 @@ func add_consumable_offer(def: ConsumableDef, requested: Vector2, armed: bool = 
 	if not is_node_ready() or _stock == null or def == null:
 		Log.error("room", "add_consumable_offer() needs a ready room and a consumable")
 		return null
-	var spot: Vector2 = requested
-	if _nav != null:
-		var cell: Vector2i = _nav.nearest_free_cell(_nav.cell_of(requested))
-		if _nav.is_in_grid(cell) and _nav.is_blocked(_nav.cell_of(requested)):
-			spot = _nav.center_of(cell)
-	var offer: RoomStock.Offer = _stock.add_consumable(def, spot, armed)
+	var offer: RoomStock.Offer = _stock.add_consumable(def, _free_spot(requested), armed)
 	_add_pickup(offer)
 	return offer
 
+
+## A heart, armor or shards drop (kind: RoomStock.Kind HEART, ARMOR or SHARDS; amount in half-hearts or shards), laid at the
+## nearest free cell to requested (room coordinates). Returns the offer, null when the room is not ready.
+func add_drop_offer(kind: RoomStock.Kind, amount: int, requested: Vector2) -> RoomStock.Offer:
+	if not is_node_ready() or _stock == null or kind == RoomStock.Kind.ITEM or kind == RoomStock.Kind.CONSUMABLE:
+		Log.error("room", "add_drop_offer() needs a ready room and a heart, armor or shards kind")
+		return null
+	var offer: RoomStock.Offer = _stock.add_drop(kind, amount, _free_spot(requested))
+	_add_pickup(offer)
+	return offer
+
+
+## Where the last enemy of the room died (room coordinates), the middle of the room when none did.
+func last_kill_position() -> Vector2:
+	return _last_kill_position if _has_kill else frame_px() / 2.0
+
+
+## The requested point, or the center of the nearest cell the player can reach when it lies in a wall or a pit.
+func _free_spot(requested: Vector2) -> Vector2:
+	if _nav == null:
+		return requested
+	var cell: Vector2i = _nav.nearest_free_cell(_nav.cell_of(requested))
+	if _nav.is_in_grid(cell) and _nav.is_blocked(_nav.cell_of(requested)):
+		return _nav.center_of(cell)
+	return requested
 
 ## The Pickups on the floor now (untaken offers).
 func pickups() -> Array[Pickup]:
@@ -1016,7 +1043,10 @@ func _overlaps_living_enemy(rect: Rect2) -> bool:
 	return false
 
 
-func _on_enemy_tree_exited() -> void:
+func _on_enemy_tree_exited(enemy: Enemy) -> void:
+	if is_instance_valid(enemy):
+		_last_kill_position = enemy.position # the room sits at the world origin: its coordinates
+		_has_kill = true
 	_alive = maxi(_alive - 1, 0)
 	_emit_emptied_if_done()
 

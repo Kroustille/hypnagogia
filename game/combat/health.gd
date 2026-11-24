@@ -206,3 +206,13 @@ func _check_amount(amount: int, method: String) -> bool:
 	Log.error("combat", "Health.%s() needs a positive amount, got %d" % [method, amount])
 	assert(false, "Invalid amount")
 	return false
+
+
+## True when heal() would add something (alive and hurt).
+func can_heal() -> bool:
+	return not _dead and half_hearts < max_half_hearts
+
+
+## True when add_armor() would add something (alive and under the cap).
+func can_add_armor() -> bool:
+	return not _dead and _cap_half_hearts - max_half_hearts - armor > 0
