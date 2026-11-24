@@ -1,6 +1,6 @@
 # Story 4.9 : Consulter la carte de l'étage
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -64,6 +64,20 @@ Hors périmètre : carte des étages précédents (un seul étage au MVP), notes
 
 7. **Géométrie stable** : la carte se dimensionne sur l étendue de tout l étage (pas sur les salles découvertes) pour ne pas se redimensionner à chaque salle ; elle révèle donc l emprise de l étage, pas son contenu.
 8. `FloorMap.entries()` n a pas d argument : `Run` pose `FloorMap.layout`.
+9. **Revue : icônes dès l'adjacence (décision 1) confirmée** : l'epic dit « une fois découverts » et l'AC 2 montre déjà les salles adjacentes reliées ; convention Isaac, aucun changement.
+10. **Revue : la décision 7 est remplacée** : se caler sur l'emprise réelle de l'étage révèle sa forme (où la salle de départ se place dans le cadre dit où est le reste), contre « la carte se révèle au fil de l'exploration » (GDD). Choix : se caler sur la grille fixe du générateur (`FloorDef` 9×7, départ au centre) : géométrie toujours stable, aucune information. Converti en patch.
+11. **Revue : le fond de la carte laisse la bande de HUD visible** : le jeu continue pendant que la carte est ouverte, les cœurs doivent rester lisibles. Converti en patch.
+
+### Review Findings
+
+Revue de code (Opus 5.5, 2026-11-24), trois couches (Blind Hunter, Edge Case Hunter, Acceptance Auditor) en passes isolées. Tests GUT de la story : 8/8, 4/4, 5/5.
+
+- [ ] [Review][Patch] **Carte visible en mode arène après un repli** (AC 6) [`game/run/run.gd:256` et `:114`] : `_fall_back_to_arena()` remet `floor_layout` à null mais pas `floor_map.layout`, et `_start_floor()` pose `floor_map.layout` (`:106`) avant `_enter_cell(layout.start)` puis tombe sur l'arène si l'entrée échoue. Constaté par une scène jetable : après `_fall_back_to_arena()`, Tab affiche l'ancien étage par-dessus l'arène. Correction : `floor_map.layout = null` à côté de `floor_layout = null` (`:256`) et après `_loader = null` (`:114`).
+- [ ] [Review][Patch] **La carte révèle l'emprise de l'étage** (décision 10) [`game/run/floor_map.gd:82` `bounds()`] : ajouter `var grid: Rect2i` à `FloorLayout`, posé par `FloorGenerator` (`layout.grid = bounds`, `game/generation/floor_generator.gd:41`) ; `bounds()` rend `layout.grid` quand il n'est pas vide (repli : le calcul actuel). Adapter `test_the_bounds_cover_the_whole_floor` et la décision 7 / la note de `deferred-work.md`.
+- [ ] [Review][Patch] **Le fond assombrit le HUD pendant qu'on joue** (décision 11) [`game/ui/map/floor_map_view.gd:96`] : `draw_rect(Rect2(0, Const.HUD_BAND_HEIGHT, size.x, size.y - Const.HUD_BAND_HEIGHT), COLOR_BACKDROP)` au lieu du plein écran.
+- [ ] [Review][Patch] **`Main` lie la carte à la première `Run` du groupe** [`game/main/main.gd:191`] : une `Run` hors de ce `Main` (autre `Main` dans l'arbre, scène de vérification) serait prise. Prendre la `Run` parmi les enfants de `_active_scene` (`for child in _active_scene.get_children(): if child is Run`).
+
+Vérifié sans remarque : `entries()`/`discovered()` (adjacence par porte seulement, liens connus avec au moins une salle visitée, tri y puis x), ordre des abonnés à `room_cleared` (la `Run` marque avant que la vue relise), rafraîchissement au voyage, à la mort (masquée par `GameClock.paused`), au redémarrage (`unbind` puis `bind`) et au test de charge ; aucune écriture dans `GameClock` ; `mouse_filter` IGNORE, `focus_mode` NONE, lecture par `Input` (Tab garde `ui_focus_next` dans les menus) ; Tab et `JOY_BUTTON_BACK` (4) libres ailleurs ; couche : au-dessus du HUD, sous le `PerfOverlay`, le panneau de debug et les menus ; coordonnées entières ; 4 clés dans `strings.csv`. NON ÉVALUÉ : lisibilité réelle à 640×360 (pas de capture), déjà dans `deferred-work.md`.
 
 ## Dev Agent Record
 
