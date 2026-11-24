@@ -11,9 +11,10 @@ signal player_hit(damage: int, source: int)
 @warning_ignore("unused_signal")
 signal enemy_damaged(world_position: Vector2, amount: float)
 
-## A run ended. outcome: Run.Outcome as an int (autoloads/ depends on no feature folder).
+## A run ended. outcome: Run.Outcome as an int (DEATH or VICTORY; autoloads/ depends on no feature folder).
 ## Emitted once per run, after the Events.player_hit of the lethal hit, from the Run's handler of Player.died,
-## in the tick of the lethal hit. Listeners: Main (wake screen),
+## in the tick of the lethal hit. A victory comes
+## from Run once the delay after boss_defeated has run out. Listeners: Main (wake screen),
 ## telemetry (story 2.8; the cause of death is the source of the last player_hit).
 @warning_ignore("unused_signal")
 signal run_ended(outcome: int)
@@ -133,6 +134,10 @@ signal boss_engaged(boss_id: StringName, name_key: StringName, max_hp: float)
 ## The boss's hit points changed (every hit), or the boss left the room (hp 0). Listeners: the health bar, telemetry.
 @warning_ignore("unused_signal")
 signal boss_health_changed(hp: float, max_hp: float)
+
+## The boss died (story 6.4). Emitted once, in the tick of the lethal hit, after its reward shards. Listeners: Run (the victory), later the first-win record.
+@warning_ignore("unused_signal")
+signal boss_defeated(boss_id: StringName)
 
 ## The boss starts a phase and writes its title on the blackboard. text_key: the translation key of the title.
 ## Listeners: the chalk title.

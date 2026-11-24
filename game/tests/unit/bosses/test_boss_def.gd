@@ -93,3 +93,22 @@ func test_the_telegraph_rule_is_shared() -> void:
 	assert_eq(Telegraph.duration_for(0.5, 0.85), 0.5 * 0.85)
 	assert_eq(Telegraph.duration_for(0.5, 0.5), Tuning.COMBAT.min_telegraph, "the minimum wins")
 	assert_eq(Telegraph.duration_for(NAN, 1.0), Tuning.COMBAT.min_telegraph)
+
+
+func test_a_ruler_that_could_skip_the_player_is_refused() -> void:
+	var ruler: BossAttack = BossAttack.new()
+	ruler.kind = BossAttack.Kind.RULER
+	ruler.interval = 4.0
+	ruler.telegraph = 0.5
+	ruler.bullet_speed = 5.0
+	ruler.thickness_tiles = 0.5
+	ruler.sweep_speed = 12.0
+	assert_eq(ruler.validate(), "")
+	ruler.sweep_speed = 30.0 # 0.5 tile per tick
+	assert_ne(ruler.validate(), "")
+	ruler.sweep_speed = 29.5
+	assert_eq(ruler.validate(), "")
+
+
+func test_the_professor_pays_ten_shards() -> void:
+	assert_eq(PROFESSOR.reward_shards, 10)

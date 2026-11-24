@@ -5,7 +5,7 @@ extends Enemy
 ## AttackRunners that the boss ticks. The phase follows the share of hit points left. Spawned like any enemy, by a room
 ## (the wave of its EnemySpawn marker); the room binds it to itself before it enters the tree (bind_room()).
 ## Bullets go through the room's enemy BulletManager with the reserved look; nothing fires outside the playable area.
-## Subclasses (Professor) are puppets: sprite and scene, the logic stays here. 6.4 adds DEFEATED to State.
+## Subclasses (Professor) are puppets: sprite and scene, the logic stays here. Its death (story 6.4) is Enemy._die() -> _on_death().
 
 enum State { ANNOUNCING, FIGHTING }
 
@@ -203,9 +203,20 @@ func _on_hit_applied() -> void:
 		_change_phase_if_crossed()
 
 
+## Once (Enemy._die()). In the tick of the lethal hit, a callback of the player's BulletManager: only the enemy manager is
+## cleared here, and nothing is freed (the boss itself is queue_free()d by _die()).
 func _on_death() -> void:
 	_halt()
+	if _boss_def == null:
+		return # never set up: nothing to announce
+	if _room != null:
+		_room.enemy_bullets().clear_all() # the chalks disappear
+		_room.cancel_pending_reinforcements() # nothing comes after the boss
 	_report_left()
+	if _boss_def.reward_shards > 0:
+		Events.shards_collected.emit(_boss_def.reward_shards)
+	Log.info("combat", "boss %s defeated" % _boss_def.id)
+	Events.boss_defeated.emit(_boss_def.id)
 
 
 func _exit_tree() -> void:

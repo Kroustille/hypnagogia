@@ -83,6 +83,9 @@ func validate() -> String:
 				return "thickness_tiles %s must be finite and > 0" % thickness_tiles
 			if not _positive(sweep_speed) or sweep_speed >= Engine.physics_ticks_per_second:
 				return "sweep_speed %s must be > 0 and under one tile per tick" % sweep_speed
+			# A bar that moves more than its own thickness in a tick could step over the player without overlapping.
+			if sweep_speed >= thickness_tiles * Engine.physics_ticks_per_second:
+				return "sweep_speed %s must be under thickness_tiles * ticks per second (%s): the bar would skip the player" % [sweep_speed, thickness_tiles * Engine.physics_ticks_per_second]
 	return ""
 
 

@@ -11,6 +11,8 @@ extends EnemyDef
 @export var extra_attack: BossAttack
 ## Translation key of the name shown on the health bar.
 @export var name_key: StringName = &""
+## Shards the player earns when the boss dies (story 6.4).
+@export_range(0, 100, 1, "or_greater") var reward_shards: int = 10
 
 
 ## "" when the whole def can fight, else the first problem found (phases, their attacks, the pop quiz).
