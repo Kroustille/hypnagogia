@@ -28,6 +28,7 @@ var _tier: int = -1
 var _active_item_slot: HudSlot
 var _consumable_slot: HudSlot
 var _shards_label: Label
+var _banner: Banner
 
 
 func _ready() -> void:
@@ -75,6 +76,14 @@ func _ready() -> void:
 	add_child(_shards_label)
 	_refresh_shards()
 
+	_banner = Banner.new()
+	_banner.name = "Banner"
+	add_child(_banner)
+
+
+
+func banner() -> Banner:
+	return _banner
 
 
 func hearts() -> HeartRow:
