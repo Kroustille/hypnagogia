@@ -1,6 +1,6 @@
 # Story 5.9 : Copie d'examen vierge et Être nu en public
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -32,13 +32,13 @@ Hors périmètre : la salle du cauchemar (epic 6) ; le chrono n'y tourne pas, ma
 
 ## Tâches
 
-- [ ] `Room.fight_started`, `Room.set_pace_mult()`, `Room.set_fire_hold(ticks)` ; `DangerProfile.pace_mult`, `fire_hold` (hors `apply_tier`).
-- [ ] `Enemy` / `ShooterEnemy` / tous les déplacements (`Enemy._move_in_direction`, charge du Mouton si elle a sa propre vitesse) : lire `danger.pace_mult` ; inventorier chaque ennemi à la main (`enemies/*`) avant de conclure.
-- [ ] `BuildCarrier.room_entered`, `room_fight_started` ; `Player.enter_room/leave_room` les câblent.
-- [ ] `items/effects/blank_exam_effect.gd`, `naked_effect.gd`, `data/items/*.tres`, `Health.clear_armor()` / `armor_blocked`, `Loadout.sum_param`, `has_flag`.
-- [ ] `Run` : passe `extra_drops` au loot ; `ShopStock` : variante sans armure.
-- [ ] HUD : chrono (`Hud` écoute `exam_timer_changed`), `strings.csv`.
-- [ ] Tests.
+- [x] `Room.fight_started`, `Room.set_pace_mult()`, `Room.set_fire_hold(ticks)` ; `DangerProfile.pace_mult`, `fire_hold` (hors `apply_tier`).
+- [x] `Enemy` / `ShooterEnemy` / tous les déplacements (`Enemy._move_in_direction`, charge du Mouton si elle a sa propre vitesse) : lire `danger.pace_mult` ; inventorier chaque ennemi à la main (`enemies/*`) avant de conclure.
+- [x] `BuildCarrier.room_entered`, `room_fight_started` ; `Player.enter_room/leave_room` les câblent.
+- [x] `items/effects/blank_exam_effect.gd`, `naked_effect.gd`, `data/items/*.tres`, `Health.clear_armor()` / `armor_blocked`, `Loadout.sum_param`, `has_flag`.
+- [x] `Run` : passe `extra_drops` au loot ; `ShopStock` : variante sans armure.
+- [x] HUD : chrono (`Hud` écoute `exam_timer_changed`), `strings.csv`.
+- [x] Tests.
 
 ## État du code concerné
 
@@ -78,3 +78,34 @@ epics.md (Story 5.9) ; GDD lignes Copie d'examen vierge et Être nu en public, n
 4. **Chrono et gêne en temps du groupe visé** : chrono sur `PLAYER`, gêne sur `ENEMIES` (le Réveil cassé ralentit la gêne, c'est voulu).
 5. **Armure vidée à la prise sans événement de coup** ; l'armure déjà au sol et celle de la boutique sont simplement refusées.
 6. **Boutique : le cœur remplaçant l'armure coûte le prix d'un cœur** (4), pas celui de l'armure.
+
+### Décisions prises sans Kroustille (suite, dev)
+
+7. **`room_entered` est émis en fin de `Room._ready()` (via `Player.room_ready(room)`), pas dans `Player.enter_room`** : `enter_room` est appelé au milieu de `_ready`, avant que la salle sache si elle a un combat (`has_fight()`) ou si elle est vidée (`is_cleared()`). `enter_room` branche seulement `fight_started` ; l'effet lit les deux états au bon moment. Même signal côté carrier, 5.10 peut le réutiliser.
+8. **Flux `drops` à nombre de tirages fixe** (item différé 5.9) : 6 tirages par salle quoi qu'il arrive (forme, chance, type, consommable, puis un emplacement garanti de type + consommable toujours payé), `Loot.EXTRA_SLOTS = 1`, le surplus demandé est coupé. Les graines existantes changent de séquence de drops une fois (nouveau découpage), pas de sauvegarde concernée.
+9. **Deux drops côte à côte** : `Room._free_spot` écarte maintenant toute offre qui tombe dans la cellule d'une offre déjà posée (cellule libre la plus proche). Vaut aussi pour les consommables lâchés par le joueur.
+10. **Le Mouton et le Somnambule ne gagnent que la vitesse de déplacement** : leurs minuteurs (repos, charge, ruée) restent ceux de la définition, la distance de ruée augmente donc de 30 %. Le cycle de tir n'existe que chez les tireurs.
+11. **Boutique** : seul l'étal d'armure payant est remplacé (`RoomStock.apply_no_armor`) ; le second cœur occupe l'emplacement ARMOR (aucun emplacement cœur libre). Tags de l'objet : `gaze` (Regard) et `body` (Corps).
+12. **Pas de signal au passage à zéro** (ni son ni anneau) : hors périmètre, à l'epic 7.
+13. **Commit croisé** : le fixer de 5.8 a commité par erreur mes hunks de `build_carrier.gd` (signaux `room_entered`, `room_fight_started`), `hud.gd` (étiquette du chrono) et `strings.csv` (clés 5.9) dans `94a020a` : ils étaient dans le même arbre.
+
+## Dev Agent Record
+
+### Notes de complétion
+
+- `DangerProfile.pace_mult` / `fire_hold` hors `apply_tier` ; `Room.fight_started`, `set_pace_mult`, `set_fire_hold` (compté en ticks du groupe ENEMIES), remise à zéro à `end_room`. `Enemy._move_in_direction` / `_presses_target` et `ShooterEnemy._tick_cycle` lisent le profil ; télégraphes et balles en vol inchangés.
+- `BlankExamEffect` (chrono sur le carrier, ticks du groupe PLAYER, arrêt à `room_cleared`, sortie de salle, mort) et `NakedEffect` ; `Health.clear_armor` / `armor_blocked` ; `Loadout.sum_param` / `has_flag` ; `Events.exam_timer_changed` ; HUD `ExamLabel`.
+- `Loot` à tirages fixes (voir décision 8), `Run` passe `guaranteed_drops` ; `ShopStock.draw(..., blocks_armor)` et `RoomStock.apply_no_armor` ; deux items dans les deux pools ; chaînes `ITEM_BLANK_EXAM_*`, `ITEM_NAKED_IN_PUBLIC_*`, `UI_EXAM_TIMER`.
+- Checks : `tools/run_tests.sh` 604/604 vert (dont `unit/items/test_naked_effect`, `integration/items/test_blank_exam`, `integration/items/test_pace_and_hold`, extensions de `test_loot`, `test_shop_stock`, `test_loadout`, `test_loot_flow`) ; `run_all.sh` ALL PASS ; `--quit-after 120` propre.
+
+### Liste des fichiers
+
+`combat/{danger_profile,health}.gd`, `enemies/{enemy,shooter_enemy}.gd`, `rooms/room.gd`, `player/player.gd`, `items/{loadout,build_carrier}.gd`, `items/effects/{blank_exam,naked}_effect.gd`, `data/items/{blank_exam,naked_in_public}.tres`, `data/pools/*.tres`, `economy/{loot,shop_stock,room_stock}.gd`, `run/run.gd`, `autoloads/events.gd`, `ui/hud/hud.gd`, `localization/strings.csv`, tests GUT associés.
+
+### Non évalué (humain)
+
+- Voir `deferred-work.md` (story 5.9).
+
+### Change Log
+
+- 2026-11-24 : implémentation de 5.9, statut review.
