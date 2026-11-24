@@ -11,12 +11,16 @@ enum Outcome { DEATH = 0 }
 const ARENA_SCENE: PackedScene = preload("res://rooms/arena/arena.tscn")
 
 var _ended: bool = false
+## The random streams of this run (D8): a new one for every run.
+var rng: RunRng
 
 @onready var _player: Player = %Player
 @onready var _room_slot: Node = %RoomSlot
 
 
 func _ready() -> void:
+	rng = RunRng.new(RunRng.draw_seed())
+	Log.info("run", "seed %s" % rng.seed_code())
 	# First, so that the end of the run is notified even when the room below fails to load (AR28).
 	_player.died.connect(_on_player_died)
 	var arena: Arena = ARENA_SCENE.instantiate() as Arena
@@ -24,7 +28,7 @@ func _ready() -> void:
 		Log.error("run", "arena scene root is not an Arena")
 		assert(false, "Arena scene must have an Arena root")
 		return
-	arena.setup(_player) # before add_child()
+	arena.setup(_player, rng) # before add_child()
 	_room_slot.add_child(arena)
 	_player.global_position = arena.player_spawn_position()
 	_player.reset_physics_interpolation() # the player does not trail from (0, 0)

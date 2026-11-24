@@ -36,3 +36,17 @@ unique_name_in_owner = true
 [node name="Camera" type="Camera2D" parent="."]
 process_callback = 0
 unique_name_in_owner = true
+
+[node name="ReinforcementSpawns" type="Node2D" parent="."]
+
+[node name="West" type="Marker2D" parent="ReinforcementSpawns" groups=["reinforcement_spawn"]]
+position = Vector2(96, 128)
+
+[node name="East" type="Marker2D" parent="ReinforcementSpawns" groups=["reinforcement_spawn"]]
+position = Vector2(512, 144)
+
+[node name="South" type="Marker2D" parent="ReinforcementSpawns" groups=["reinforcement_spawn"]]
+position = Vector2(224, 288)
+
+[node name="North" type="Marker2D" parent="ReinforcementSpawns" groups=["reinforcement_spawn"]]
+position = Vector2(352, 48)

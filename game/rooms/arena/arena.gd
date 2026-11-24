@@ -47,6 +47,16 @@ const DANGER_RAISED_SOUND: AudioStream = preload("res://audio/sfx/sfx_danger_rai
 const DANGER_RING_COLOR: Color = Color(0.9, 0.15, 0.2)
 const DANGER_RING_RADIUS_TILES: float = 2.0
 const DANGER_RING_DURATION: float = 0.5
+## Reinforcement (story 3.7), placeholder until epic 7: the sign and the sound announcing the apparition.
+const REINFORCEMENT_SOUND: AudioStream = preload("res://audio/sfx/sfx_reinforcement.wav")
+const REINFORCEMENT_SIGN_COLOR: Color = Color(1.0, 0.75, 0.3)
+const REINFORCEMENT_SIGN_RADIUS_TILES: float = 1.5
+## Seed of the RunRng an arena makes for itself when the Run gave none (verification scenes).
+const FALLBACK_RUN_SEED: int = 1
+## Name of the RunRng stream that decides combat outcomes (reinforcement type and place).
+const COMBAT_STREAM: StringName = &"combat"
+## Rounding margin when comparing countdown ticks.
+const TICK_EPSILON: float = 1e-6
 ## Centers closer than this (px²) have no usable direction: the push goes to the right.
 const KNOCKBACK_MIN_OFFSET_SQ: float = 1e-6
 
@@ -78,17 +88,40 @@ var _alive: int = 0
 ## Spawns of this room so far: names the next enemy <id>_<n>, never reused (a refused spawn may lose a number).
 var _spawn_serial: int = 0
 var _wave_runner: WaveRunner
+## A nightmare room (epic 6) calls no reinforcement.
+@export var is_nightmare: bool = false
+
+## One reinforcement announced and not yet appeared.
+class PendingReinforcement extends RefCounted:
+	var def: EnemyDef
+	var position: Vector2 # room coordinates
+	var ticks_left: float = 0.0
+	var sign: ReinforcementSign
+
+var _rng: RunRng
+## Enemies planned for the current wave, dead ones included (null-free): decides the type of the reinforcement.
+var _wave_defs: Array[EnemyDef] = []
+## True from begin_room() with a planned wave until the room is emptied (or the run ends).
+var _wave_active: bool = false
+## One reinforcement per wave: set when it is scheduled, cleared by begin_room().
+var _reinforcement_used: bool = false
+var _pending: Array[PendingReinforcement] = []
 ## What the room tier does to the enemies (story 3.6): one object, mutated in place, given to every enemy.
 var danger: DangerProfile = DangerProfile.new()
 
 
 ## Dependency injection: call before add_child().
-func setup(player: Player) -> void:
+## rng: the run's streams; without it the room makes a fixed one (verification scenes).
+func setup(player: Player, rng: RunRng = null) -> void:
 	_player = player
+	_rng = rng
 
 
 func _ready() -> void:
 	add_to_group(Const.GROUP_ROOM)
+	if _rng == null:
+		_rng = RunRng.new(FALLBACK_RUN_SEED)
+	Events.run_ended.connect(_on_events_run_ended)
 	if _player == null:
 		Log.error("room", "arena added without setup()")
 		assert(false, "Arena.setup() must be called before add_child()")
@@ -162,6 +195,25 @@ func spawn_enemy(def: EnemyDef, requested: Vector2) -> Enemy:
 	return enemy
 
 
+func _exit_tree() -> void:
+	_clear_pending() # a room torn down never spawns
+
+
+func _physics_process(_delta: float) -> void:
+	if _pending.is_empty():
+		return
+	var step: float = GameClock.scale(GameClock.Group.ENEMIES)
+	if step <= 0.0:
+		return
+	var due: Array[PendingReinforcement] = []
+	for reinforcement: PendingReinforcement in _pending:
+		reinforcement.ticks_left -= step
+		if reinforcement.ticks_left <= TICK_EPSILON:
+			due.append(reinforcement)
+	for reinforcement: PendingReinforcement in due:
+		_appear(reinforcement)
+
+
 ## Enemies spawned by this room and still in the tree (dead ones leave at the end of their frame).
 func alive_enemy_count() -> int:
 	return _alive
@@ -179,11 +231,17 @@ func kill_all_enemies() -> int:
 
 
 ## Start of a wave (called by WaveRunner before the apparitions): per-wave counters of the player start again and the
-## room danger follows the room tier, which is the live tier of this moment.
-func begin_room() -> void:
+## room danger follows the room tier, which is the live tier of this moment. wave_defs: the enemies planned for the
+## wave (one def per enemy); it rearms the reinforcement, which comes at once when the wave starts in Abandon.
+func begin_room(wave_defs: Array[EnemyDef] = []) -> void:
+	_clear_pending()
+	_wave_defs = wave_defs.duplicate()
+	_wave_active = not _wave_defs.is_empty()
+	_reinforcement_used = false
 	if _player != null and _player.lucidity != null:
 		_player.lucidity.begin_room()
 		danger.apply_tier(_player.lucidity.room_tier, Tuning.LUCIDITY)
+	_maybe_schedule_reinforcement()
 
 
 ## The room tier (Lucidity.Tier as an int): the deepest tier reached since the wave began. Lucid without a player.
@@ -196,9 +254,114 @@ func room_tier() -> int:
 ## The gauge pulled the live tier below the room tier: the danger follows at once, with a sound and a red ring.
 func _on_room_danger_raised(tier: Lucidity.Tier, _previous: Lucidity.Tier) -> void:
 	danger.apply_tier(tier, Tuning.LUCIDITY)
+	_maybe_schedule_reinforcement()
 	Audio.play_sfx(DANGER_RAISED_SOUND, 1)
 	_add_ring(_player.global_position, DANGER_RING_RADIUS_TILES * Const.TILE_SIZE, DANGER_RING_COLOR, DANGER_RING_DURATION)
 	Log.debug("combat", "room danger raised tier=%d bullet x%.2f telegraph x%.2f" % [tier, danger.enemy_bullet_speed_mult, danger.telegraph_mult])
+
+
+## Announces one extra enemy when the room danger calls for it and none came yet in this wave: a copy of the most
+## present type of the wave, at a marker 3 tiles or more from the player (drawn now; spawn_enemy() rechecks the
+## distance when it appears, as the player moves meanwhile). Both choices come from the run's "combat" stream.
+func _maybe_schedule_reinforcement() -> void:
+	if is_nightmare or _reinforcement_used or not _wave_active or not danger.reinforcement or _player == null:
+		return
+	var def: EnemyDef = _pick_reinforcement_def()
+	if def == null:
+		return
+	_reinforcement_used = true
+	var reinforcement: PendingReinforcement = PendingReinforcement.new()
+	reinforcement.def = def
+	reinforcement.position = _pick_reinforcement_position()
+	reinforcement.ticks_left = Tuning.LUCIDITY.reinforcement_warning * Engine.physics_ticks_per_second
+	var announced: ReinforcementSign = ReinforcementSign.new()
+	announced.setup(REINFORCEMENT_SIGN_RADIUS_TILES * Const.TILE_SIZE, REINFORCEMENT_SIGN_COLOR, Tuning.LUCIDITY.reinforcement_warning)
+	announced.position = reinforcement.position
+	add_child(announced)
+	reinforcement.sign = announced
+	_pending.append(reinforcement)
+	Audio.play_sfx(REINFORCEMENT_SOUND, 1)
+	Log.info("room", "reinforcement %s announced at %s in %.1fs" % [def.id, reinforcement.position, Tuning.LUCIDITY.reinforcement_warning])
+
+
+## The def present most often in the wave plan (dead ones included). A tie is broken by the combat stream, over the
+## tied ids in alphabetical order; no draw without a tie.
+func _pick_reinforcement_def() -> EnemyDef:
+	var counts: Dictionary = {}
+	var by_id: Dictionary = {}
+	for def: EnemyDef in _wave_defs:
+		var previous: int = counts.get(def.id, 0)
+		counts[def.id] = previous + 1
+		by_id[def.id] = def
+	var best: int = 0
+	for count: int in counts.values():
+		best = maxi(best, count)
+	var tied: Array[StringName] = []
+	for id: StringName in counts:
+		if counts[id] == best:
+			tied.append(id)
+	if tied.is_empty():
+		return null
+	tied.sort()
+	if tied.size() == 1:
+		return by_id[tied[0]]
+	return by_id[tied[_rng.stream(COMBAT_STREAM).randi_range(0, tied.size() - 1)]]
+
+
+## A marker (room coordinates) at least min_spawn_distance from the player, drawn in the combat stream (always one
+## draw). When none is far enough, the farthest one: a reinforcement is never lost, spawn_enemy() fixes the distance.
+func _pick_reinforcement_position() -> Vector2:
+	var markers: Array[Vector2] = []
+	var spawns: Node = get_node_or_null("ReinforcementSpawns")
+	if spawns != null:
+		for child: Node in spawns.get_children():
+			var marker: Marker2D = child as Marker2D
+			if marker != null:
+				markers.append(to_local(marker.global_position))
+	var player_pos: Vector2 = to_local(_player.global_position)
+	if markers.is_empty():
+		Log.error("room", "arena has no reinforcement marker")
+		_assert_failed("Arena needs ReinforcementSpawns markers")
+		return Vector2(_spawn_bounds().get_center())
+	var min_px: float = Tuning.COMBAT.min_spawn_distance * Const.TILE_SIZE
+	var far: Array[Vector2] = []
+	var farthest: Vector2 = markers[0]
+	for marker_pos: Vector2 in markers:
+		if marker_pos.distance_to(player_pos) >= min_px - SPAWN_DISTANCE_EPSILON:
+			far.append(marker_pos)
+		if marker_pos.distance_to(player_pos) > farthest.distance_to(player_pos):
+			farthest = marker_pos
+	if far.is_empty():
+		far.append(farthest)
+	return far[_rng.stream(COMBAT_STREAM).randi_range(0, far.size() - 1)]
+
+
+## The countdown is over: the enemy appears through spawn_enemy(). A refusal that leaves the room empty ends the wave.
+func _appear(reinforcement: PendingReinforcement) -> void:
+	_pending.erase(reinforcement)
+	if is_instance_valid(reinforcement.sign):
+		reinforcement.sign.queue_free()
+	var enemy: Enemy = spawn_enemy(reinforcement.def, reinforcement.position)
+	Log.info("room", "reinforcement %s %s" % [reinforcement.def.id, "appeared" if enemy != null else "failed to appear"])
+	if enemy == null:
+		_emit_emptied_if_done()
+
+
+func _clear_pending() -> void:
+	for reinforcement: PendingReinforcement in _pending:
+		if is_instance_valid(reinforcement.sign):
+			reinforcement.sign.queue_free()
+	_pending.clear()
+
+
+func _on_events_run_ended(_outcome: int) -> void:
+	_clear_pending() # a finished run brings nothing more
+	_wave_active = false
+
+
+## Reinforcements announced and not yet appeared.
+func pending_reinforcement_count() -> int:
+	return _pending.size()
 
 
 ## The wave runner, or null when waves are disabled (verification tools).
@@ -412,7 +575,13 @@ func _overlaps_living_enemy(rect: Rect2) -> bool:
 
 func _on_enemy_tree_exited() -> void:
 	_alive = maxi(_alive - 1, 0)
-	if _alive == 0:
+	_emit_emptied_if_done()
+
+
+## Emptied: nobody alive and no reinforcement still to come (the wave is not over before the last one appeared).
+func _emit_emptied_if_done() -> void:
+	if _alive == 0 and _pending.is_empty():
+		_wave_active = false
 		emptied.emit()
 
 

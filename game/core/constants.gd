@@ -77,3 +77,5 @@ const PHYSICS_PRIORITY_HITBOXES: int = 50
 
 ## Node group of the active room, one at a time (D14): found by debug tools without a node path.
 const GROUP_ROOM: StringName = &"room"
+## Spawn markers of reinforcements (story 3.7), children of the arena's ReinforcementSpawns node.
+const GROUP_REINFORCEMENT_SPAWN: StringName = &"reinforcement_spawn"

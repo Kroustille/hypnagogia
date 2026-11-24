@@ -37,3 +37,6 @@ extends Resource
 @export_range(0, 4, 1) var reinforcement_from_tier: int = 3
 ## First room tier (Lucidity.Tier, as an int) where nightmare bosses add a pattern (read from epic 6).
 @export_range(0, 4, 1) var boss_extra_pattern_from_tier: int = 4
+## Reinforcement (story 3.7): seconds between the announcement sign and the apparition. The minimal distance to the
+## player is Tuning.COMBAT.min_spawn_distance (one rule for every spawn).
+@export_range(0.1, 5.0, 0.05, "or_greater") var reinforcement_warning: float = 0.6
