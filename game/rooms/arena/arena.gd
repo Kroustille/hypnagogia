@@ -13,6 +13,13 @@ extends Node2D
 signal emptied
 
 const WALL_COLOR: Color = Color(0.35, 0.3, 0.55)
+## Placeholder obstacles until epic 4: low ones are lighter (shots pass over them), high ones darker (they stop shots).
+const LOW_OBSTACLE_COLOR: Color = Color(0.42, 0.40, 0.52)
+const HIGH_OBSTACLE_COLOR: Color = Color(0.20, 0.17, 0.34)
+## Top-left cell (frame coordinates) of each 2x2 obstacle block, away from the spawn slots and the player start.
+const LOW_OBSTACLE_CELLS: Array[Vector2i] = [Vector2i(8, 12), Vector2i(29, 5), Vector2i(16, 15)]
+const HIGH_OBSTACLE_CELLS: Array[Vector2i] = [Vector2i(11, 3), Vector2i(27, 13)]
+const OBSTACLE_BLOCK_CELLS: int = 2
 const FLOOR_COLOR: Color = Color(0.09, 0.09, 0.16)
 const FLOOR_ALT_COLOR: Color = Color(0.10, 0.10, 0.18)
 ## Technical pool size of the player's shots (~11 in flight at 4/s over 36 tiles at 14 tiles/s).
@@ -31,6 +38,10 @@ const ENEMY_BULLET_CAPACITY: int = 512
 ## Placeholder Awakening ring, until epic 7: color and lifetime in seconds (visual, not GDD values).
 const AWAKENING_RING_COLOR: Color = Color(0.75, 0.88, 1.0)
 const AWAKENING_RING_DURATION: float = 0.35
+## Placeholder Glide rings, until epic 7: radius in tiles, color, lifetime in seconds (visual, not GDD values).
+const GLIDE_RING_RADIUS_TILES: float = 1.0
+const GLIDE_RING_COLOR: Color = Color(0.6, 0.95, 0.85)
+const GLIDE_RING_DURATION: float = 0.25
 ## Centers closer than this (px²) have no usable direction: the push goes to the right.
 const KNOCKBACK_MIN_OFFSET_SQ: float = 1e-6
 
@@ -49,6 +60,8 @@ const SPAWN_RING_DIRECTIONS: Array[Vector2] = [
 
 @onready var _floor: TileMapLayer = %Floor
 @onready var _walls: TileMapLayer = %Walls
+@onready var _high_obstacles: TileMapLayer = %HighObstacles
+@onready var _low_obstacles: TileMapLayer = %LowObstacles
 var _player: Player
 
 @onready var _camera: Camera2D = %Camera
@@ -79,6 +92,8 @@ func _ready() -> void:
 
 	_floor.z_index = Const.Z_INDEX_DECOR
 	_walls.z_index = Const.Z_INDEX_DECOR
+	_high_obstacles.z_index = Const.Z_INDEX_DECOR
+	_low_obstacles.z_index = Const.Z_INDEX_DECOR
 	_build_tiles(frame_cells)
 	_setup_player_bullets() # after the tiles: the BulletManager needs Walls to have a TileSet
 	_setup_enemy_bullets() # drawn above the player's shots
@@ -188,7 +203,7 @@ func _setup_player_bullets() -> void:
 	bullets.name = "PlayerBullets"
 	bullets.camp = BulletManager.Camp.PLAYER
 	bullets.capacity = PLAYER_BULLET_CAPACITY
-	var solid_layers: Array[TileMapLayer] = [_walls]
+	var solid_layers: Array[TileMapLayer] = [_walls, _high_obstacles] # low obstacles let shots pass
 	bullets.setup(solid_layers) # before add_child()
 	add_child(bullets)
 	# The targets do not need the player: register them even when setup() was skipped.
@@ -210,7 +225,7 @@ func _setup_enemy_bullets() -> void:
 	bullets.z_index = Const.Z_INDEX_ENEMY_BULLETS
 	bullets.camp = BulletManager.Camp.ENEMY
 	bullets.capacity = ENEMY_BULLET_CAPACITY
-	var solid_layers: Array[TileMapLayer] = [_walls]
+	var solid_layers: Array[TileMapLayer] = [_walls, _high_obstacles] # low obstacles let shots pass
 	bullets.setup(solid_layers) # before add_child()
 	add_child(bullets)
 	if _player != null:
@@ -219,6 +234,7 @@ func _setup_enemy_bullets() -> void:
 		bullets.grazed.connect(_player.on_bullet_grazed)
 		bullets.dodged.connect(_player.on_bullet_dodged)
 		_player.awakening_used.connect(_on_awakening_used)
+		_player.glided.connect(_on_player_glided)
 
 
 ## Awakening (story 3.3): wipes the enemy bullets, pushes the close enemies back, shows a ring. origin: global.
@@ -238,11 +254,22 @@ func _on_awakening_used(origin: Vector2) -> void:
 		var direction: Vector2 = offset.normalized() if offset.length_squared() >= KNOCKBACK_MIN_OFFSET_SQ else Vector2.RIGHT
 		enemy.knock_back(direction, push_px)
 		pushed += 1
+	_add_ring(origin, radius_px, AWAKENING_RING_COLOR, AWAKENING_RING_DURATION)
+	Log.debug("combat", "awakening cleared=%d pushed=%d" % [cleared, pushed])
+
+
+## Glide (story 3.4): a ring at the departure and at the arrival. from, to: global.
+func _on_player_glided(from: Vector2, to: Vector2) -> void:
+	var radius_px: float = GLIDE_RING_RADIUS_TILES * Const.TILE_SIZE
+	_add_ring(from, radius_px, GLIDE_RING_COLOR, GLIDE_RING_DURATION)
+	_add_ring(to, radius_px, GLIDE_RING_COLOR, GLIDE_RING_DURATION)
+
+
+func _add_ring(origin: Vector2, radius_px: float, color: Color, duration: float) -> void:
 	var ring: RingPulse = RingPulse.new()
-	ring.setup(radius_px, AWAKENING_RING_COLOR, AWAKENING_RING_DURATION)
+	ring.setup(radius_px, color, duration)
 	ring.position = to_local(origin)
 	add_child(ring)
-	Log.debug("combat", "awakening cleared=%d pushed=%d" % [cleared, pushed])
 
 
 ## Playable area in pixels (cells 1 to 36 by 1 to 19), shrunk by SPAWN_MARGIN_TILES so a body never appears
@@ -314,7 +341,20 @@ func _is_valid_spawn(point: Vector2, bounds: Rect2, player_pos: Vector2, min_px:
 		and point.y >= bounds.position.y and point.y <= bounds.end.y # inclusive: the corners are valid
 	if not inside or point.distance_to(player_pos) < min_px - SPAWN_DISTANCE_EPSILON:
 		return false
-	return not _overlaps_living_enemy(Rect2(point - body_px / 2.0, body_px).grow(SPAWN_BODY_MARGIN))
+	var rect: Rect2 = Rect2(point - body_px / 2.0, body_px).grow(SPAWN_BODY_MARGIN)
+	return not _overlaps_obstacle(rect) and not _overlaps_living_enemy(rect)
+
+
+## True when the rectangle (room coordinates) touches a cell of a low or high obstacle.
+func _overlaps_obstacle(rect: Rect2) -> bool:
+	var first: Vector2i = Vector2i((rect.position / Const.TILE_SIZE).floor())
+	var last: Vector2i = Vector2i((rect.end / Const.TILE_SIZE).floor())
+	for y: int in range(first.y, last.y + 1):
+		for x: int in range(first.x, last.x + 1):
+			var cell: Vector2i = Vector2i(x, y)
+			if _high_obstacles.get_cell_source_id(cell) != -1 or _low_obstacles.get_cell_source_id(cell) != -1:
+				return true
+	return false
 
 
 ## True when the rectangle (room coordinates) touches the body of an enemy that is alive and not being freed.
@@ -381,6 +421,10 @@ func _build_tiles(frame_cells: Vector2i) -> void:
 
 	_floor.tile_set = tile_set
 	_walls.tile_set = tile_set
+	_high_obstacles.tile_set = _make_obstacle_set(Const.LAYER_HIGH_OBSTACLES, HIGH_OBSTACLE_COLOR, tile_size)
+	_low_obstacles.tile_set = _make_obstacle_set(Const.LAYER_LOW_OBSTACLES, LOW_OBSTACLE_COLOR, tile_size)
+	_place_blocks(_high_obstacles, HIGH_OBSTACLE_CELLS)
+	_place_blocks(_low_obstacles, LOW_OBSTACLE_CELLS)
 	for y: int in range(1, frame_cells.y - 1):
 		for x: int in range(1, frame_cells.x - 1):
 			_floor.set_cell(Vector2i(x, y), floor_id, Vector2i.ZERO)
@@ -390,6 +434,32 @@ func _build_tiles(frame_cells: Vector2i) -> void:
 	for y: int in frame_cells.y:
 		_walls.set_cell(Vector2i(0, y), wall_id, Vector2i.ZERO)
 		_walls.set_cell(Vector2i(frame_cells.x - 1, y), wall_id, Vector2i.ZERO)
+
+
+## A TileSet of one full-square tile (source 0) on its own physics layer: a TileSet gives one collision layer to
+## all its tiles, so each kind of obstacle needs its own.
+func _make_obstacle_set(collision_layer: int, color: Color, tile_size: Vector2i) -> TileSet:
+	var tile_set: TileSet = TileSet.new()
+	tile_set.tile_size = tile_size
+	tile_set.add_physics_layer()
+	tile_set.set_physics_layer_collision_layer(0, collision_layer)
+	tile_set.set_physics_layer_collision_mask(0, 0)
+	var source: TileSetAtlasSource = _make_source(_solid_image(color), tile_size)
+	tile_set.add_source(source)
+	var half: float = Const.TILE_SIZE / 2.0
+	var data: TileData = source.get_tile_data(Vector2i.ZERO, 0)
+	data.add_collision_polygon(0)
+	data.set_collision_polygon_points(0, 0, PackedVector2Array([
+		Vector2(-half, -half), Vector2(half, -half), Vector2(half, half), Vector2(-half, half),
+	]))
+	return tile_set
+
+
+func _place_blocks(layer: TileMapLayer, top_left_cells: Array[Vector2i]) -> void:
+	for top_left: Vector2i in top_left_cells:
+		for y: int in OBSTACLE_BLOCK_CELLS:
+			for x: int in OBSTACLE_BLOCK_CELLS:
+				layer.set_cell(top_left + Vector2i(x, y), 0, Vector2i.ZERO)
 
 
 ## Order matters: texture, then region size, then create_tile.

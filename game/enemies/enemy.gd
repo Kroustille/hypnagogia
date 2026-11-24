@@ -45,7 +45,7 @@ func _ready() -> void:
 		return
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 	collision_layer = Const.LAYER_ENEMIES
-	collision_mask = Const.LAYER_WALLS | Const.LAYER_PLAYER | Const.LAYER_ENEMIES
+	collision_mask = Const.LAYER_WALLS | Const.LAYER_PLAYER | Const.LAYER_ENEMIES | Const.LAYER_HIGH_OBSTACLES | Const.LAYER_LOW_OBSTACLES
 
 	_body.shape = _make_rectangle(_def.body_size)
 	_body.position = Vector2.ZERO

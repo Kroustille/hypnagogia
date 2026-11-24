@@ -12,6 +12,12 @@ unique_name_in_owner = true
 [node name="Walls" type="TileMapLayer" parent="."]
 unique_name_in_owner = true
 
+[node name="HighObstacles" type="TileMapLayer" parent="."]
+unique_name_in_owner = true
+
+[node name="LowObstacles" type="TileMapLayer" parent="."]
+unique_name_in_owner = true
+
 [node name="Targets" type="Node2D" parent="."]
 unique_name_in_owner = true
 
