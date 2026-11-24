@@ -11,6 +11,8 @@ var _session: TelemetrySession
 var _path: String = ""
 var _start_msec: int = 0
 var _last_hit_source: int = -1
+## Wake time set just before run_ended (-1 none).
+var _wake_minute: int = -1
 var _ended: bool = false
 var _disabled: bool = false
 
@@ -36,6 +38,7 @@ func _ready() -> void:
 	Events.player_hit.connect(_on_events_player_hit)
 	Events.run_started.connect(_on_events_run_started)
 	Events.run_seeded.connect(_on_events_run_seeded)
+	Events.wake_time_set.connect(_on_events_wake_time_set)
 	Events.run_ended.connect(_on_events_run_ended)
 	Events.room_entered.connect(_on_events_room_entered)
 	Events.lucidity_tier_changed.connect(_on_events_lucidity_tier_changed)
@@ -130,10 +133,16 @@ func _on_events_item_acquired(item_id: StringName, _copies: int) -> void:
 
 ## Only a defeat is a death: the cause and the question "was it fair?" belong to it. A victory is its own event.
 ## An outcome unknown to this build is a defeat, as for the wake screen.
+## The wake time arrives just before run_ended (story 6.6).
+func _on_events_wake_time_set(minute: int) -> void:
+	_wake_minute = minute
+
+
 func _on_events_run_ended(outcome: int) -> void:
 	var victory: bool = outcome == Run.Outcome.VICTORY
 	var outcome_name: String = TelemetrySession.OUTCOME_VICTORY if victory else TelemetrySession.OUTCOME_DEATH
-	var tiers: Array[float] = _session.run_ended(_now(), outcome_name)
+	var tiers: Array[float] = _session.run_ended(_now(), outcome_name, _wake_minute)
+	_wake_minute = -1
 	if not tiers.is_empty():
 		Log.info("lucidity", "time per tier (s) %s" % [TelemetrySession.tier_dict(tiers)])
 	if victory:

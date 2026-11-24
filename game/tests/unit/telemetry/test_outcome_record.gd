@@ -48,3 +48,13 @@ func test_a_run_cut_by_a_restart_is_abandoned() -> void:
 	session.run_started(4.0)
 	var cut_outcome: String = session.events[2]["outcome"]
 	assert_eq(cut_outcome, "abandoned")
+
+
+func test_the_wake_time_is_in_the_run_end() -> void:
+	var session: TelemetrySession = _session()
+	session.run_ended(5.0, TelemetrySession.OUTCOME_DEATH, 1419)
+	var run_end: Dictionary = session.events[2]
+	var minute: int = run_end["wake_minute"]
+	var wake: String = run_end["wake"]
+	assert_eq(minute, 1419)
+	assert_eq(wake, "23:39")

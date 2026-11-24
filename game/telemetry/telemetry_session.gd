@@ -118,10 +118,10 @@ func item_taken(item_id: String) -> void:
 
 ## Run end: the time in each tier of this run, as a "run_end" event carrying the outcome ("death" or "victory").
 ## Returns that run's seconds per tier.
-func run_ended(at: float, outcome: String = OUTCOME_DEATH) -> Array[float]:
+func run_ended(at: float, outcome: String = OUTCOME_DEATH, wake_minute: int = -1) -> Array[float]:
 	if _tier == -1:
 		return []
-	_close_tiers(at, outcome)
+	_close_tiers(at, outcome, wake_minute)
 	return _run_tier_seconds.duplicate()
 
 
@@ -195,12 +195,12 @@ func _credit(at: float) -> void:
 
 
 ## Ends the tier tracking of the run in progress, if any; records its seconds per tier as a "run_end" event.
-func _close_tiers(at: float, outcome: String) -> void:
+func _close_tiers(at: float, outcome: String, wake_minute: int = -1) -> void:
 	if _tier == -1:
 		return
 	_credit(at)
 	_tier = -1
-	_add("run_end", at, {"outcome": outcome, "tier_seconds": tier_dict(_run_tier_seconds), "spends": _run_spends.duplicate(true), "items": _run_items.duplicate(), "shards": _run_shards})
+	_add("run_end", at, {"outcome": outcome, "tier_seconds": tier_dict(_run_tier_seconds), "spends": _run_spends.duplicate(true), "items": _run_items.duplicate(), "shards": _run_shards, "wake_minute": wake_minute, "wake": WakeClock.format(wake_minute) if wake_minute >= 0 else ""})
 
 
 ## Tier name (Lucidity.Tier key, lower case) to seconds, rounded to 10 ms.
