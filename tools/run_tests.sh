@@ -33,7 +33,7 @@ if [ $# -gt 0 ]; then
 	esac
 fi
 
-timeout --kill-after=10 "${TEST_TIMEOUT:-300}" godot --headless --path game -s addons/gut/gut_cmdln.gd "${ARGS[@]}" 2>&1 | tee "$OUT"
+timeout --kill-after=10 "${TEST_TIMEOUT:-300}" godot --headless --path game --fixed-fps 60 -s addons/gut/gut_cmdln.gd "${ARGS[@]}" 2>&1 | tee "$OUT"
 status=${PIPESTATUS[0]}
 if [ "$status" -eq 124 ] || [ "$status" -eq 137 ]; then
 	echo "run_tests: timed out" >&2
