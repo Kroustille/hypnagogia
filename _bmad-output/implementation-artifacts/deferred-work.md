@@ -118,7 +118,7 @@
 
 ## Deferred from: code review of 2-2-mourir-et-relancer-en-moins-de-3-secondes (2026-11-21)
 
-- `Main._on_events_run_ended()` ignore `outcome` : toute issue ouvre l'écran de réveil de la mort (« Tu te réveilles. »). La victoire (story 6.4) devra brancher sur `Run.Outcome` (et journaliser une issue inconnue en `Log.warn`).
+- [traité en 6.4] `Main._on_events_run_ended()` ignore `outcome` : toute issue ouvre l'écran de réveil de la mort (« Tu te réveilles. »). La victoire (story 6.4) devra brancher sur `Run.Outcome` (et journaliser une issue inconnue en `Log.warn`).
 - Le joueur vit dans `Run` et survit à la salle, mais garde le `PlayerBullets` de l'arène (`equip_bullets()`) et sa hurtbox reste inscrite dans l'`EnemyBullets` de l'arène jusqu'à sa propre sortie de l'arbre. Au changement de salle (story 4.8) : déséquiper et désinscrire à la sortie de la salle, en même temps que l'entrée « `equip_bullets()` répétable » de la story 1-4.
 - Garde de 0,3 s de l'écran de réveil comptée en ticks de physique bruts : après un à-coup d'image au moment de la mort, le rattrapage (plusieurs ticks par image) peut l'écouler en une ou deux images affichées. **NON ÉVALUÉ** : à juger avec la mesure de la relance sur la machine de référence (story 1.8).
 
@@ -219,7 +219,7 @@
 
 ## Deferred from: code review of 2-8-dire-si-sa-mort-etait-juste (2026-11-23)
 
-- **`Telemetry._on_events_run_ended` ignore l'issue** (story 6.4, victoire) : toute fin de partie est comptée en `deaths`, ajoute un événement `death` et ouvre une question qui deviendra `no_answer`. À la victoire : ne journaliser une mort que pour `DEATH` (l'issue arrive en entier sur le bus), et un événement `run_end` distinct pour les autres issues.
+- [traité en 6.4] **`Telemetry._on_events_run_ended` ignore l'issue** (story 6.4, victoire) : toute fin de partie est comptée en `deaths`, ajoute un événement `death` et ouvre une question qui deviendra `no_answer`. À la victoire : ne journaliser une mort que pour `DEATH` (l'issue arrive en entier sur le bus), et un événement `run_end` distinct pour les autres issues.
 - **Cause de mort périmée pour une mort sans `player_hit`** (story 4.3, fosses) : `_last_hit_source` n'est remis à zéro qu'au début de partie ; une mort qui ne passe pas par `player_hit` serait attribuée au dernier coup reçu, même ancien. Aujourd'hui toute mort passe par `player_hit` dans le même tick. Si les fosses tuent autrement : n'accepter la source que si elle date du même tick physique, ou porter la cause dans `run_ended`.
 - **Sessions de dev dans `user://telemetry/`** (story 1.8) : chaque lancement (éditeur, `--quit-after`, scènes de `run_all.sh`) écrit sa session ; seul `t_telemetry` supprime la sienne. Sans effet sur les builds des amis ; sur la machine de dev, ignorer le headless (sauf argument `--telemetry` passé par `t_telemetry`) ou marquer la session `"debug": true`.
 - **Télémétrie sans avertissement ni option pour la couper** (story 1.8 / préparation du playtest du jalon A) : aucun texte ne dit au joueur que des fichiers sont écrits. Ajouter une ligne dans le README livré avec le build (où trouver les fichiers, quoi renvoyer), voire un réglage plus tard. Contenu : horodatage local et compteurs, aucune donnée personnelle.
@@ -235,7 +235,7 @@
 - **Télémétrie : palier de départ supposé Lucide** (avant le playtest du jalon A ; non traité par la 3.6, retagué en revue) : `TelemetrySession.run_started` pose `_tier = 0` et ignore les changements de palier d'avant `run_started`. Faux si `max_value < tier_floors[0]` ou si le palier change entre l'arrivée du joueur et `run_started`. Correction : `Telemetry` garde le dernier palier reçu par `Events.lucidity_value_changed(value, tier)` et le passe à `run_started(at, tier)`.
 - **Jauge : repères au pixel près** (story 7.2, aspect final du HUD) : sur 158 px, 76 s'affiche comme 75 et 26 comme 25 (le repère recouvre le dernier pixel), 51 dépasse le repère d'un pixel ; seule la couleur sépare les paliers. Le choix des repères (`floor_value > 1`) ne marche que si le plancher d'Abandon vaut 1 : sauter le dernier plancher par son indice, placer chaque repère entre `floor - 1` et `floor`.
 - **Abandon total invisible sur la jauge** (story 3.8) : à 0 le remplissage est vide, ni la couleur du palier ni le flash ne se voient ; seuls l'étiquette et le son l'annoncent. Teinter le fond ou flasher toute la zone intérieure.
-- **Événement `run_end` ambigu et ligne INFO seulement à la mort** (story 6.4) : `run_end` sert à la mort, à la relance F1 et à la sortie, sans champ pour les distinguer, et précède l'événement `death` de la même partie. Ajouter `reason` (`ended`, `restarted`, `session_end`) et écrire aussi la ligne `Log.info("lucidity", …)` pour les fins sans mort (décision 10 de la story 3.1).
+- [partiellement traité en 6.4 : `run_end.outcome` ajouté, pas de `reason`] **Événement `run_end` ambigu et ligne INFO seulement à la mort** (story 6.4) : `run_end` sert à la mort, à la relance F1 et à la sortie, sans champ pour les distinguer, et précède l'événement `death` de la même partie. Ajouter `reason` (`ended`, `restarted`, `session_end`) et écrire aussi la ligne `Log.info("lucidity", …)` pour les fins sans mort (décision 10 de la story 3.1).
 - **`summary.tier_seconds` sans la partie en cours** (story 1.8) : le temps par palier n'est crédité qu'en fin de partie ou de session ; après un crash, `play_seconds` compte la partie mais `tier_seconds` non. Dans `to_dict(at)`, ajouter le tronçon ouvert `at - _tier_since` au palier en cours sans modifier l'état.
 - **`Lucidity.gain()` accepte un montant négatif** (story 3.3) : une dépense déguisée qui contourne `try_spend`. Ajouter `assert(amount >= 0)`.
 
@@ -545,7 +545,7 @@
 ## Deferred from: code review of 6-2-affronter-le-professeur-calcul-mental-et-examen-final (2026-11-24)
 
 - **NON ÉVALUÉ (humain) : parade de la règle après réglage** (playtest du jalon A) : à 0,75 tuile / 12 t/s, dash sur place = 5 ticks de fenêtre (0,08 s), dash vers la barre ≈ 19 ticks, fuite impossible. Si trop dur : 0,5 tuile / 10 t/s donne 6 ticks ; si trop facile : revenir vers 1 tuile.
-- **`validate()` du genre RULER n'empêche pas la barre de sauter le joueur** (story 6.4, ou premier réglage de la règle) : `game/bosses/boss_attack.gd:76` borne `sweep_speed` à 1 tuile/tick ; une barre fine et rapide (pas > épaisseur + corps) peut passer sans recouvrement. Exiger `sweep_speed < thickness_tiles * Engine.physics_ticks_per_second`.
+- [traité en 6.4] **`validate()` du genre RULER n'empêche pas la barre de sauter le joueur** (story 6.4, ou premier réglage de la règle) : `game/bosses/boss_attack.gd:76` borne `sweep_speed` à 1 tuile/tick ; une barre fine et rapide (pas > épaisseur + corps) peut passer sans recouvrement. Exiger `sweep_speed < thickness_tiles * Engine.physics_ticks_per_second`.
 - **RÉSOLU en 6.3 (`Boss._validate_def`, plancher de 1 s sur `alternate_seconds`)** : **`BossPhase.validate()` jamais appelé en jeu** (story 6.3, qui ajoute un motif aux ensembles) : seuls les tests l'appellent ; `Boss._start_phase` (`game/bosses/boss.gd`) valide les attaques une à une mais pas `alternate_seconds` (0,01 s ⇒ un changement d'ensemble par tick) ni un groupe `null`. L'appeler dans `_start_phase` (`Log.error` + `_assert_failed`, alternance coupée).
 
 
@@ -556,3 +556,5 @@
 ## Deferred from: code review of 6-3-subir-l-interro-surprise-en-abandon-total (2026-11-24)
 
 - **Titre de l'Interro en dur dans la classe générique `Boss`** (story qui ajoute un deuxième boss avec un `extra_attack`) : `game/bosses/boss.gd:17` `EXTRA_TITLE_KEY = &"BOSS_PROFESSOR_EXTRA"` ; tout autre boss afficherait « Interro surprise ». Passer la clé dans la donnée (`BossDef.extra_title_key`, comme `BossPhase.title_key`), validée non vide quand `extra_attack` existe.
+
+- **Délai de victoire de 2 s (`boss_victory_delay`) et écran de réveil de la victoire** (story 6.4) : ressenti NON ÉVALUÉ (est-ce trop long ? la craie qui s'efface et les Éclats sont-ils lisibles ?).

@@ -1,6 +1,6 @@
 # Story 6.4 : Gagner la nuit
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -26,13 +26,13 @@ Hors périmètre : chambre et retour à la chambre (6.5), heure du réveil (6.6)
 
 ## Tâches
 
-- [ ] `boss.gd` : `_on_death()` (arrêt, nettoyage, Éclats, `boss_defeated`) ; `BossDef.reward_shards = 10`. Le nettoyage de `clear_all()` passe par `Room.enemy_bullets()` ; `Hitbox` de règle libéré.
-- [ ] `autoloads/events.gd` : `boss_defeated(boss_id: StringName)` ; la doc de `run_ended` cite `VICTORY`.
-- [ ] `run/run.gd` : `Outcome { DEATH = 0, VICTORY = 1 }` ; écoute de `boss_defeated` (connectée dans `_ready()`) ; `_physics_process` qui compte le délai (aujourd'hui `Run` n'en a pas : l'ajouter, `set_physics_process(false)` tant qu'il n'est pas utile) ; `deepest_floor_index()` ; garde `_victory_pending` dans `_on_room_door_taken` et `travel`. `core/room_tuning.gd` + `room_tuning.tres` : `boss_victory_delay = 2.0`.
-- [ ] `main/main.gd` : `_on_events_run_ended(outcome)` ; `ui/menus/wake_screen.gd` : `open(seed_code, outcome)` (titre, question masquée, focus sur « Se rendormir »). `strings.csv` : `UI_WAKE_TITLE_VICTORY`.
-- [ ] `telemetry/telemetry.gd`, `telemetry_session.gd` : issue de la run (voir AC 5) ; tests de télémétrie existants mis à jour sans les affaiblir.
-- [ ] `debug/debug_panel.gd` : la touche existante qui tue les ennemis (`K`) doit marcher sur le boss (la mort passe par `kill()` → `_die()` → `_on_death()`).
-- [ ] Tests.
+- [x] `boss.gd` : `_on_death()` (arrêt, nettoyage, Éclats, `boss_defeated`) ; `BossDef.reward_shards = 10`. Le nettoyage de `clear_all()` passe par `Room.enemy_bullets()` ; `Hitbox` de règle libéré.
+- [x] `autoloads/events.gd` : `boss_defeated(boss_id: StringName)` ; la doc de `run_ended` cite `VICTORY`.
+- [x] `run/run.gd` : `Outcome { DEATH = 0, VICTORY = 1 }` ; écoute de `boss_defeated` (connectée dans `_ready()`) ; `_physics_process` qui compte le délai (aujourd'hui `Run` n'en a pas : l'ajouter, `set_physics_process(false)` tant qu'il n'est pas utile) ; `deepest_floor_index()` ; garde `_victory_pending` dans `_on_room_door_taken` et `travel`. `core/room_tuning.gd` + `room_tuning.tres` : `boss_victory_delay = 2.0`.
+- [x] `main/main.gd` : `_on_events_run_ended(outcome)` ; `ui/menus/wake_screen.gd` : `open(seed_code, outcome)` (titre, question masquée, focus sur « Se rendormir »). `strings.csv` : `UI_WAKE_TITLE_VICTORY`.
+- [x] `telemetry/telemetry.gd`, `telemetry_session.gd` : issue de la run (voir AC 5) ; tests de télémétrie existants mis à jour sans les affaiblir.
+- [x] `debug/debug_panel.gd` : la touche existante qui tue les ennemis (`K`) doit marcher sur le boss (la mort passe par `kill()` → `_die()` → `_on_death()`).
+- [x] Tests.
 
 ## État du code concerné
 
@@ -76,6 +76,16 @@ epics.md (Story 6.4) ; GDD, Conditions de victoire (réveil de soi-même, un seu
 
 ### Notes de complétion
 
+- Mort du boss : `Boss._on_death()` arrête les runners, vide le `BulletManager` ennemi, annule les renforts en attente, fait gagner `BossDef.reward_shards` (10) via `shards_collected` puis émet `boss_defeated`. `Run` attend `boss_victory_delay` (2 s, ticks `WORLD`, `_physics_process` allumé seulement pendant l'attente), joueur invulnérable forcé, `travel()` et portes refusés, puis `run_ended(VICTORY)` une fois. Mort avant le boss : défaite ; boss d'un étage moins profond : journalisé, la run continue.
+- `Main` et `WakeScreen.open(seed, outcome)` : victoire = titre « de toi-même », question et boutons Oui/Non masqués ; issue inconnue = `Log.warn` + défaite. Télémétrie : `victory` + `victories`, `run_end.outcome` (`death`, `victory`, et `abandoned` pour une run coupée par un redémarrage ou la fin de session : décision ajoutée, sans elle le champ aurait été absent de ces `run_end`) ; issue inconnue traitée en défaite.
+- Deferred 6.4 traités : issue ignorée par `Main`, toute fin comptée comme mort, `BossAttack.validate()` du genre RULER refuse `sweep_speed >= thickness_tiles * ticks/s`. Le debug `0` (tue tout) passe par `kill()` : rien à changer (la touche `K` du texte est en fait « consommable »).
+- Revue 6.3 intégrée au passage (garde `phases.has(null)`, attaque `null`), commits séparés.
+- Vérifié : GUT 734/734, `run_all.sh` ALL PASS (normal), `--quit-after 120` propre. Délai de 2 s NON ÉVALUÉ (ressenti).
+
 ### Liste des fichiers
 
+game/bosses/{boss,boss_def,boss_attack}.gd, autoloads/events.gd, run/run.gd, core/room_tuning.gd, data/tuning/room_tuning.tres, main/main.gd, ui/menus/wake_screen.gd, telemetry/{telemetry,telemetry_session}.gd, localization/strings.csv ; tests : integration/bosses/test_boss_defeat, integration/run/test_victory_flow, unit/ui/test_wake_screen, unit/telemetry/test_outcome_record, unit/bosses/test_boss_def.
+
 ### Journal des modifications
+
+- 2026-11-24 : victoire à la mort du Professeur, écran de réveil et télémétrie par issue.
