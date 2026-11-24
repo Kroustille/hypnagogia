@@ -96,17 +96,17 @@ development_status:
   epic-4-retrospective: optional
 
   # Epic 5: Construire son build
-  epic-5: backlog
-  5-1-ramasser-un-objet-et-comprendre-son-prix: backlog
-  5-2-trouver-un-objet-dans-la-salle-tresor: backlog
-  5-3-porter-un-consommable: backlog
-  5-4-gagner-des-eclats-et-des-drops-selon-son-palier: backlog
-  5-5-acheter-a-la-boutique: backlog
-  5-6-les-objets-de-la-chute-ailes-de-papier-et-chute-libre: backlog
-  5-7-declencher-les-synergies-de-la-chute: backlog
-  5-8-utiliser-l-objet-actif-reveil-casse: backlog
-  5-9-copie-d-examen-vierge-et-etre-nu-en-public: backlog
-  5-10-affronter-son-reflet-le-miroir: backlog
+  epic-5: in-progress
+  5-1-ramasser-un-objet-et-comprendre-son-prix: ready-for-dev
+  5-2-trouver-un-objet-dans-la-salle-tresor: ready-for-dev
+  5-3-porter-un-consommable: ready-for-dev
+  5-4-gagner-des-eclats-et-des-drops-selon-son-palier: ready-for-dev
+  5-5-acheter-a-la-boutique: ready-for-dev
+  5-6-les-objets-de-la-chute-ailes-de-papier-et-chute-libre: ready-for-dev
+  5-7-declencher-les-synergies-de-la-chute: ready-for-dev
+  5-8-utiliser-l-objet-actif-reveil-casse: ready-for-dev
+  5-9-copie-d-examen-vierge-et-etre-nu-en-public: ready-for-dev
+  5-10-affronter-son-reflet-le-miroir: ready-for-dev
   epic-5-retrospective: optional
 
   # Epic 6: Une nuit complète, de la chambre au réveil
