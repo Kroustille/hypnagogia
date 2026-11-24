@@ -181,3 +181,11 @@ func test_an_enemy_that_has_not_appeared_is_not_dazzled_and_a_reinforcement_stil
 	assert_not_null(newcomer, "a second enemy is in the room")
 	if newcomer != null:
 		assert_false(newcomer.is_dazzled(), "it appeared after the flash")
+
+
+func test_a_spent_lamp_does_not_swallow_a_second_shot_of_the_same_tick() -> void:
+	_shoot_lamp(_harness.room.player_bullets())
+	_shoot_lamp(_harness.room.player_bullets())
+	await _harness.ticks(4)
+	assert_true(_lamp.is_spent())
+	assert_eq(_harness.room.player_bullets().active_count, 1, "one shot set it off, the other flew through")

@@ -124,7 +124,8 @@ func _on_damage_received(info: DamageInfo, box: Hurtbox) -> void:
 		_destroy()
 
 
-## Once. The hit filter answers false at once (bullets of this very tick pass through); the physics objects are
+## Once. The hit filter answers false at once (HP drop no further; shots of this very tick already tested by a
+## BulletManager are still consumed, as for an enemy: from the next tick on they pass through); the physics objects are
 ## switched off in a deferred call, as a physics callback may be running. The BulletManagers unregister the hurtboxes
 ## when the node leaves the tree (never from inside their hit delivery).
 func _destroy() -> void:

@@ -270,6 +270,15 @@ static func _check_furniture(room: Room, playable: Vector2i, problems: PackedStr
 		if piece.def == null:
 			problems.append("%s has no def" % label)
 			continue
+		if piece.def.size.x < 1 or piece.def.size.y < 1:
+			problems.append("%s has an invalid size" % label)
+			continue
+		if not (is_finite(piece.def.max_hp) and piece.def.max_hp > 0.0):
+			problems.append("%s has invalid max_hp" % label)
+		var half: float = Const.TILE_SIZE / 2.0
+		if not is_equal_approx(fposmod(piece.position.x, Const.TILE_SIZE), half) or not is_equal_approx(fposmod(piece.position.y, Const.TILE_SIZE), half):
+			problems.append("%s is not on a tile center" % label)
+			continue
 		var outside: bool = false
 		var on_what: Dictionary = {}
 		for cell: Vector2i in _cells_of(piece):

@@ -102,3 +102,33 @@ func test_trigger_with_an_unknown_kind_is_reported() -> void:
 	assert_eq(problems.size(), 1, str(problems))
 	if problems.size() == 1:
 		assert_string_contains(problems[0], "unknown kind")
+
+
+func test_furniture_with_an_invalid_size_is_reported() -> void:
+	var problems: PackedStringArray = _problems_after(func(room: Room) -> void:
+		var piece: Furniture = room.furnitures()[0]
+		piece.def = piece.def.duplicate() as FurnitureDef # never edit the shared resource
+		piece.def.size = Vector2i(0, 1))
+	assert_eq(problems.size(), 1, str(problems))
+	if problems.size() == 1:
+		assert_string_contains(problems[0], "has an invalid size")
+
+
+func test_furniture_with_invalid_max_hp_is_reported() -> void:
+	for bad: float in [0.0, -5.0, INF, NAN]:
+		var problems: PackedStringArray = _problems_after(func(room: Room) -> void:
+			var piece: Furniture = room.furnitures()[0]
+			piece.def = piece.def.duplicate() as FurnitureDef
+			piece.def.max_hp = bad)
+		assert_eq(problems.size(), 1, "max_hp %s: %s" % [bad, problems])
+		if problems.size() == 1:
+			assert_string_contains(problems[0], "has invalid max_hp")
+
+
+func test_furniture_off_a_tile_center_is_reported() -> void:
+	for shift: Vector2 in [Vector2(8, 0), Vector2(0, -8), Vector2(3, 0)]:
+		var problems: PackedStringArray = _problems_after(func(room: Room) -> void:
+			room.furnitures()[0].position += shift)
+		assert_eq(problems.size(), 1, "shift %s: %s" % [shift, problems])
+		if problems.size() == 1:
+			assert_string_contains(problems[0], "is not on a tile center")

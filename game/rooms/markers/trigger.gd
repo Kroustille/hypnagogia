@@ -41,6 +41,7 @@ func _ready() -> void:
 	hurtbox = Hurtbox.new()
 	hurtbox.name = "Hurtbox"
 	hurtbox.camp = BulletManager.Camp.ENEMY # hit by the player's camp only
+	hurtbox.one_hit_per_tick = true # it goes off once: the other shots of the tick pass through
 	hurtbox.add_child(shape_node) # before add_child(): its _ready() looks for it
 	add_child(hurtbox)
 	hurtbox.set_hit_filter(_can_be_hit)

@@ -69,7 +69,7 @@ func test_furniture_has_no_hitbox_so_it_hurts_nobody() -> void:
 	assert_eq(_bed.find_children("*", "Hitbox", true, false).size(), 0)
 
 
-func test_the_30th_hit_destroys_it_once_and_the_shots_of_that_tick_pass() -> void:
+func test_the_30th_hit_destroys_it_once_and_the_shots_of_that_tick_are_consumed() -> void:
 	watch_signals(_bed)
 	_shoot_at(_bed, _harness.room.player_bullets(), 31) # 31 shots at the same spot: they all arrive in the same tick
 	await _harness.ticks(30)
