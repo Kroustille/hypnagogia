@@ -41,6 +41,7 @@ func _ready() -> void:
 	Events.lucidity_tier_changed.connect(_on_events_lucidity_tier_changed)
 	Events.lucidity_spent.connect(_on_events_lucidity_spent)
 	Events.item_acquired.connect(_on_events_item_acquired)
+	Events.shards_changed.connect(_on_events_shards_changed)
 	Events.death_judged.connect(_on_events_death_judged)
 	_write()
 
@@ -110,6 +111,10 @@ func _on_events_lucidity_tier_changed(tier: int, _previous_tier: int) -> void:
 
 func _on_events_lucidity_spent(power: StringName, _cost: int, tier: int) -> void:
 	_session.spent(String(power), tier)
+
+
+func _on_events_shards_changed(total: int) -> void:
+	_session.shards_changed(total)
 
 
 func _on_events_item_acquired(item_id: StringName, _copies: int) -> void:

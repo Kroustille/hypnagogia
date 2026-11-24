@@ -58,6 +58,7 @@ func _ready() -> void:
 	# First, so that the end of the run is notified even when the room below fails to load (AR28).
 	_player.died.connect(_on_player_died)
 	Events.room_cleared.connect(_on_events_room_cleared)
+	Events.shards_collected.connect(_on_events_shards_collected)
 	var playing_floor: bool = _options.mode == RunOptions.Mode.FLOOR and _start_floor()
 	if not playing_floor and not _start_single_room():
 		if _options.mode != RunOptions.Mode.ROOM:
@@ -71,6 +72,7 @@ func _ready() -> void:
 	Log.info("run", "run started seed=%s seeded=%s" % [rng.seed_code(), state.seeded])
 	Events.run_started.emit()
 	Events.run_seeded.emit(rng.seed_code(), state.seeded) # after run_started: the telemetry run exists
+	Events.shards_changed.emit(state.shards) # 0: the HUD and the telemetry start the run from it
 	if playing_floor:
 		_announce_room() # after run_started: the telemetry session exists
 
@@ -332,9 +334,42 @@ func _fall_back_to_arena(reason: String) -> void:
 	_start_single_room()
 
 
-func _on_events_room_cleared(room: Node, _lowest_tier: int) -> void:
-	if room != null and room == _room:
-		floor_map.mark_cleared(_cell)
+func _on_events_room_cleared(room: Node, lowest_tier: int) -> void:
+	if room == null or room != _room:
+		return
+	floor_map.mark_cleared(_cell)
+	_roll_loot(_room, lowest_tier)
+
+
+## A combat room was emptied: shards, and maybe a drop (story 5.4). The draws on the drops stream are always the same ones
+## (see Loot), the drop itself is laid on the next idle moment: this runs inside the emission of room_cleared.
+func _roll_loot(room: Room, lowest_tier: int) -> void:
+	if _ended or _player.health.is_dead() or room.room_type != Room.RoomType.COMBAT:
+		return
+	var result: Loot.LootResult = Loot.roll(lowest_tier, rng.stream(RunRng.DROPS, state.floor_index), Tuning.LUCIDITY,
+			Tuning.ECONOMY)
+	add_shards(result.shards)
+	for index: int in result.drops.size():
+		Drops.spawn(room, result.drops[index] as Drops.Kind, room.last_kill_position(), result.consumable_rolls[index])
+	Log.info("economy", "room cleared tier=%d shards=%d drops=%s" % [lowest_tier, result.shards, result.drops])
+
+
+## The shards held change (a room cleared, a pickup, later a purchase): the state and the bus.
+func add_shards(amount: int) -> void:
+	state.add_shards(amount)
+	Events.shards_changed.emit(state.shards)
+
+
+## Pays shards (story 5.5). False when there are not enough.
+func spend_shards(amount: int) -> bool:
+	if not state.spend_shards(amount):
+		return false
+	Events.shards_changed.emit(state.shards)
+	return true
+
+
+func _on_events_shards_collected(amount: int) -> void:
+	add_shards(amount)
 
 
 ## The floor of this run, generated on the first request and kept: it depends on the seed only, never on the player.

@@ -20,7 +20,7 @@ const SHARD_COLOR: Color = Color(0.85, 0.8, 0.4)
 ## Hues a consumable id picks its placeholder icon color from.
 const CONSUMABLE_HUE_STEPS: int = 360
 
-var _shards: int = 0 # static 0 until epic 5 (decision 4), then set from an Events signal
+var _shards: int = 0 # follows Events.shards_changed (story 5.4)
 
 var _hearts: HeartRow
 var _lucidity_slot: HudSlot
@@ -69,6 +69,7 @@ func _ready() -> void:
 	_active_item_slot = _make_slot("ActiveItemSlot", ITEM_SLOT_SIZE, Vector2(active_x, slot_y))
 	Events.consumable_changed.connect(_on_events_consumable_changed)
 	Events.run_started.connect(_on_events_run_started)
+	Events.shards_changed.connect(_on_events_shards_changed)
 
 	_shards_label = Label.new()
 	_shards_label.name = "ShardsLabel"
@@ -144,6 +145,12 @@ func _on_events_consumable_changed(id: StringName, name_key: StringName) -> void
 	var name_text: String = tr(name_key)
 	var color: Color = Color.from_hsv(float(id.hash() % CONSUMABLE_HUE_STEPS) / CONSUMABLE_HUE_STEPS, 0.55, 0.45)
 	_consumable_slot.set_content(color, name_text.left(1))
+
+
+## The total of shards the player holds.
+func _on_events_shards_changed(total: int) -> void:
+	_shards = total
+	_refresh_shards()
 
 
 ## A new run starts with nothing in the slot.

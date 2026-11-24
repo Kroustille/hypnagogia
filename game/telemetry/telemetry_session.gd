@@ -25,6 +25,8 @@ var spends: Dictionary = {}
 var _run_spends: Dictionary = {}
 ## item_id of the items taken, in order: of the current run, and by id with their count over the session (story 5.1).
 var _run_items: Array[String] = []
+## Shards held now in the run in progress, written in its "run_end" (story 5.4).
+var _run_shards: int = 0
 var items: Dictionary = {}
 ## True from a death until it is answered or skipped.
 var _death_open: bool = false
@@ -47,6 +49,7 @@ func run_started(at: float) -> void:
 	_run_tier_seconds = [0.0, 0.0, 0.0, 0.0, 0.0]
 	_run_spends = {}
 	_run_items = []
+	_run_shards = 0
 	_add("run_start", at)
 
 
@@ -84,6 +87,13 @@ func spent(power: String, tier: int) -> void:
 	var tier_name: String = str(Lucidity.Tier.find_key(tier)).to_lower()
 	_count_spend(spends, power, tier_name)
 	_count_spend(_run_spends, power, tier_name)
+
+
+## The shards held changed (ignored outside a run).
+func shards_changed(total: int) -> void:
+	if _tier == -1:
+		return
+	_run_shards = total
 
 
 ## The player took an item (ignored outside a run).
@@ -169,7 +179,7 @@ func _close_tiers(at: float) -> void:
 		return
 	_credit(at)
 	_tier = -1
-	_add("run_end", at, {"tier_seconds": tier_dict(_run_tier_seconds), "spends": _run_spends.duplicate(true), "items": _run_items.duplicate()})
+	_add("run_end", at, {"tier_seconds": tier_dict(_run_tier_seconds), "spends": _run_spends.duplicate(true), "items": _run_items.duplicate(), "shards": _run_shards})
 
 
 ## Tier name (Lucidity.Tier key, lower case) to seconds, rounded to 10 ms.
