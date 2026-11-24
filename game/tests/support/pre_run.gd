@@ -13,6 +13,7 @@ func run() -> void:
 	if temp == null:
 		# Never fall back to user://: from the editor that would write the player's own files.
 		push_error("pre_run: cannot create the temporary save folder: the suite stops")
+		abort() # GUT runs nothing, user:// is never used
 		(Engine.get_main_loop() as SceneTree).quit(1)
 		return
 	temp_directory = temp.get_current_dir()

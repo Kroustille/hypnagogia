@@ -160,6 +160,7 @@ func _start_floor() -> bool:
 	var layout: FloorLayout = ensure_floor()
 	if not layout.valid:
 		Log.error("run", "floor is invalid (%s, seed=%s): playing the arena" % [layout.failure, rng.seed_code()])
+		SaveService.delete_run()
 		floor_layout = null
 		floor_map.layout = null
 		return false
@@ -170,6 +171,7 @@ func _start_floor() -> bool:
 		var problem: String = resume.validate(layout)
 		if not problem.is_empty():
 			Log.error("run", "saved night cannot be resumed (%s): playing the arena" % problem)
+			SaveService.delete_run()
 			floor_layout = null
 			return false
 		first_cell = resume.cell
@@ -189,6 +191,7 @@ func _start_floor() -> bool:
 	if _enter_cell(first_cell, first_side):
 		return true
 	Log.error("run", "start room cannot be entered (seed=%s): playing the arena" % rng.seed_code())
+	SaveService.delete_run()
 	_loader.drain()
 	_loader = null
 	floor_map.layout = null # the map must not show a floor that is not played
@@ -211,12 +214,7 @@ func _restore_from(snapshot: RunSnapshot) -> void:
 		if def == null:
 			Log.warn("save", "item %s no longer exists: skipped" % item_id)
 			continue
-		var owned: OwnedItem = null
-		if def.active:
-			loadout.set_active(def, RunState.whole(entry["charge"]))
-			owned = loadout.active
-		else:
-			owned = loadout.add(def)
+		var owned: OwnedItem = _player.carrier.restore_item(def, RunState.whole(entry["charge"]))
 		owned.max_half_hearts_paid = RunState.whole(entry["paid"])
 	if snapshot.consumable != &"":
 		var consumable: ConsumableDef = ConsumableCatalog.by_id(snapshot.consumable)
@@ -235,6 +233,13 @@ func _announce_restored_items() -> void:
 	var loadout: Loadout = _player.carrier.loadout
 	for owned: OwnedItem in loadout.items():
 		Events.item_acquired.emit(owned.def.id, loadout.copies_of(owned.def.id))
+	var active: OwnedItem = loadout.active
+	if active != null:
+		Events.active_item_changed.emit(active.def.id, active.charge, active.charge_max) # run_started emptied the HUD slots
+	if loadout.consumable != null:
+		Events.consumable_changed.emit(loadout.consumable.id, loadout.consumable.name_key)
+	if _player.lucidity.live_tier != Lucidity.Tier.LUCID:
+		Events.lucidity_tier_changed.emit(_player.lucidity.live_tier, Lucidity.Tier.LUCID) # the telemetry starts a run at LUCID
 
 
 ## True when this run is a floor being played: the one kind of run that is saved (never the arena, a single room, or the
@@ -512,6 +517,7 @@ func _end_travel() -> void:
 ## A room of the floor cannot be played: the arena of milestone A takes over, the run goes on (AR28).
 func _fall_back_to_arena(reason: String) -> void:
 	Log.error("run", "%s: playing the arena" % reason)
+	SaveService.delete_run()
 	floor_layout = null
 	floor_map.layout = null
 	if _loader != null:

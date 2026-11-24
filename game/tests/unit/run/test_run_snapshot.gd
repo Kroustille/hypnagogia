@@ -103,6 +103,7 @@ func test_validate_refuses_a_cell_outside_the_plan() -> void:
 	layout.cells[Vector2i(0, 0)] = FloorLayout.Placement.new()
 	layout.start = Vector2i(0, 0)
 	var snapshot: RunSnapshot = RunSnapshot.new()
+	snapshot.plan = layout.signature().sha256_text()
 	snapshot.cell = Vector2i(0, 0)
 	snapshot.map.current = Vector2i(0, 0)
 	assert_eq(snapshot.validate(layout), "")
@@ -151,3 +152,24 @@ func test_a_migration_brings_an_older_version_to_the_current_one() -> void:
 	assert_true(RunSnapshot.from_dict(data, migrations, 2) != null)
 	assert_true(RunSnapshot.from_dict(data, {}, 2) == null, "no migration, no reading")
 	assert_push_error("no migration")
+
+
+func test_a_changed_plan_is_refused_and_the_plan_survives_json() -> void:
+	var layout: FloorLayout = FloorLayout.new()
+	layout.valid = true
+	layout.cells[Vector2i(0, 0)] = FloorLayout.Placement.new()
+	layout.start = Vector2i(0, 0)
+	var snapshot: RunSnapshot = _snapshot()
+	snapshot.plan = layout.signature().sha256_text()
+	snapshot.cell = Vector2i(0, 0)
+	snapshot.map.visited = {}
+	snapshot.map.cleared = {}
+	snapshot.stocks = {}
+	var back: RunSnapshot = _through_json(snapshot)
+	assert_eq(back.plan, snapshot.plan)
+	assert_eq(back.validate(layout), "")
+	back.plan = "another floor".sha256_text()
+	assert_string_contains(back.validate(layout), "changed")
+	var data: Dictionary = snapshot.to_dict()
+	data.erase("plan")
+	assert_null(RunSnapshot.from_dict(data), "a snapshot without a plan cannot be read")

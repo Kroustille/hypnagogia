@@ -101,8 +101,7 @@ func read_run() -> RunSnapshot:
 	var dict: Dictionary = data
 	var snapshot: RunSnapshot = RunSnapshot.from_dict(dict)
 	if snapshot == null:
-		quarantine(path)
-		last_read_status = Status.CORRUPT
+		last_read_status = Status.CORRUPT if quarantine(path) else Status.UNREADABLE
 	return snapshot
 
 

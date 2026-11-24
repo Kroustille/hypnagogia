@@ -28,6 +28,8 @@ var items: Array[Dictionary] = []
 var consumable: StringName = &""
 ## RunRng.export_states(): decimal strings.
 var rng_states: Dictionary = {}
+## Hash of FloorLayout.signature(): a changed room pool makes another floor from the same seed.
+var plan: String = ""
 
 
 ## The snapshot of a run about to enter a room, before the draws of that room. Nothing of it aliases the run.
@@ -51,6 +53,7 @@ static func capture(run: Run, player: Player, room_cell: Vector2i, side: int) ->
 		})
 	snapshot.consumable = loadout.consumable.id if loadout.consumable != null else &""
 	snapshot.rng_states = run.rng.export_states()
+	snapshot.plan = run.floor_layout.signature().sha256_text()
 	return snapshot
 
 
@@ -78,6 +81,7 @@ func to_dict() -> Dictionary:
 			"consumable": String(consumable),
 		},
 		"rng": rng_states,
+		"plan": plan,
 	}
 
 
@@ -96,7 +100,8 @@ static func from_dict(data: Dictionary, migrations: Dictionary = MIGRATIONS, cur
 	var lucidity_value: Variant = player.get("lucidity")
 	var consumable_value: Variant = player.get("consumable", "")
 	var rng: Variant = migrated.get("rng")
-	if run_state == null or floor_map == null or cell_value == FloorMap.NO_CELL or not RunRng.states_are_valid(rng):
+	var plan_value: Variant = migrated.get("plan")
+	if run_state == null or floor_map == null or cell_value == FloorMap.NO_CELL or not RunRng.states_are_valid(rng) or typeof(plan_value) != TYPE_STRING:
 		return null
 	if not _is_number(side) or not _is_number(lucidity_value) or typeof(consumable_value) != TYPE_STRING:
 		return null
@@ -113,6 +118,7 @@ static func from_dict(data: Dictionary, migrations: Dictionary = MIGRATIONS, cur
 	for key: String in ["half_hearts", "max_half_hearts", "armor", "max_lost"]:
 		snapshot.health[key] = RunState.whole(saved_health[key]) # whole numbers again, not the floats of JSON
 	snapshot.rng_states = _dict_of(rng).duplicate()
+	snapshot.plan = RunState.text_of(plan_value)
 	for id: Variant in _array_of(migrated.get("unlocks", [])):
 		if typeof(id) != TYPE_STRING:
 			return null
@@ -147,6 +153,8 @@ func validate(layout: FloorLayout = null) -> String:
 		return ""
 	if not layout.valid:
 		return "the floor of the seed is invalid"
+	if layout.signature().sha256_text() != plan:
+		return "the floor of the seed changed"
 	var cells: Array[Vector2i] = [cell] # map.current is not checked: it is (0, 0) before the first room, and the entry sets it
 	cells.append_array(map.visited.keys())
 	cells.append_array(map.cleared.keys())

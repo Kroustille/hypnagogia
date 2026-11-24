@@ -196,3 +196,38 @@ func test_an_item_that_no_longer_exists_is_skipped() -> void:
 	_harness.start_resume(snapshot)
 	assert_eq(_harness.player.carrier.loadout.count(), 2)
 	assert_eq(_harness.run.current_cell(), snapshot.cell)
+
+
+func test_a_resume_tells_the_hud_the_telemetry_and_nobody_else_about_the_build() -> void:
+	_harness.start_floor(SEED)
+	var run: Run = _harness.run
+	var player: Player = _harness.player
+	for id: StringName in [&"falling_tooth", &"lead_legs", &"paper_wings", &"broken_alarm"]:
+		player.carrier.acquire(ItemCatalog.by_id(id))
+	player.carrier.acquire_consumable(ConsumableCatalog.by_id(&"coffee"))
+	player.lucidity.set_value(5)
+	assert_ne(player.lucidity.live_tier, Lucidity.Tier.LUCID, "a tier other than the first")
+	var tier: int = player.lucidity.live_tier
+	var snapshot: RunSnapshot = RunSnapshot.capture(run, player, run.current_cell(), -1)
+	_harness.release()
+	RoomLoader.collect_orphans(true)
+	_harness = RoomHarness.new()
+	add_child(_harness)
+	watch_signals(Events)
+	_harness.start_resume(snapshot)
+	assert_signal_emitted(Events, "active_item_changed", "the HUD slot is filled again")
+	assert_signal_emitted(Events, "consumable_changed")
+	assert_signal_emitted_with_parameters(Events, "lucidity_tier_changed", [tier, Lucidity.Tier.LUCID])
+	assert_signal_not_emitted(Events, "banner_queued", "no synergy banner for a night put back")
+	assert_signal_not_emitted(Events, "banner_requested")
+	var loadout: Loadout = _harness.player.carrier.loadout
+	assert_not_null(loadout.active)
+	assert_eq(loadout.count(), 4)
+
+
+func test_a_floor_that_falls_back_to_the_arena_erases_the_night() -> void:
+	_harness.start_floor(SEED)
+	assert_true(SaveService.has_run(), "written at the entry of the first room")
+	_harness.run._fall_back_to_arena("test")
+	assert_push_error("playing the arena")
+	assert_false(SaveService.has_run())

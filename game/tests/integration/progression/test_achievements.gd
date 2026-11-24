@@ -140,3 +140,14 @@ func test_the_player_build_reports_a_synergy_on_the_bus() -> void:
 	harness.release()
 	Events.synergy_activated.disconnect(on_synergy)
 	assert_eq(reported, [2] as Array[int])
+
+
+func test_a_synergy_replayed_before_run_seeded_records_nothing() -> void:
+	Events.run_started.emit() # a resume: its synergies come back before run_seeded
+	Events.synergy_activated.emit(&"fall_3", 3)
+	assert_false(_profile.achievements.has("synergy_three"))
+	assert_false(FileAccess.file_exists(_path))
+	_start("ABCD", false)
+	_end(Run.Outcome.DEATH)
+	Events.synergy_activated.emit(&"fall_3", 3) # the next resume, after a finished run
+	assert_false(_profile.achievements.has("synergy_three"))

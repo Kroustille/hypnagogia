@@ -68,6 +68,8 @@ func _on_room_cleared(_room: Node, lowest_tier: int) -> void:
 
 
 func _on_synergy_activated(_synergy_id: StringName, threshold: int) -> void:
+	if _seed_code.is_empty():
+		return # no run_seeded yet: synergies put back by a resume, counted in the night they were reached
 	if threshold >= SYNERGY_THREE_THRESHOLD:
 		_obtain(ACHIEVEMENT_SYNERGY_THREE)
 
@@ -78,6 +80,11 @@ func _on_wake_time_set(minute: int) -> void:
 
 ## Statistics of the run (not for a seeded one), the first victory on a win, then one write.
 func _on_run_ended(outcome: int) -> void:
+	_record_run_end(outcome)
+	_seed_code = "" # a later resume replays its synergies before run_seeded: they must not count
+
+
+func _record_run_end(outcome: int) -> void:
 	if _seeded or profile == null:
 		return
 	profile.runs += 1

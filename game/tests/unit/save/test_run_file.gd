@@ -78,3 +78,14 @@ func test_a_failed_write_is_reported_and_leaves_the_old_file() -> void:
 	assert_push_error("cannot write")
 	DirAccess.remove_absolute(_dir.file("run.json.tmp"))
 	assert_eq(SaveService.read_run().state.run_seed, 4242, "the night saved before is intact")
+
+
+func test_a_quarantine_that_fails_reads_run_json_as_unreadable() -> void:
+	_put("run.json", "{ not json")
+	DirAccess.make_dir_recursive_absolute(_dir.file("run.json.corrupt/inner")) # a folder that cannot be replaced by a file
+	assert_true(SaveService.read_run() == null)
+	assert_eq(SaveService.last_read_status, SaveService.Status.UNREADABLE)
+	assert_push_error("cannot quarantine")
+	assert_true(SaveService.has_run(), "the file stays where it is")
+	DirAccess.remove_absolute(_dir.file("run.json.corrupt/inner"))
+	DirAccess.remove_absolute(_dir.file("run.json.corrupt"))

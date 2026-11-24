@@ -109,3 +109,16 @@ func test_a_night_pointing_outside_the_floor_is_set_aside() -> void:
 	await _launch()
 	assert_false(_prompt().visible)
 	assert_true(FileAccess.file_exists(_dir.file("run.json.corrupt")))
+
+
+func test_a_night_of_another_floor_plan_is_set_aside_with_a_notice() -> void:
+	await _leave_a_night()
+	var snapshot: RunSnapshot = SaveService.read_run()
+	snapshot.plan = "the pool changed".sha256_text()
+	SaveService.write_run(snapshot)
+	await _launch()
+	assert_false(_prompt().visible)
+	assert_true(FileAccess.file_exists(_dir.file("run.json.corrupt")))
+	assert_false(SaveService.has_run())
+	var notice: Notice = _main.find_children("*", "Notice", true, false)[0] as Notice
+	assert_true(notice.visible)

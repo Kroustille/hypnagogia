@@ -194,6 +194,21 @@ func use_active() -> UseResult:
 	return UseResult.USED
 
 
+## Puts a saved item back (story 6.8) without the banner, the sound or the item event of a pickup: the synergies it brings
+## back count as announced already.
+func restore_item(def: ItemDef, charge: int) -> OwnedItem:
+	_acquiring = true
+	var owned: OwnedItem
+	if def.active:
+		loadout.set_active(def, charge)
+		owned = loadout.active
+	else:
+		owned = loadout.add(def)
+	_to_announce.clear()
+	_acquiring = false
+	return owned
+
+
 ## A room was cleared: the active item recharges by one.
 func _on_room_cleared_charge(_room: Node, _lowest_tier: int) -> void:
 	loadout.add_charge(1)
