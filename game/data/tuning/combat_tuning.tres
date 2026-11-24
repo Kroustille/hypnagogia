@@ -15,3 +15,4 @@ enemy_bullet_lifetime = 18.0
 pit_damage_half_hearts = 1
 path_refresh_interval = 0.4
 max_paths_per_tick = 4
+heavy_hit_half_hearts = 2

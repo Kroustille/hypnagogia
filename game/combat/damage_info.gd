@@ -4,8 +4,8 @@ extends RefCounted
 ## Always delivered through Hurtbox.receive(), never by calling the target directly.
 
 ## Values are explicit because they travel as ints on Events.player_hit: new sources are appended at the end.
-## PIT: a fall into a hole (story 4.3). SHOCKWAVE: the dive synergy of the Fall items (story 5.7).
-enum Source { PLAYER_SHOT = 0, ENEMY_BULLET = 1, DEBUG = 2, CONTACT = 3, PIT = 4, SHOCKWAVE = 5 }
+## PIT: a fall into a hole (story 4.3). SHOCKWAVE: the dive synergy of the Fall items (story 5.7). RULER: the heavy sweep of the Professor (story 6.2).
+enum Source { PLAYER_SHOT = 0, ENEMY_BULLET = 1, DEBUG = 2, CONTACT = 3, PIT = 4, SHOCKWAVE = 5, RULER = 6 }
 
 var amount: float = 0.0
 var source: Source = Source.PLAYER_SHOT

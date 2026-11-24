@@ -14,13 +14,15 @@ var _target: Hurtbox
 var _damage: float = 0.0
 var _source: DamageInfo.Source = DamageInfo.Source.CONTACT
 var _clock_group: GameClock.Group = GameClock.Group.ENEMIES
+var _heavy: bool = false
 var _is_setup: bool = false
 var _shape_node: CollisionShape2D
 var _rectangle: RectangleShape2D
 
 
-## Dependency injection: call before add_child().
-func setup(target: Hurtbox, damage: float, source: DamageInfo.Source, clock_group: GameClock.Group) -> void:
+## Dependency injection: call before add_child(). heavy: the delivered DamageInfo is a heavy attack (FR12).
+func setup(target: Hurtbox, damage: float, source: DamageInfo.Source, clock_group: GameClock.Group, heavy: bool = false) -> void:
+	_heavy = heavy
 	_target = target
 	_damage = damage
 	_source = source
@@ -73,4 +75,5 @@ func _physics_process(_delta: float) -> void:
 	var info: DamageInfo = DamageInfo.from_bullet(
 		_damage, (target_rect.get_center() - rect.get_center()).normalized(), _source
 	)
+	info.is_heavy = _heavy
 	_target.receive(info)
