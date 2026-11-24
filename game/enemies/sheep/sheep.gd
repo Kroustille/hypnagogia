@@ -37,6 +37,10 @@ var _rest_seconds: float = 0.0
 var _backup_px: float = 0.0 # speed, pixels per second
 var _backup_seconds: float = 0.0 # backup_distance / backup_speed, 0 when either is invalid
 var _charge_px: float = 0.0
+## Pixels a charge may cover before it stops by itself, 0 = no limit.
+var _max_charge_px: float = 0.0
+## Pixels covered by the current charge.
+var _charge_travelled_px: float = 0.0
 var _stun_seconds: float = 0.0
 var _ticks_left: float = 0.0 # rest, backup or stun
 var _charge_direction: Vector2 = Vector2.ZERO
@@ -68,6 +72,8 @@ func _ready() -> void:
 	var backup_distance_px: float = _bounded_px(_sheep_def.backup_distance, "backup_distance")
 	_backup_seconds = backup_distance_px / _backup_px if _backup_px > 0.0 else 0.0
 	_charge_px = _bounded_px(_sheep_def.charge_speed, "charge_speed")
+	if is_finite(_sheep_def.max_charge_distance) and _sheep_def.max_charge_distance > 0.0:
+		_max_charge_px = _sheep_def.max_charge_distance * Const.TILE_SIZE
 	if _charge_px <= 0.0:
 		_inert = true
 		Log.error("combat", "sheep charge_speed=%s is invalid, it never charges" % _sheep_def.charge_speed)
@@ -128,7 +134,9 @@ func _process_backup(clock_scale: float) -> void:
 ## The first wall touched stuns; anything else touched only ends the charge. Never slides on (the one slide of the
 ## tick of the impact, less than a step, is accepted: afterwards it does not move).
 func _process_charge(clock_scale: float) -> void:
+	var before: Vector2 = global_position
 	_move_in_direction(_charge_direction, _charge_px, clock_scale)
+	_charge_travelled_px += before.distance_to(global_position)
 	var count: int = get_slide_collision_count()
 	var walled: bool = false
 	for i: int in count:
@@ -142,6 +150,9 @@ func _process_charge(clock_scale: float) -> void:
 		_blocker_name = ""
 		_enter(State.STUN)
 	elif count > 0:
+		_enter(State.REST)
+	elif _max_charge_px > 0.0 and _charge_travelled_px >= _max_charge_px:
+		Log.debug("combat", "%s charge exhausted after %.1f tiles" % [name, _charge_travelled_px / Const.TILE_SIZE])
 		_enter(State.REST)
 
 
@@ -181,6 +192,7 @@ func _enter(next: State) -> void:
 			_ticks_left = _backup_seconds * Engine.physics_ticks_per_second
 		State.CHARGE:
 			_sprite.texture = _charge_texture
+			_charge_travelled_px = 0.0
 			var body: PhysicsBody2D = _target as PhysicsBody2D if is_instance_valid(_target) else null
 			if is_instance_valid(body) and _excepted_body == null:
 				add_collision_exception_with(body)

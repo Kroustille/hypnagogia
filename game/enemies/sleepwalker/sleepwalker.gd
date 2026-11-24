@@ -66,7 +66,7 @@ func _process_chase(clock_scale: float) -> void:
 	if _distance_to_target() < _trigger_range_px:
 		_enter(State.TELEGRAPH)
 		return
-	_move_toward(_target_position(), _walk_speed_px, clock_scale)
+	_advance(_walk_speed_px, clock_scale)
 
 
 func _process_telegraph(_clock_scale: float) -> void:
@@ -78,8 +78,21 @@ func _process_rush(clock_scale: float) -> void:
 	if _rush_ticks_left <= TICK_EPSILON:
 		_enter(State.CHASE)
 		return
-	_move_toward(_target_position(), _rush_speed_px, clock_scale)
+	_advance(_rush_speed_px, clock_scale)
 	_rush_ticks_left -= clock_scale
+
+
+## Walks toward the target, except into a body it already touches: pressing on the player would make the player's own
+## penetration recovery shove it (story 4.3: never push a motionless player toward a pit).
+func _advance(speed_px: float, clock_scale: float) -> void:
+	var point: Vector2 = _target_position()
+	var to: Vector2 = point - global_position
+	var step: Vector2 = to.normalized() * speed_px * clock_scale / Engine.physics_ticks_per_second if to.length_squared() >= 1e-6 else Vector2.ZERO
+	var collision: KinematicCollision2D = KinematicCollision2D.new()
+	if step != Vector2.ZERO and test_move(global_transform, step, collision) and collision.get_collider() == _target:
+		velocity = Vector2.ZERO
+		return
+	_move_toward(point, speed_px, clock_scale)
 
 
 ## The only place that writes _state.

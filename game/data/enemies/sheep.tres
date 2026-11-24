@@ -11,6 +11,7 @@ backup_distance = 0.5
 backup_speed = 2.0
 charge_speed = 10.0
 stun_duration = 1.0
+max_charge_distance = 45.0
 id = &"sheep"
 scene = ExtResource("2_scene")
 max_hp = 50.0
