@@ -132,6 +132,7 @@ func _ready() -> void:
 
 	_aim = Aim.new()
 	_shooter = Shooter.new(Tuning.SHOT)
+	_shooter.set_fire_rate(stats.value_of(StatBlock.Stat.FIRE_RATE))
 	_recoil = SpriteKick.new(_sprite)
 	_last_mouse_pos = get_viewport().get_mouse_position()
 	var reticle: Reticle = Reticle.new()
@@ -234,6 +235,7 @@ func _physics_process(delta: float) -> void:
 	# it keeps stepping during a dash so walking resumes smoothly when the dash ends.
 	_motor.step(wish, delta)
 	_dash.tick(clock_scale, Input.is_action_just_pressed(&"dash"), _facing)
+	_update_consumable_input(clock_scale)
 	_update_powers(clock_scale)
 	_update_shooting(clock_scale) # before the movement: sees "is the dash active this tick"
 	# velocity is rewritten every tick: move_and_slide() alters it when sliding, never read it back.
@@ -249,6 +251,13 @@ func _physics_process(delta: float) -> void:
 		_check_pits() # walking, or the tick the dash ended: a dash in flight never tests a cell
 	_update_dash_tint()
 	_update_blink()
+
+
+## The consumable (story 5.3): used on the press, silent without one; a refusal plays the refusal sound only.
+func _update_consumable_input(clock_scale: float) -> void:
+	if clock_scale > 0.0 and Input.is_action_just_pressed(&"use_consumable"):
+		if carrier.use_consumable() == BuildCarrier.UseResult.REFUSED:
+			Audio.play_sfx(POWER_REFUSED_SOUND, 1)
 
 
 ## Powers, read after the dash and before the movement.
@@ -627,6 +636,9 @@ func _on_stat_changed(stat: int) -> void:
 				_shot_params.pierce = stats.value_of(StatBlock.Stat.PIERCE) > 0.0
 		StatBlock.Stat.MOVE_SPEED:
 			_motor.set_max_speed(stats.value_of(StatBlock.Stat.MOVE_SPEED))
+		StatBlock.Stat.FIRE_RATE:
+			if _shooter != null:
+				_shooter.set_fire_rate(stats.value_of(StatBlock.Stat.FIRE_RATE))
 
 
 ## The Lucid hurtbox is an absolute size: when the base changes, the shrink that gets there is computed again.

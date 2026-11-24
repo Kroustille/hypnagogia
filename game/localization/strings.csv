@@ -54,3 +54,10 @@ ITEM_FALLING_TOOTH_COST,−1 cœur maximum
 ITEM_LEAD_LEGS_NAME,Jambes de plomb
 ITEM_LEAD_LEGS_BONUS,Tirs traversants
 ITEM_LEAD_LEGS_COST,−20 % de vitesse de déplacement
+CONSUMABLE_PINCH_NAME,Se pincer
+CONSUMABLE_PINCH_BONUS,+25 de lucidité
+CONSUMABLE_PINCH_COST,−½ cœur (jamais l'armure)
+CONSUMABLE_COFFEE_NAME,Café
+CONSUMABLE_COFFEE_BONUS,+30 % de vitesse et de cadence pendant 10 s
+CONSUMABLE_COFFEE_COST,puis −20 % de vitesse pendant 5 s
+UI_TUTORIAL_CONSUMABLE,Consommable

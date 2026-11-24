@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ConsumableDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://items/consumable_def.gd" id="1_def"]
+[ext_resource type="Script" path="res://items/effects/coffee_effect.gd" id="2_eff"]
+
+[resource]
+script = ExtResource("1_def")
+id = &"coffee"
+name_key = &"CONSUMABLE_COFFEE_NAME"
+bonus_key = &"CONSUMABLE_COFFEE_BONUS"
+cost_key = &"CONSUMABLE_COFFEE_COST"
+effect_script = ExtResource("2_eff")
+params = Dictionary[StringName, float]({
+&"boost": 0.3,
+&"boost_seconds": 10.0,
+&"crash": 0.2,
+&"crash_seconds": 5.0
+})

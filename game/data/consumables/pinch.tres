@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ConsumableDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://items/consumable_def.gd" id="1_def"]
+[ext_resource type="Script" path="res://items/effects/pinch_effect.gd" id="2_eff"]
+
+[resource]
+script = ExtResource("1_def")
+id = &"pinch"
+name_key = &"CONSUMABLE_PINCH_NAME"
+bonus_key = &"CONSUMABLE_PINCH_BONUS"
+cost_key = &"CONSUMABLE_PINCH_COST"
+effect_script = ExtResource("2_eff")
+params = Dictionary[StringName, float]({
+&"half_hearts_cost": 1.0,
+&"lucidity_gain": 25.0
+})

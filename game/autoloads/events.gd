@@ -93,3 +93,7 @@ signal item_acquired(item_id: StringName, copies: int)
 ## banner of story 5.7 reuses it). cost_key may be empty. A new request replaces the banner on screen.
 @warning_ignore("unused_signal")
 signal banner_requested(title_key: StringName, bonus_key: StringName, cost_key: StringName)
+
+## The consumable slot changed (story 5.3): the id and name key of what is carried, both empty when the slot is free.
+@warning_ignore("unused_signal")
+signal consumable_changed(id: StringName, name_key: StringName)

@@ -6,6 +6,11 @@ extends RefCounted
 signal item_added(owned: OwnedItem)
 ## After the modifiers are cleared and the effect detached.
 signal item_removed(owned: OwnedItem)
+## The consumable slot changed (null = emptied).
+signal consumable_changed(def: ConsumableDef)
+
+## The consumable carried, at most one (story 5.3). Null = the slot is free.
+var consumable: ConsumableDef
 
 var _carrier: BuildCarrier
 var _items: Array[OwnedItem] = []
@@ -41,6 +46,13 @@ func owned_ids() -> Array[StringName]:
 			ids.append(owned.def.id)
 	return ids
 
+
+## Puts a consumable in the slot (null empties it). Returns the one that was there (null when the slot was free).
+func set_consumable(def: ConsumableDef) -> ConsumableDef:
+	var previous: ConsumableDef = consumable
+	consumable = def
+	consumable_changed.emit(def)
+	return previous
 
 ## Takes a new copy of the item. Returns it.
 func add(def: ItemDef) -> OwnedItem:
