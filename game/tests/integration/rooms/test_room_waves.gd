@@ -80,3 +80,77 @@ func test_a_room_without_enemy_marker_stays_open_and_runs_no_wave() -> void:
 	assert_eq(_cleared_count(), 0)
 	for door: Door in _harness.room.doors():
 		assert_true(_harness.door_is_open(door), "door %s stays open" % Door.Side.find_key(door.side))
+
+
+func test_forcing_the_next_wave_after_the_last_one_finishes_the_room() -> void:
+	watch_signals(Events)
+	_harness.start(ROOM_001)
+	var runner: WaveRunner = _harness.room.wave_runner()
+	await _harness.until(func() -> bool: return _harness.living_enemies().size() > 0, WAVE_TICKS)
+	runner.force_next_wave() # wave 0 -> wave 1, the last one
+	await _harness.ticks(2)
+	assert_eq(runner.wave_number(), 2)
+	runner.force_next_wave() # no wave is left: the room ends, wave 0 does not come back
+	await _harness.ticks(2)
+	assert_eq(runner.state_name(), "DONE")
+	assert_eq(runner.wave_number(), 2, "no third wave")
+	assert_eq(_cleared_count(), 1)
+	assert_true(_harness.room.is_cleared())
+	await _harness.ticks(WAVE_TICKS)
+	assert_eq(_harness.living_enemies().size(), 0, "nothing appears again")
+
+
+func test_an_apparition_is_moved_off_an_interior_wall_and_a_pit() -> void:
+	_harness.start(ROOM_001)
+	await _harness.until(func() -> bool: return _harness.living_enemies().size() > 0, WAVE_TICKS)
+	var walls: TileMapLayer = _harness.room.get_node("Walls") as TileMapLayer
+	var pits: TileMapLayer = _harness.room.get_node("Pits") as TileMapLayer
+	var wall_cell: Vector2i = Vector2i(30, 5)
+	var pit_cell: Vector2i = Vector2i(30, 15)
+	walls.set_cell(wall_cell, Room.TILE_WALL, Vector2i.ZERO)
+	pits.set_cell(pit_cell, Room.TILE_PIT, Vector2i.ZERO)
+	var def: EnemyDef = load("res://data/enemies/sleepwalker.tres") as EnemyDef
+	for cell: Vector2i in [wall_cell, pit_cell]:
+		var requested: Vector2 = (Vector2(cell) + Vector2(0.5, 0.5)) * Const.TILE_SIZE
+		var enemy: Enemy = _harness.room.spawn_enemy(def, requested)
+		assert_not_null(enemy, "an enemy appears for %s" % cell)
+		if enemy == null:
+			continue
+		var landed: Vector2i = Vector2i((_harness.room.to_local(enemy.global_position) / Const.TILE_SIZE).floor())
+		assert_ne(landed, cell, "moved away from the cell %s" % cell)
+		assert_eq(walls.get_cell_source_id(landed), -1, "not on a wall")
+		assert_eq(pits.get_cell_source_id(landed), -1, "not on a pit")
+
+
+func test_cancelling_an_announced_reinforcement_rearms_it() -> void:
+	_harness.start(ROOM_001)
+	await _harness.until(func() -> bool: return _harness.living_enemies().size() == 3, WAVE_TICKS)
+	_harness.player.lucidity.set_value(0)
+	await _harness.ticks(2)
+	assert_eq(_harness.room.pending_reinforcement_count(), 1, "announced")
+	_harness.room.cancel_pending_reinforcements() # a wave that could not appear
+	assert_eq(_harness.room.pending_reinforcement_count(), 0)
+	var defs: Array[EnemyDef] = [load("res://data/enemies/sleepwalker.tres") as EnemyDef]
+	_harness.room.begin_wave(defs)
+	assert_eq(_harness.room.pending_reinforcement_count(), 1, "the next wave still gets its reinforcement")
+
+
+func test_a_reinforcement_that_appeared_is_not_rearmed_by_a_cancel() -> void:
+	_harness.start(ROOM_001)
+	await _harness.until(func() -> bool: return _harness.living_enemies().size() == 3, WAVE_TICKS)
+	_harness.player.lucidity.set_value(0)
+	await _harness.until(func() -> bool: return _harness.living_enemies().size() == 4, WAVE_TICKS)
+	assert_eq(_harness.room.pending_reinforcement_count(), 0)
+	_harness.room.cancel_pending_reinforcements() # nothing was pending
+	var defs: Array[EnemyDef] = [load("res://data/enemies/sleepwalker.tres") as EnemyDef]
+	_harness.room.begin_wave(defs)
+	assert_eq(_harness.room.pending_reinforcement_count(), 0, "one reinforcement per room")
+
+
+func test_markers_without_enemy_leave_no_slot_and_no_entry() -> void:
+	var room: Room = (load("res://tests/fixtures/rooms/enemy_missing.tscn") as PackedScene).instantiate() as Room
+	var list: WaveList = room._make_wave_list()
+	assert_eq(list.waves.size(), 1)
+	assert_eq(list.waves[0].entries.size(), 2, "the marker without enemy is dropped")
+	assert_eq(list.spawn_slots.size(), 2, "and so is its slot")
+	room.free()

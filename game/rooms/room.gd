@@ -79,6 +79,8 @@ const SPAWN_RING_DIRECTIONS: Array[Vector2] = [
 @onready var _walls: TileMapLayer = %Walls
 @onready var _high_obstacles: TileMapLayer = %HighObstacles
 @onready var _low_obstacles: TileMapLayer = %LowObstacles
+## Null in the arena, which has no pits.
+var _pits: TileMapLayer
 var _player: Player
 
 @onready var _camera: Camera2D = %Camera
@@ -173,9 +175,9 @@ func _ready() -> void:
 	_walls.z_index = Const.Z_INDEX_DECOR
 	_high_obstacles.z_index = Const.Z_INDEX_DECOR
 	_low_obstacles.z_index = Const.Z_INDEX_DECOR
-	var pits: TileMapLayer = get_node_or_null("%Pits") as TileMapLayer
-	if pits != null:
-		pits.z_index = Const.Z_INDEX_DECOR
+	_pits = get_node_or_null("%Pits") as TileMapLayer
+	if _pits != null:
+		_pits.z_index = Const.Z_INDEX_DECOR
 	_build_decor(frame_cells)
 	_setup_doors(frame_cells)
 	if _player != null:
@@ -335,7 +337,10 @@ func is_cleared() -> bool:
 
 ## Drops the reinforcement announced and not yet appeared (a wave that could not appear brings none).
 func cancel_pending_reinforcements() -> void:
+	var dropped: bool = not _pending.is_empty()
 	_clear_pending()
+	if dropped:
+		_reinforcement_used = false # the one reinforcement of the room was not consumed by an announcement that never appeared
 	_wave_active = false
 
 
@@ -517,12 +522,15 @@ func _make_wave_list() -> WaveList:
 	for wave_number: int in wave_numbers:
 		var wave: WaveDef = WaveDef.new()
 		for member: EnemySpawn in by_wave[wave_number]:
+			if member.enemy == null or member.enemy.scene == null:
+				continue # no entry and no slot: the slots of the other markers stay aligned
 			var entry: WaveEntry = WaveEntry.new()
 			entry.enemy = member.enemy
 			entry.count = 1
 			wave.entries.append(entry)
 			list.spawn_slots.append(to_local(member.global_position) / Const.TILE_SIZE)
-		list.waves.append(wave)
+		if not wave.entries.is_empty():
+			list.waves.append(wave)
 	return list
 
 
@@ -726,14 +734,15 @@ func _is_valid_spawn(point: Vector2, bounds: Rect2, player_pos: Vector2, min_px:
 	return not _overlaps_obstacle(rect) and not _overlaps_living_enemy(rect)
 
 
-## True when the rectangle (room coordinates) touches a cell of a low or high obstacle.
+## True when the rectangle (room coordinates) touches a cell of a wall, a pit or a low or high obstacle.
 func _overlaps_obstacle(rect: Rect2) -> bool:
 	var first: Vector2i = Vector2i((rect.position / Const.TILE_SIZE).floor())
 	var last: Vector2i = Vector2i((rect.end / Const.TILE_SIZE).floor())
 	for y: int in range(first.y, last.y + 1):
 		for x: int in range(first.x, last.x + 1):
 			var cell: Vector2i = Vector2i(x, y)
-			if _high_obstacles.get_cell_source_id(cell) != -1 or _low_obstacles.get_cell_source_id(cell) != -1:
+			if _high_obstacles.get_cell_source_id(cell) != -1 or _low_obstacles.get_cell_source_id(cell) != -1 \
+					or _walls.get_cell_source_id(cell) != -1 or (_pits != null and _pits.get_cell_source_id(cell) != -1):
 				return true
 	return false
 

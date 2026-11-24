@@ -73,6 +73,9 @@ func force_next_wave() -> void:
 	if _state == State.IDLE or _state == State.DONE:
 		return
 	_room.kill_all_enemies()
+	if not _list.loop and _next_index >= _waves.size():
+		_finish()
+		return
 	_start_next_wave()
 
 
