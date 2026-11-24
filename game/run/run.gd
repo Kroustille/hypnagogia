@@ -483,7 +483,7 @@ func ensure_floor() -> FloorLayout:
 		floor_layout.failure = "no floor def"
 		return floor_layout
 	_floor_hp_factor = def.hp_factor
-	var pool: Array[RoomInfo] = RoomCatalog.pool(def.pool_dir)
+	var pool: Array[RoomInfo] = RoomCatalog.pool(def.pool_dir, _options.unlocks)
 	floor_layout = FloorGenerator.generate(def, pool, rng, state.floor_index)
 	if floor_layout.valid:
 		Log.info("gen", "floor generated seed=%s attempts=%d" % [rng.seed_code(), floor_layout.attempts])

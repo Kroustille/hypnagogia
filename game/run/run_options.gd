@@ -14,6 +14,10 @@ var room_path: String = ""
 var seed_value: int = -1
 ## True: the run uses seed_value (when it is not negative) instead of drawing one.
 var seeded: bool = false
+## Content the profile has unlocked (story 6.7), filled by Main; empty for a typed seed. The room pool depends on it: the
+## same seed gives the same floor for the same unlocks, so a typed seed ignores them and stays shareable between profiles.
+## Empty at the MVP (nothing unlocks yet).
+var unlocks: Array[StringName] = []
 
 
 ## Options from the arguments of Events.run_requested (primitive types: the bus knows no feature folder).
