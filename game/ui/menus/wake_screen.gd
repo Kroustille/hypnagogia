@@ -7,6 +7,8 @@ extends Control
 ## Texts come from tr() (localization/strings.csv), never from the scene.
 
 signal restart_requested
+## The player goes back to the bedroom instead of falling asleep again at once (story 6.5).
+signal wake_up_requested
 ## The player answered "was this death fair?". Never emitted when they restart without answering.
 signal verdict_given(just: bool)
 ## The player asks to start a new game on a seed they type (Main opens the SeedEntry window).
@@ -24,6 +26,7 @@ var _victory: bool = false
 @onready var _seed_label: Label = %SeedLabel
 @onready var _restart_button: Button = %RestartButton
 @onready var _new_seed_button: Button = %NewSeedButton
+@onready var _bedroom_button: Button = %BedroomButton
 @onready var _question: Label = %Question
 @onready var _yes_button: Button = %YesButton
 @onready var _no_button: Button = %NoButton
@@ -33,12 +36,14 @@ func _ready() -> void:
 	_title.text = tr(&"UI_WAKE_TITLE")
 	_restart_button.text = tr(&"UI_WAKE_RESTART") % _restart_key_label()
 	_new_seed_button.text = tr(&"UI_SEED_NEW_GAME")
+	_bedroom_button.text = tr(&"UI_WAKE_BEDROOM")
 	_yes_button.text = tr(&"UI_WAKE_YES")
 	_no_button.text = tr(&"UI_WAKE_NO")
 	_yes_button.pressed.connect(_give_verdict.bind(true))
 	_no_button.pressed.connect(_give_verdict.bind(false))
 	_restart_button.pressed.connect(_on_restart_button_pressed)
 	_new_seed_button.pressed.connect(_on_new_seed_button_pressed)
+	_bedroom_button.pressed.connect(_on_bedroom_button_pressed)
 	hide()
 
 
@@ -53,6 +58,7 @@ func open(seed_code: String, outcome: int = Run.Outcome.DEATH) -> void:
 	_armed = false
 	_restart_button.disabled = true
 	_new_seed_button.disabled = true
+	_bedroom_button.disabled = true
 	_answered = false
 	_question.text = tr(&"UI_WAKE_QUESTION")
 	_question.visible = not _victory
@@ -70,6 +76,7 @@ func _physics_process(_delta: float) -> void:
 		_armed = true
 		_restart_button.disabled = false
 		_new_seed_button.disabled = false
+		_bedroom_button.disabled = false
 		_set_answers_enabled(true)
 
 
@@ -99,6 +106,12 @@ func focus_new_seed() -> void:
 
 func _on_restart_button_pressed() -> void:
 	_request_restart()
+
+
+func _on_bedroom_button_pressed() -> void:
+	if visible and _armed:
+		_armed = false # no double request, and no restart behind it
+		wake_up_requested.emit()
 
 
 func _on_new_seed_button_pressed() -> void:
