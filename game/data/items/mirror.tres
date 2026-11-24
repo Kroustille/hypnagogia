@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ItemDef" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://items/item_def.gd" id="1_def"]
+[ext_resource type="Script" path="res://items/modifier_def.gd" id="2_mod"]
+
+[sub_resource type="Resource" id="Resource_rear"]
+script = ExtResource("2_mod")
+stat = 8
+kind = 0
+value = 1.0
+
+[resource]
+script = ExtResource("1_def")
+id = &"mirror"
+tags = Array[StringName]([&"gaze"])
+name_key = &"ITEM_MIRROR_NAME"
+bonus_key = &"ITEM_MIRROR_BONUS"
+cost_key = &"ITEM_MIRROR_COST"
+modifiers = Array[ExtResource("2_mod")]([SubResource("Resource_rear")])

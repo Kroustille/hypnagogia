@@ -63,6 +63,9 @@ ITEM_FREE_FALL_COST,"Le bonus retombe à zéro au premier coup, et ce coup retir
 ITEM_BROKEN_ALARM_NAME,Réveil cassé
 ITEM_BROKEN_ALARM_BONUS,Objet actif : ralentit les ennemis et leurs tirs de moitié pendant 4 s
 ITEM_BROKEN_ALARM_COST,"−15 de lucidité, rechargé en 3 salles vidées"
+ITEM_MIRROR_NAME,Miroir
+ITEM_MIRROR_BONUS,Un second tir part vers l'arrière
+ITEM_MIRROR_COST,"Dans 1 salle de combat sur 4, un reflet hostile apparaît"
 CONSUMABLE_PINCH_NAME,Se pincer
 CONSUMABLE_PINCH_BONUS,+25 de lucidité
 CONSUMABLE_PINCH_COST,−½ cœur (jamais l'armure)
