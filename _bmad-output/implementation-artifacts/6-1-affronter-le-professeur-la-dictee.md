@@ -1,6 +1,6 @@
 # Story 6.1 : Affronter Le Professeur : la Dictée
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -28,20 +28,20 @@ Hors périmètre : Calcul mental, Examen final, règle, attaque lourde (6.2) ; I
 
 ## Tâches
 
-- [ ] `bosses/boss_def.gd` (`BossDef extends EnemyDef` : `announce_duration`, `phases: Array[BossPhase]`), `boss_phase.gd` (`title_key`, `hp_from` en fraction des PV max, `groups: Array[BossAttackSet]`), `boss_attack_set.gd` (`attacks: Array[BossAttack]`), `boss_attack.gd` (enum `Kind { ROW }`, champs plats, `validate() -> String`). 6.2 et 6.3 ajoutent des valeurs à `Kind` **à la fin** et des champs, jamais de renumérotation (valeurs explicites, elles sont sérialisées dans des `.tres`).
-- [ ] `bosses/chalk_patterns.gd` : classe statique pure (`row(...) -> Array[Vector2]` positions des craies d'une rangée, trou exclu ; `next_gap(...)`), sans nœud ni horloge, testable.
-- [ ] `bosses/runners/attack_runner.gd` (base `RefCounted` : `setup(boss, attack)`, `tick(step)`, `stop()`, fabrique statique `make(attack)` qui renvoie `null` + `Log.error` pour un `Kind` inconnu) et `row_runner.gd` (attente de l'intervalle, signe, tir de la rangée).
-- [ ] `bosses/attack_sign.gd` : `Node2D` qui dessine la bande et le trou pendant le télégraphe puis se libère ; ajouté sous la salle (`Const.Z_INDEX_COMBAT`).
-- [ ] `bosses/boss.gd` (`Boss extends Enemy`) : états `ANNOUNCING`, `FIGHTING` (6.4 ajoute `DEFEATED`), phase courante dérivée de la fraction de PV, `BulletParams` propres validés comme dans `ShooterEnemy` (vitesse < 1 tuile/tick), aide `fire_bullet(origin, direction, speed_tiles)` tirant par le `BulletManager` ennemi de la salle. Immobile ; refuse `dazzle()` et `knock_back()` (surcharges).
-- [ ] `enemies/enemy.gd` : deux crochets vides `_on_hit_applied()` (après `hp.apply_damage` et le retour visuel) et `_on_death()` (dans `_die()`, avant `queue_free()`), sans changer le comportement des autres ennemis.
-- [ ] `combat/telegraph.gd` : `static func duration_for(base, multiplier) -> float` (le `maxf(base × mult, min_telegraph)` de `start()`, factorisé) pour que les runners, qui n'ont pas de nœud `Telegraph`, appliquent la même règle.
-- [ ] `core/run_rng.gd` : `const BOSS: StringName = &"boss"`.
-- [ ] `autoloads/events.gd` : `boss_engaged(boss_id, max_hp)`, `boss_health_changed(hp, max_hp)`, `boss_announced(boss_id, text_key)`, `boss_phase_changed(boss_id, phase_index)`.
-- [ ] `bosses/professor/professor.tscn` + `professor.gd` (marionnette : placeholder rectangle 2×2 tuiles, `%Sprite`, `%Body`, contrat de scène d'`Enemy`), `data/bosses/professor.tres`.
-- [ ] `ui/hud/boss_bar.gd` et `ui/announcements/chalk_title.gd`, ajoutés par `Main._ready()` à `_ui` (comme la carte), entre le HUD et les menus ; clés `BOSS_PROFESSOR_NAME`, `BOSS_PROFESSOR_PHASE_1` (« Dictée ») dans `strings.csv`.
-- [ ] Salle `onset_boss_001.tscn` (outil de salles de la 4.2 : régénérer depuis le texte source, voir D4.2-20), puis tests de pool.
-- [ ] Débogage F1 : une touche libre (voir `debug_panel.gd`) amène le boss à une fraction de PV (`Boss.debug_set_hp_fraction(f)`), utile aux tests de 6.2.
-- [ ] Tests.
+- [x] `bosses/boss_def.gd` (`BossDef extends EnemyDef` : `announce_duration`, `phases: Array[BossPhase]`), `boss_phase.gd` (`title_key`, `hp_from` en fraction des PV max, `groups: Array[BossAttackSet]`), `boss_attack_set.gd` (`attacks: Array[BossAttack]`), `boss_attack.gd` (enum `Kind { ROW }`, champs plats, `validate() -> String`). 6.2 et 6.3 ajoutent des valeurs à `Kind` **à la fin** et des champs, jamais de renumérotation (valeurs explicites, elles sont sérialisées dans des `.tres`).
+- [x] `bosses/chalk_patterns.gd` : classe statique pure (`row(...) -> Array[Vector2]` positions des craies d'une rangée, trou exclu ; `next_gap(...)`), sans nœud ni horloge, testable.
+- [x] `bosses/runners/attack_runner.gd` (base `RefCounted` : `setup(boss, attack)`, `tick(step)`, `stop()`, fabrique statique `make(attack)` qui renvoie `null` + `Log.error` pour un `Kind` inconnu) et `row_runner.gd` (attente de l'intervalle, signe, tir de la rangée).
+- [x] `bosses/attack_sign.gd` : `Node2D` qui dessine la bande et le trou pendant le télégraphe puis se libère ; ajouté sous la salle (`Const.Z_INDEX_COMBAT`).
+- [x] `bosses/boss.gd` (`Boss extends Enemy`) : états `ANNOUNCING`, `FIGHTING` (6.4 ajoute `DEFEATED`), phase courante dérivée de la fraction de PV, `BulletParams` propres validés comme dans `ShooterEnemy` (vitesse < 1 tuile/tick), aide `fire_bullet(origin, direction, speed_tiles)` tirant par le `BulletManager` ennemi de la salle. Immobile ; refuse `dazzle()` et `knock_back()` (surcharges).
+- [x] `enemies/enemy.gd` : deux crochets vides `_on_hit_applied()` (après `hp.apply_damage` et le retour visuel) et `_on_death()` (dans `_die()`, avant `queue_free()`), sans changer le comportement des autres ennemis.
+- [x] `combat/telegraph.gd` : `static func duration_for(base, multiplier) -> float` (le `maxf(base × mult, min_telegraph)` de `start()`, factorisé) pour que les runners, qui n'ont pas de nœud `Telegraph`, appliquent la même règle.
+- [x] `core/run_rng.gd` : `const BOSS: StringName = &"boss"`.
+- [x] `autoloads/events.gd` : `boss_engaged(boss_id, max_hp)`, `boss_health_changed(hp, max_hp)`, `boss_announced(boss_id, text_key)`, `boss_phase_changed(boss_id, phase_index)`.
+- [x] `bosses/professor/professor.tscn` + `professor.gd` (marionnette : placeholder rectangle 2×2 tuiles, `%Sprite`, `%Body`, contrat de scène d'`Enemy`), `data/bosses/professor.tres`.
+- [x] `ui/hud/boss_bar.gd` et `ui/announcements/chalk_title.gd`, ajoutés par `Main._ready()` à `_ui` (comme la carte), entre le HUD et les menus ; clés `BOSS_PROFESSOR_NAME`, `BOSS_PROFESSOR_PHASE_1` (« Dictée ») dans `strings.csv`.
+- [x] Salle `onset_boss_001.tscn` (outil de salles de la 4.2 : régénérer depuis le texte source, voir D4.2-20), puis tests de pool.
+- [x] Débogage F1 : une touche libre (voir `debug_panel.gd`) amène le boss à une fraction de PV (`Boss.debug_set_hp_fraction(f)`), utile aux tests de 6.2.
+- [x] Tests.
 
 ## État du code concerné
 
@@ -83,10 +83,33 @@ epics.md (Story 6.1) ; GDD, Ennemis et IA, Le Professeur (2 500 PV, Dictée, 5 t
 6. **Le boss refuse l'éblouissement et le recul.** Raison : lampe et meubles n'existent pas dans cette salle ; évite une annonce annulée au milieu d'une épreuve.
 7. **`Kind` d'attaque en champs plats dans une seule Resource** (pas une classe par motif). Raison : lisible dans l'inspecteur, validation en un endroit.
 
+**Ajoutées à l’implémentation :**
+
+8. **`AttackRunner.tick(clock_step, pace)` à deux arguments** (et non `tick(step)`). Raison : le télégraphe se compte à l’horloge seule, la cadence à horloge × `pace_mult` ; un seul pas ferait passer un signe sous 0,4 s quand le rythme de salle accélère (Copie d’examen vierge).
+9. **Salle du cauchemar : les quatre portes restent déclarées** (et non « une porte »). Raison : le générateur exige que la salle ait les portes du côté d’où l’impasse est atteinte ; les portes inutilisées sont scellées par l’étage.
+10. **Le boss est lié à la salle par `Room.spawn_enemy()`** (`Boss.bind_room(room, rng, floor_index)` avant `add_child`) plutôt que par `prepare`, pour que le chemin des vagues (qui n’a pas de `prepare`) marche. Les signes sont ajoutés comme enfants de la salle.
+11. **Une phase lance tous les attacks de tous ses groupes en même temps** ; les groupes sont là pour que 6.2 ajoute de l’alternance sans changer les données.
+12. **Écart de test : espacement ≤ diamètre + 0,25** (et non <) : 0,75 = 0,5 + 0,25 pile, la valeur de la décision 2.
+13. **`Boss` émet `boss_health_changed(0, max)` en quittant l’arbre** (mort, salle détruite) : c’est ce qui cache la barre ; 6.4 pourra ajouter un signal de mort sans toucher à la barre. La barre se cache aussi sur `run_started` et `run_ended`.
+14. **Tirage du trou par `Boss.draw_unit()`** (un `randf()` du flux `boss`), `ChalkPatterns.next_gap(unit, …)` reste pure : la règle scratch interdit `randf` hors d’une ligne `_rng.stream(`.
+
 ## Dev Agent Record
 
 ### Notes de complétion
 
+- Cadre posé : `BossDef`/`BossPhase`/`BossAttackSet`/`BossAttack` (Resources, `Kind { ROW = 0 }` explicite), `ChalkPatterns` (géométrie pure), `AttackRunner` (+ fabrique `make()`), `RowRunner`, `AttackSign`, `Boss extends Enemy` (ANNOUNCING puis FIGHTING, phase dérivée de la part de PV, `fire_bullet`, `debug_set_hp_fraction`), `Professor` (marionnette), `professor.tres` (2 500 PV, Dictée : intervalle 2 s, signe 0,5 s, 5 t/s, espacement 0,75, trou 5, décalage max 10).
+- Crochets `Enemy._on_hit_applied()` / `_on_death()` vides : les autres ennemis ne changent pas (suites GUT et scratch inchangées).
+- La salle `onset_boss_001` est régénérée depuis `art_source/rooms/onset_boss_001.txt` (ajout de `professor` au constructeur de salles) ; `validate_rooms.sh` : 34 salles valides.
+- Barre de vie (`ui/hud/boss_bar.gd`) et titre à la craie (`ui/announcements/chalk_title.gd`) ajoutés par `Main._ready()` ; touche F1 `H` : PV du boss à 90, 66, 33, 10, 100 %.
+- Vérifications : `tools/run_tests.sh` 666 tests verts (dont 29 nouveaux : unit/bosses, unit/ui/test_boss_bar, integration/bosses), `run_all.sh` normal ALL PASS, `--quit-after 120` propre, `validate_rooms.sh` OK.
+- NON ÉVALUÉ (humain) : lisibilité et difficulté de la Dictée (trou de 5 tuiles, 5 t/s, espacement 0,75), placement de la barre (bas) et du titre (haut), temps d’écriture du titre, sons provisoires réutilisés (annonce : Veilleuse, signe : Berceuse). Reporté dans `deferred-work.md`.
+
 ### Liste des fichiers
 
+Nouveaux : `game/bosses/` (`boss.gd`, `boss_def.gd`, `boss_phase.gd`, `boss_attack_set.gd`, `boss_attack.gd`, `chalk_patterns.gd`, `attack_sign.gd`, `runners/attack_runner.gd`, `runners/row_runner.gd`, `professor/professor.gd`, `professor/professor.tscn`), `game/data/bosses/professor.tres`, `game/ui/hud/boss_bar.gd`, `game/ui/announcements/chalk_title.gd`, `game/tests/unit/bosses/test_boss_def.gd`, `test_chalk_patterns.gd`, `game/tests/unit/ui/test_boss_bar.gd`, `game/tests/integration/bosses/test_professor_room.gd`.
+Modifiés : `game/enemies/enemy.gd`, `game/combat/telegraph.gd`, `game/core/run_rng.gd`, `game/autoloads/events.gd`, `game/rooms/room.gd`, `game/rooms/validator/room_builder.gd`, `game/rooms/pool/onset/onset_boss_001.tscn`, `art_source/rooms/onset_boss_001.txt`, `game/main/main.gd`, `game/debug/debug_panel.gd`, `game/localization/strings.csv`, `game/tests/support/room_harness.gd` (`start(room_path, seed_value)`).
+
 ### Journal des modifications
+
+- 2026-11-24 : implémentation de la story 6.1 (cadre des boss, Dictée du Professeur), passée en `review`.
+

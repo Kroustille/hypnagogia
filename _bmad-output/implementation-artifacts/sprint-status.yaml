@@ -111,7 +111,7 @@ development_status:
 
   # Epic 6: Une nuit complète, de la chambre au réveil
   epic-6: in-progress
-  6-1-affronter-le-professeur-la-dictee: ready-for-dev
+  6-1-affronter-le-professeur-la-dictee: review
   6-2-affronter-le-professeur-calcul-mental-et-examen-final: ready-for-dev
   6-3-subir-l-interro-surprise-en-abandon-total: ready-for-dev
   6-4-gagner-la-nuit: ready-for-dev

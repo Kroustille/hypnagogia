@@ -528,3 +528,7 @@
 - **`FloorDef.hp_factor` non validé au chargement** (story du deuxième étage ou équilibrage des étages) : `game/run/run.gd:434` ; 0, négatif ou NaN donne un reflet à 1 PV (`HitPoints` logue et `assert`). Borner dans `ensure_floor` (AR28).
 - **Coût du Miroir en dur** (équilibrage des objets) : `ITEM_MIRROR_COST` dit « 1 salle de combat sur 4 » alors que la fréquence est `ReflectionSpawner.ONE_ROOM_IN` ; un réglage de la constante rend le texte faux. Commentaire de lien à côté de la constante.
 - **Doc d'architecture** (fin d'epic 5) : `game-architecture.md:820` demande une apparence de balle exclusive au reflet ; epics.md (Story 5.10) et l'AC 4 veulent l'apparence ennemie existante, que le code suit. Aligner la doc.
+
+## Deferred from: story 6-1-affronter-le-professeur-la-dictee (2026-11-24)
+
+- **NON ÉVALUÉ (humain) : la Dictée** (playtest du jalon A) : lisibilité et difficulté (trou de 5 tuiles, chute à 5 t/s, craies espacées de 0,75, rangée toutes les 2 s, signe de 0,5 s, annonce de 1,5 s), placement de la barre de vie (bas) et du titre à la craie (haut), vitesse d'écriture du titre (12 lettres/s). Valeurs de `game/data/bosses/professor.tres` posées au jugé. Sons provisoires réutilisés (annonce : Veilleuse, signe : Berceuse), à remplacer par la 7.7.
