@@ -6,6 +6,8 @@ var id: StringName = &""
 var path: String = ""
 var room_type: Room.RoomType = Room.RoomType.COMBAT
 var size_kind: Room.SizeKind = Room.SizeKind.SCREEN
+## Unlock the room needs to be part of the pool; empty for none.
+var requires_unlock: StringName = &""
 ## Door.Side values of the doors the room declares, sorted.
 var doors: Array[int] = []
 
@@ -22,6 +24,7 @@ static func from_scene(scene: PackedScene) -> RoomInfo:
 	info.id = StringName(info.path.get_file().get_basename())
 	info.room_type = room.room_type
 	info.size_kind = room.size_kind
+	info.requires_unlock = room.requires_unlock
 	for door: Door in room.doors():
 		if not info.doors.has(door.side):
 			info.doors.append(door.side)

@@ -126,7 +126,7 @@ static func _check_reinforcements(room: Room, playable: Vector2i, problems: Pack
 				count += 1
 				_check_marker_cell("ReinforcementSpawn %s at %s" % [marker.name, _local_position(room, marker)], _local_position(room, marker),
 						Rect2i(Vector2i.ONE, playable), blockers, problems)
-	var exempt: bool = REINFORCEMENT_FREE_TYPES.has(room.room_type) or room.is_nightmare
+	var exempt: bool = REINFORCEMENT_FREE_TYPES.has(room.room_type)
 	if count == 0 and not exempt:
 		problems.append("no ReinforcementSpawn")
 

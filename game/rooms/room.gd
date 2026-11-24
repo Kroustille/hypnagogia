@@ -55,9 +55,9 @@ const REINFORCEMENT_SIGN_RADIUS_TILES: float = 1.5
 ## Seed of the RunRng an arena makes for itself when the Run gave none (verification scenes).
 const FALLBACK_RUN_SEED: int = 1
 ## Name of the RunRng stream that decides combat outcomes (reinforcement type and place).
-const COMBAT_STREAM: StringName = &"combat"
+const COMBAT_STREAM: StringName = RunRng.COMBAT
 ## Name of the RunRng stream of purely visual draws (screen shake): never read by the gameplay.
-const COSMETIC_STREAM: StringName = &"cosmetic"
+const COSMETIC_STREAM: StringName = RunRng.COSMETIC
 ## Ticks between two draws of the screen shake offset (technical: about 20 changes per second).
 const SHAKE_STEP_TICKS: int = 3
 ## Rounding margin when comparing countdown ticks.
@@ -96,13 +96,13 @@ var _alive: int = 0
 ## Spawns of this room so far: names the next enemy <id>_<n>, never reused (a refused spawn may lose a number).
 var _spawn_serial: int = 0
 var _wave_runner: WaveRunner
-## A nightmare room (epic 6) calls no reinforcement.
-@export var is_nightmare: bool = false
 ## What this room is for (read by the floor generator and the validator).
 @export var room_type: RoomType = RoomType.COMBAT
 ## Phase of the night the room belongs to.
 @export var phase: StringName = &"onset"
 @export var size_kind: SizeKind = SizeKind.SCREEN
+## Name of the unlock a player must own for this room to enter the pool; empty: always available (story 4.7).
+@export var requires_unlock: StringName = &""
 ## The doors, found in the Doors node on entry.
 var _doors: Array[Door] = []
 ## Set once end_room() has run: the room is cleared for good.
@@ -116,6 +116,8 @@ class PendingReinforcement extends RefCounted:
 	var sign: ReinforcementSign
 
 var _rng: RunRng
+## The floor of the run this room belongs to (stream key).
+var _floor_index: int = 0
 ## Enemies planned for the current wave, dead ones included (null-free): decides the type of the reinforcement.
 var _wave_defs: Array[EnemyDef] = []
 ## True from begin_room() with a planned wave until the room is emptied (or the run ends).
@@ -171,10 +173,12 @@ func doors() -> Array[Door]:
 
 
 ## Dependency injection: call before add_child().
-## rng: the run's streams; without it the room makes a fixed one (verification scenes).
-func setup(player: Player, rng: RunRng = null) -> void:
+## rng: the run's streams; without it the room makes a fixed one (verification scenes). floor_index: the floor the room
+## belongs to, part of the key of its combat and cosmetic streams.
+func setup(player: Player, rng: RunRng = null, floor_index: int = 0) -> void:
 	_player = player
 	_rng = rng
+	_floor_index = floor_index
 
 
 func _ready() -> void:
@@ -388,7 +392,7 @@ func _on_room_danger_raised(tier: Lucidity.Tier, _previous: Lucidity.Tier) -> vo
 ## present type of the wave, at a marker 3 tiles or more from the player (drawn now; spawn_enemy() rechecks the
 ## distance when it appears, as the player moves meanwhile). Both choices come from the run's "combat" stream.
 func _maybe_schedule_reinforcement() -> void:
-	if is_nightmare or room_type == RoomType.NIGHTMARE or _reinforcement_used or not _wave_active or not danger.reinforcement or _player == null:
+	if is_nightmare() or _reinforcement_used or not _wave_active or not danger.reinforcement or _player == null:
 		return
 	var def: EnemyDef = _pick_reinforcement_def()
 	if def == null:
@@ -429,7 +433,7 @@ func _pick_reinforcement_def() -> EnemyDef:
 	tied.sort()
 	if tied.size() == 1:
 		return by_id[tied[0]]
-	return by_id[tied[_rng.stream(COMBAT_STREAM).randi_range(0, tied.size() - 1)]]
+	return by_id[tied[_rng.stream(COMBAT_STREAM, _floor_index).randi_range(0, tied.size() - 1)]]
 
 
 ## A marker (room coordinates) at least min_spawn_distance from the player, drawn in the combat stream (always one
@@ -457,7 +461,7 @@ func _pick_reinforcement_position() -> Vector2:
 			farthest = marker_pos
 	if far.is_empty():
 		far.append(farthest)
-	return far[_rng.stream(COMBAT_STREAM).randi_range(0, far.size() - 1)]
+	return far[_rng.stream(COMBAT_STREAM, _floor_index).randi_range(0, far.size() - 1)]
 
 
 ## The countdown is over: the enemy appears through spawn_enemy(). A refusal that leaves the room empty ends the wave.
@@ -501,6 +505,11 @@ func enemy_bullets() -> BulletManager:
 ## The wave runner, or null when waves are disabled (verification tools).
 func wave_runner() -> WaveRunner:
 	return _wave_runner
+
+
+## A nightmare room (epic 6) calls no reinforcement. The room type is the only source of this status.
+func is_nightmare() -> bool:
+	return room_type == RoomType.NIGHTMARE
 
 
 ## Where the player enters the room (center of the playable area), in global coordinates.
@@ -896,8 +905,8 @@ func _process_shake() -> void:
 
 ## One axis of a shake offset: a whole number of pixels from 1 to the amplitude, in a random direction (cosmetic stream).
 func _shake_axis() -> int:
-	var magnitude: int = _rng.stream(COSMETIC_STREAM).randi_range(1, _shake_amplitude)
-	var negative: int = _rng.stream(COSMETIC_STREAM).randi_range(0, 1)
+	var magnitude: int = _rng.stream(COSMETIC_STREAM, _floor_index).randi_range(1, _shake_amplitude)
+	var negative: int = _rng.stream(COSMETIC_STREAM, _floor_index).randi_range(0, 1)
 	return -magnitude if negative == 1 else magnitude
 
 
