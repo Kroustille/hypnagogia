@@ -27,3 +27,13 @@ extends Resource
 @export_range(0.0, 5.0, 0.05, "or_greater") var lucid_shot_speed_bonus: float = 0.30
 ## Lucid tier precision: side of the player's hurtbox (tiles, FR18: 4 px).
 @export_range(0.0625, 2.0, 0.0625, "or_greater") var lucid_hurtbox_size: float = 0.25
+
+## Room danger (story 3.6), per room tier in the order of Lucidity.Tier (Lucid, Floating, Drift, Abandon, Total abandon).
+## Multiplier on the speed of the bullets enemies fire (FR19: +10 % from Drift).
+@export var danger_bullet_speed_mult: PackedFloat32Array = PackedFloat32Array([1.0, 1.0, 1.1, 1.1, 1.1])
+## Multiplier on the duration of enemy telegraphs, never below Tuning.COMBAT.min_telegraph (FR19: x0.85 from Abandon).
+@export var danger_telegraph_mult: PackedFloat32Array = PackedFloat32Array([1.0, 1.0, 1.0, 0.85, 0.85])
+## First room tier (Lucidity.Tier, as an int) that calls reinforcements (read by story 3.7).
+@export_range(0, 4, 1) var reinforcement_from_tier: int = 3
+## First room tier (Lucidity.Tier, as an int) where nightmare bosses add a pattern (read from epic 6).
+@export_range(0, 4, 1) var boss_extra_pattern_from_tier: int = 4

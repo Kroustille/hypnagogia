@@ -13,9 +13,15 @@ signal value_changed(value: int)
 signal tier_changed(tier: Tier)
 ## A power paid its cost. tier_before: the live tier when the player decided to spend.
 signal spent(power: StringName, cost: int, tier_before: Tier)
+## The room tier went deeper (story 3.6): a spend or set_value pulled the live tier below it. Emitted once per move,
+## with the new and the previous room tier, after value_changed and tier_changed. Never emitted by begin_room().
+signal room_danger_raised(tier: Tier, previous: Tier)
 
 var value: int
 var live_tier: Tier
+## The lowest live tier reached since begin_room() (story 3.6): the only tier the room's danger reads. It follows the
+## live tier down at once and goes back up only at the next begin_room().
+var room_tier: Tier
 
 var _tuning: LucidityTuning
 ## Lucidity granted by grazes since begin_room().
@@ -32,6 +38,7 @@ func _init(tuning: LucidityTuning) -> void:
 	_tuning = tuning
 	value = tuning.max_value
 	live_tier = tier_for(value)
+	room_tier = live_tier
 
 
 ## Where a gain comes from: only GRAZE is capped per room.
@@ -63,9 +70,16 @@ func try_spend(cost: int, power: StringName = &"") -> bool:
 	return true
 
 
-## Starts a wave: the graze cap opens again.
+## Starts a wave: the graze cap opens again and the room tier is the live tier (no signal: a wave that starts deep
+## is not an aggravation).
 func begin_room() -> void:
 	_room_graze_gained = 0
+	room_tier = live_tier
+
+
+## True when tier a is deeper (less lucid) than tier b. Tier values grow with depth.
+static func is_deeper(a: Tier, b: Tier) -> bool:
+	return int(a) > int(b)
 
 
 ## Sets the value, clamped to 0..max. Debug tools and rules go through this one entry point.
@@ -76,10 +90,16 @@ func set_value(new_value: int) -> void:
 	value = clamped
 	var tier: Tier = tier_for(value)
 	var tier_moved: bool = tier != live_tier
-	live_tier = tier # both fields are up to date before any listener runs
+	var raised: bool = is_deeper(tier, room_tier)
+	var previous_room_tier: Tier = room_tier
+	live_tier = tier # all fields are up to date before any listener runs
+	if raised:
+		room_tier = tier
 	value_changed.emit(value)
 	if tier_moved and live_tier == tier: # a listener may have moved the tier again: its own emit is the current one
 		tier_changed.emit(tier)
+	if raised and room_tier == tier: # a listener may have gone deeper: its own call emitted the current one
+		room_danger_raised.emit(tier, previous_room_tier)
 
 
 ## Tier of a value: the first tier whose floor the value reaches.
