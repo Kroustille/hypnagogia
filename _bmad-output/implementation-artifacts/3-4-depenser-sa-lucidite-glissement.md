@@ -1,6 +1,6 @@
 # Story 3.4 : Dépenser sa lucidité : Glissement
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -27,14 +27,14 @@ Hors périmètre : trous (epic 4, « un trou est une destination valide » viend
 
 ## Tâches
 
-- [ ] `core/glide_tuning.gd` + `data/tuning/glide_tuning.tres` (`cost` 20, `cooldown` 1.0, `max_distance` 6.0, `min_stick_distance` 2.0, `arrival_invulnerability` 0.1, `min_travel` 0.5), `Tuning.GLIDE`.
-- [ ] `project.godot` : `power_2` = Maj gauche (`KEY_SHIFT`) + bouton manette 9 (`JOY_BUTTON_LEFT_SHOULDER` ; le dash est sur 10).
-- [ ] `Arena._build_tiles()` : deux `TileMapLayer` `HighObstacles` et `LowObstacles` (physique 0 : couches `LAYER_HIGH_OBSTACLES` / `LAYER_LOW_OBSTACLES`, mêmes collisions carrées que les murs), `Z_INDEX_DECOR` ; tuiles de quelques blocs 2x2 (3 bas, 2 hauts) posées loin des emplacements ; dessin distinct (bas : plus clair et bas ; haut : sombre).
-- [ ] `BulletManager` du joueur et des ennemis : `setup([Walls, HighObstacles])` (les bas n'y sont pas).
-- [ ] `Player` : masque de collision `WALLS | ENEMIES | HIGH | LOW` ; `Enemy` : `... | HIGH | LOW` ; `Arena._is_valid_spawn` refuse une position qui recouvre une cellule d'obstacle.
-- [ ] `player/powers/glide.gd` (`RefCounted` + requête physique passée en paramètre, ou fonction statique pure `resolve_destination(...)`) : calcule la destination ; `Player` exécute (position, `reset_physics_interpolation()`, invulnérabilité, signaux).
-- [ ] `Player.is_invulnerable()` inclut l'invulnérabilité d'arrivée (compteur de ticks du groupe `PLAYER`) ; teinte.
-- [ ] Sons `sfx_glide.wav` ; `t_glide` ; `run_all.sh` une fois à la fin.
+- [x] `core/glide_tuning.gd` + `data/tuning/glide_tuning.tres` (`cost` 20, `cooldown` 1.0, `max_distance` 6.0, `min_stick_distance` 2.0, `arrival_invulnerability` 0.1, `min_travel` 0.5), `Tuning.GLIDE`.
+- [x] `project.godot` : `power_2` = Maj gauche (`KEY_SHIFT`) + bouton manette 9 (`JOY_BUTTON_LEFT_SHOULDER` ; le dash est sur 10).
+- [x] `Arena._build_tiles()` : deux `TileMapLayer` `HighObstacles` et `LowObstacles` (physique 0 : couches `LAYER_HIGH_OBSTACLES` / `LAYER_LOW_OBSTACLES`, mêmes collisions carrées que les murs), `Z_INDEX_DECOR` ; tuiles de quelques blocs 2x2 (3 bas, 2 hauts) posées loin des emplacements ; dessin distinct (bas : plus clair et bas ; haut : sombre).
+- [x] `BulletManager` du joueur et des ennemis : `setup([Walls, HighObstacles])` (les bas n'y sont pas).
+- [x] `Player` : masque de collision `WALLS | ENEMIES | HIGH | LOW` ; `Enemy` : `... | HIGH | LOW` ; `Arena._is_valid_spawn` refuse une position qui recouvre une cellule d'obstacle.
+- [x] `player/powers/glide.gd` (`RefCounted` + requête physique passée en paramètre, ou fonction statique pure `resolve_destination(...)`) : calcule la destination ; `Player` exécute (position, `reset_physics_interpolation()`, invulnérabilité, signaux).
+- [x] `Player.is_invulnerable()` inclut l'invulnérabilité d'arrivée (compteur de ticks du groupe `PLAYER`) ; teinte.
+- [x] Sons `sfx_glide.wav` ; `t_glide` ; `run_all.sh` une fois à la fin.
 
 ## État du code concerné
 
@@ -85,6 +85,11 @@ Hors périmètre : trous (epic 4, « un trou est une destination valide » viend
 7. **Maj gauche et LB** pour `power_2` — Raison : AC de l'epic ; le dash est sur Espace et RB.
 8. **Les ennemis aussi sont bloqués par les obstacles bas et hauts** — Raison : cohérence ; ils ne contournent pas (limite connue, epic 4).
 
+9. **Atterrissage : `Glide.resolve_destination` est une fonction statique pure** (espace physique, forme du corps et exclusions passés en paramètres) ; `Player._try_glide` exécute. Le trajet utile est mesuré après le recul, avant la dépense : un refus ne consomme rien. – Raison : testable sans scène, et c'est l'option que la story laissait ouverte.
+10. **Stick : la longueur renvoyée par `Input.get_vector` (zone morte 0,2 déjà retirée et rééchelonnée) sert de `t`** ; un stick à peine hors zone morte donne donc environ 2 tuiles (2,25 mesurées avec 0,25 d'axe). Stick actif au moment de l'appui = stick ; sinon, si la dernière source de visée est le stick, 2 tuiles vers la dernière visée ; sinon souris. – Raison : suit exactement le code de visée existant.
+11. **Obstacles : deux `TileSet` distincts** (un par couche de collision, la couche physique d'un `TileSet` étant unique), blocs en code (`LOW_OBSTACLE_CELLS`, `HIGH_OBSTACLE_CELLS` dans `Arena`). `_is_valid_spawn` refuse tout corps qui recouvre une cellule d'obstacle ; conséquence : un ennemi à corps géant (cas de `t_invalid23`) ne peut plus apparaître tant que les obstacles existent, le test les vide pour ce cas. – Raison : AC 1 ; le cas géant est artificiel.
+12. **Anneaux de Glissement** : rayon 1 tuile, 0,25 s, au départ et à l'arrivée (constantes visuelles placeholders dans `Arena`, via le nouveau `_add_ring`) ; F3 affiche aussi « Glide n% ». – Raison : AC 8 ne donne pas de valeurs.
+
 ## Dev Agent Record
 
 ### Agent Model Used
@@ -92,3 +97,23 @@ Hors périmètre : trous (epic 4, « un trou est une destination valide » viend
 ### Completion Notes
 
 ### File List
+
+### Agent Model Used
+
+Agent : Claude Sonnet 5.5 (dev-story, mode lean).
+
+### Completion Notes
+
+- Toutes les tâches faites. `GlideTuning` (`Tuning.GLIDE`), `power_2` (Maj gauche + LB, bouton 9), `Glide` (distance et destination, fonctions statiques pures), `Player._try_glide()` appelé depuis `_update_powers()` : `try_spend(20, &"glide")`, téléportation, `reset_physics_interpolation()`, recharge `PowerCooldown` de 1 s, invulnérabilité d'arrivée de 6 ticks (`is_arrival_invulnerable()`, incluse dans `is_invulnerable()` : pas de graze, pas de dash parfait ; teinte `DASH_TINT`), signal `glided(from, to)` -> deux `RingPulse` dans `Arena`. Son `sfx_glide.wav` généré (provisoire, 7.7). Aucune chaîne joueur.
+- Arène : nœuds `HighObstacles` / `LowObstacles` (3 blocs bas, 2 hauts de 2x2), masques du joueur et des ennemis étendus, `BulletManager`s : `[Walls, HighObstacles]`, `_is_valid_spawn` refuse les cellules d'obstacle.
+- Vérifications : `t_glide` (48 ok) ajoutée à `run_all.sh` ; `t_awakening` (tir de test déplacé hors d'un bloc) et `t_invalid23` (obstacles vidés pour le cas du corps géant) adaptés ; `run_all.sh` en mode normal : ALL PASS (916 ok) ; `--quit-after 120` propre.
+- NON ÉVALUÉ (humain) : sensation de Glissement (distance, recharge d'1 s, invulnérabilité de 0,1 s), lisibilité des anneaux, teinte et son provisoires, disposition des obstacles et ennemis qui s'y coincent (limite connue, epic 4), manette réelle (stick droit : 2 à 6 tuiles, LB).
+
+### File List
+
+Nouveaux : `game/core/glide_tuning.gd`, `game/data/tuning/glide_tuning.tres`, `game/player/powers/glide.gd`, `game/audio/sfx/sfx_glide.wav` (+ `.import`, `.uid`).
+Modifiés : `game/core/tuning.gd`, `game/project.godot`, `game/player/player.gd`, `game/enemies/enemy.gd`, `game/rooms/arena/arena.gd`, `game/rooms/arena/arena.tscn`, `game/debug/perf_overlay.gd`.
+
+### Change Log
+
+- 2026-11-24 : implémentation de la story 3.4 (Glissement), passée en review.
