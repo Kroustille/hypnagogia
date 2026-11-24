@@ -37,3 +37,27 @@ static func next_gap(unit: float, previous: float, width_tiles: float, gap_tiles
 	if to < from:
 		return clampf(previous, low, high)
 	return lerpf(from, to, unit)
+
+
+## Unit directions of the arms of a spiral: arms directions evenly spread, the first at angle_deg (0 = right, clockwise on
+## screen since y points down).
+static func spiral_directions(angle_deg: float, arms: int) -> Array[Vector2]:
+	var found: Array[Vector2] = []
+	if not is_finite(angle_deg) or arms < 1:
+		return found
+	for i: int in arms:
+		found.append(Vector2.from_angle(deg_to_rad(angle_deg + 360.0 * i / arms)))
+	return found
+
+
+## Unit directions of an aimed fan: count chalks centered on aim, spread_deg between the two outer ones. Empty when aim
+## is (nearly) zero: nobody to aim at.
+static func aimed_fan(aim: Vector2, count: int, spread_deg: float) -> Array[Vector2]:
+	var found: Array[Vector2] = []
+	if count < 1 or not is_finite(spread_deg) or not aim.is_finite() or aim.length_squared() < EPSILON:
+		return found
+	var base: Vector2 = aim.normalized()
+	for i: int in count:
+		var offset: float = 0.0 if count == 1 else lerpf(-spread_deg / 2.0, spread_deg / 2.0, float(i) / (count - 1))
+		found.append(base.rotated(deg_to_rad(offset)))
+	return found

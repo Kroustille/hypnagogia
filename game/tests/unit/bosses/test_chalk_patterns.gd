@@ -80,3 +80,41 @@ func _gaps(run_rng: RunRng) -> Array[float]:
 		gap = ChalkPatterns.next_gap(rng.randf(), gap, WIDTH, GAP, 10.0)
 		found.append(gap)
 	return found
+
+
+func test_a_four_arm_spiral_has_arms_a_quarter_turn_apart() -> void:
+	var arms: Array[Vector2] = ChalkPatterns.spiral_directions(0.0, 4)
+	assert_eq(arms.size(), 4)
+	assert_almost_eq(arms[0], Vector2.RIGHT, Vector2.ONE * 1e-5)
+	assert_almost_eq(arms[1], Vector2.DOWN, Vector2.ONE * 1e-5)
+	assert_almost_eq(arms[2], Vector2.LEFT, Vector2.ONE * 1e-5)
+	assert_almost_eq(arms[3], Vector2.UP, Vector2.ONE * 1e-5)
+
+
+func test_an_arm_turns_twelve_degrees_between_two_chalks_at_sixty_degrees_per_second_and_0_2_s() -> void:
+	var rotation_deg_per_s: float = 60.0
+	var emit_interval: float = 0.2
+	var first: Vector2 = ChalkPatterns.spiral_directions(30.0, 4)[0]
+	var second: Vector2 = ChalkPatterns.spiral_directions(30.0 + rotation_deg_per_s * emit_interval, 4)[0]
+	assert_almost_eq(rad_to_deg(first.angle_to(second)), 12.0, 1e-3)
+
+
+func test_a_spiral_without_arms_or_a_valid_angle_is_empty() -> void:
+	assert_eq(ChalkPatterns.spiral_directions(0.0, 0).size(), 0)
+	assert_eq(ChalkPatterns.spiral_directions(NAN, 4).size(), 0)
+
+
+func test_an_aimed_fan_of_three_over_twenty_degrees_is_centered_on_the_aim() -> void:
+	var aim: Vector2 = Vector2(3.0, 4.0)
+	var fan: Array[Vector2] = ChalkPatterns.aimed_fan(aim, 3, 20.0)
+	assert_eq(fan.size(), 3)
+	assert_almost_eq(fan[1], aim.normalized(), Vector2.ONE * 1e-5, "the middle chalk is on the aim")
+	assert_almost_eq(rad_to_deg(absf(fan[0].angle_to(fan[2]))), 20.0, 1e-3, "the outer ones are 20 degrees apart")
+	assert_almost_eq(rad_to_deg(absf(fan[0].angle_to(fan[1]))), 10.0, 1e-3)
+	assert_almost_eq(rad_to_deg(absf(fan[1].angle_to(fan[2]))), 10.0, 1e-3)
+
+
+func test_a_single_chalk_fan_is_the_aim_and_a_zero_aim_fires_nothing() -> void:
+	assert_almost_eq(ChalkPatterns.aimed_fan(Vector2.UP * 5.0, 1, 20.0)[0], Vector2.UP, Vector2.ONE * 1e-5)
+	assert_eq(ChalkPatterns.aimed_fan(Vector2.ZERO, 3, 20.0).size(), 0)
+	assert_eq(ChalkPatterns.aimed_fan(Vector2(0.0, 1e-4), 3, 20.0).size(), 0)
