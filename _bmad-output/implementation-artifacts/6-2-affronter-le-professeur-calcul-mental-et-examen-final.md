@@ -1,6 +1,6 @@
 # Story 6.2 : Affronter Le Professeur : Calcul mental et Examen final
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -76,6 +76,19 @@ epics.md (Story 6.2) ; GDD, Le Professeur (trois épreuves, spirale 4 bras 60°/
 6. **Pas d'invulnérabilité du boss pendant l'annonce** : il reste touchable (le joueur n'a pas à attendre).
 7. **Durée de 75 s : vérifiée par le calcul, pas mesurée.** Le tir réel dépend du joueur ; mesure au playtest.
 
+**Revue de code (2026-11-24) :**
+
+15. **Revue — la règle n'était pas parable par un dash sur place → réglage par donnée : `thickness_tiles` 0,75, `sweep_speed` 12** (correctif ci-dessous). Sonde (vraie `Ruler`, vrai joueur, 23 instants de départ du dash autour du contact) : à 1 tuile / 8 t/s, un dash perpendiculaire (le joueur reste dans la trajectoire) ne passe qu'à **1 tick près** (barre + corps = 22 px à 2,13 px/tick = 10-11 ticks de contact > 9 ticks d'i-frames) ; à 0,75 / 12 : **5 ticks** (0,08 s) ; dash vers la barre : ≥ 21 ticks → 19 ticks ; dash dans le sens de la barre : 0 dans les deux cas. Raison : règle d'or (« une mort doit toujours sembler méritée ») et décision 1 (« la parade est le dash ») ; un dash bien placé ne doit pas échouer selon sa direction. Écartés : allonger les i-frames (valeur du GDD, 0,15 s), barre ≤ 0,5 tuile (peu lisible), 1 tuile à 16 t/s (même fenêtre de 5 ticks, mais traversée en 2,3 s au lieu de 3,1 s). À juger à la main (NON ÉVALUÉ).
+16. **Revue — fuir la règle (dash ou marche dans son sens) ne marche jamais : assumé.** Marche 6 t/s < règle ; la réponse est de la traverser (dash, Glissement), le signe montre le sens.
+17. **Revue — écartés** : un coup qui franchit un seuil pendant l'annonce d'ouverture démarre la phase atteinte sans son titre (`boss.gd`, `_enter(FIGHTING)` → `_update_phase()`) : 34 % des PV en 1,5 s, impossible hors debug. `Boss.target_room_position()` sans garde `is_instance_valid` : le joueur n'est jamais libéré pendant une salle, `run_ended` arrête le boss.
+
+### Review Findings
+
+Revue de code (2026-11-24, Opus, trois couches en passes isolées : Blind Hunter, Edge Case Hunter, Acceptance Auditor) sur `2489183..5f88900`. GUT complet 698/698 (lancé en `--fixed-fps 60`, `XDG_DATA_HOME` jetable). Vérifiés sans défaut : seuils 0,66 / 0,33 lus après le coup, une seule annonce (celle de la phase atteinte), saut 0 → 2 sans effet de bord (la phase 1 n'a pas d'état), seconde annonce relancée si un seuil tombe pendant l'annonce ; runners arrêtés pendant l'annonce, craies en vol gardées, signes effacés ; alternance 8 s / 8 s comptée à l'horloge, gelée sous `fire_hold` et pendant l'annonce, groupes quittés arrêtés, extras (`-1`) jamais arrêtés par l'alternance ; règle : première à 7 s (signe à 6,2 s), sens tiré dans le flux `BOSS`, plancher 0,4 s du télégraphe, gelée et sans contact sous `fire_hold`, immobile sous pause (`GameClock` 0, hitbox aussi), libérée au bord opposé, à l'arrêt du runner, à `_halt` (mort, `run_ended`, sortie de l'arbre) ; une seule règle vivante à la fois (traversée 4,6 s < 7 s, < 5,4 s avec la Copie d'examen ×1,3) ; coup lourd : 2 demi-cœurs, armure d'abord (`Health.apply_damage`), refusé en dash, invulnérabilité d'arrivée et d'après-coup, une fois par passage (1 s d'invulnérabilité > 0,17 s de contact), Chute libre ajoute ½ cœur comme à tout coup (3 demi-cœurs), cause télémétrie `ruler` par `Source.find_key` ; spirale : 4 bras à 90°, craies à 1 tuile d'écart radial, angle normalisé, rattrapage plafonné à 8 émissions/tick ; éventail visé pris au tir, aucun tir à distance nulle ; pool : 60 s d'Examen final en Abandon, `refused_count == 0` ; `validate()` par genre (SPIRAL sans `interval`, RULER sans `bullet_speed`) ; `professor.tres` conforme au GDD (4 bras, 60°/s, 3 craies / 3 s, règle annoncée 0,8 s ; durée théorique ≈ 73 s) ; clés `BOSS_PROFESSOR_PHASE_2/3` dans `strings.csv`.
+
+- [ ] [Review][Patch] Règle impossible à parer par un dash sur place (1 tick de fenêtre) [`game/data/bosses/professor.tres:50-51`] — passer à `thickness_tiles = 0.75` et `sweep_speed = 12.0` (décision 15). Suivre : `game/tests/unit/bosses/test_boss_duration.gd:52-53` (0.75, 12.0) ; `game/tests/integration/bosses/test_professor_phases.gd:187` (`band().size.x == ruler.thickness_tiles * Const.TILE_SIZE`, message « the thickness of the data »), `:193-201` (renommer `test_the_ruler_sweeps_the_room_then_is_freed`, attendre `sweep_speed * Const.TILE_SIZE` en 60 ticks), `:218` (`_release_ruler` lit `PROFESSOR.phases[2].extras[0]` au lieu de `1.0, 8.0`) ; AC 4 (« 0,75 tuile, 12 tuiles/s ») et décisions 1 et 14. Nouveau test dans `test_professor_phases.gd` : `test_a_dash_in_place_through_the_ruler_cancels_the_hit` — joueur à `(arena.x + 8 tuiles, arena.y + 4 tuiles)`, vitesse nulle, `_release_ruler(boss, true)`, `contact := ceili((8.0 * Const.TILE_SIZE - 3.0) / (sweep_speed * Const.TILE_SIZE / 60.0))` (3 px = demi-corps), `await ticks(contact - 3)`, presser `move_down` + `dash`, 1 tick, relâcher `dash`, 11 ticks, relâcher `move_down`, 40 ticks, `assert_eq(_hits.size(), 0)` (relâcher `move_down` dans `after_each`). Vérifié par sonde : à 0,75 / 12 les départs −5 à −1 passent, à 1 / 8 seul le départ 0 passe : le test échoue avec les anciennes valeurs.
+- [ ] [Review][Patch] Cause de télémétrie « ruler » non testée (tâche : « vérifié par test ») [`game/tests/unit/combat/test_heavy_hit.gd`] — ajouter `test_the_telemetry_cause_of_the_ruler_is_ruler` : `assert_eq(str(DamageInfo.Source.find_key(DamageInfo.Source.RULER)).to_lower(), "ruler")` et `assert_eq(DamageInfo.Source.RULER, 6)`.
+
 ## Dev Agent Record
 
 ### Décisions complémentaires (dev, sans Kroustille)
@@ -101,3 +114,4 @@ epics.md (Story 6.2) ; GDD, Le Professeur (trois épreuves, spirale 4 bras 60°/
 ### Journal des modifications
 
 - 2026-11-24 : implémentation de la story 6.2 (commits 5e538ab à 59b6e6c).
+- 2026-11-24 : revue de code, 2 correctifs à appliquer (réglage de la règle, test de télémétrie), story repassée en `in-progress`.

@@ -541,3 +541,10 @@
 ## Deferred from: code review of 6-1-affronter-le-professeur-la-dictee (2026-11-24)
 
 - **Marge nulle entre deux craies d'une rangée** (première story qui réduit la hurtbox du joueur sous 0,25 tuile, ou réglage de la Dictée au playtest) : `spacing_tiles` 0,75 = diamètre 0,5 + 0,25, soit une fente de 4 px, exactement la hurtbox Lucide (`lucid_hurtbox_size` 0,25) ; elle n'est fermée que parce que `BulletManager` touche à distance `<=` rayon (`game/combat/bullets/bullet_manager.gd:327`). La borne du stat est 0,0625 (`player.gd:56`) : une hurtbox plus petite passerait entre les craies. Vérifier que la fente (`spacing_tiles - 2 × enemy_bullet_radius`) reste strictement plus petite que la plus petite hurtbox atteignable en jeu (aujourd'hui 0,25), ou passer l'espacement à 0,7.
+
+## Deferred from: code review of 6-2-affronter-le-professeur-calcul-mental-et-examen-final (2026-11-24)
+
+- **NON ÉVALUÉ (humain) : parade de la règle après réglage** (playtest du jalon A) : à 0,75 tuile / 12 t/s, dash sur place = 5 ticks de fenêtre (0,08 s), dash vers la barre ≈ 19 ticks, fuite impossible. Si trop dur : 0,5 tuile / 10 t/s donne 6 ticks ; si trop facile : revenir vers 1 tuile.
+- **`validate()` du genre RULER n'empêche pas la barre de sauter le joueur** (story 6.4, ou premier réglage de la règle) : `game/bosses/boss_attack.gd:76` borne `sweep_speed` à 1 tuile/tick ; une barre fine et rapide (pas > épaisseur + corps) peut passer sans recouvrement. Exiger `sweep_speed < thickness_tiles * Engine.physics_ticks_per_second`.
+- **`BossPhase.validate()` jamais appelé en jeu** (story 6.3, qui ajoute un motif aux ensembles) : seuls les tests l'appellent ; `Boss._start_phase` (`game/bosses/boss.gd`) valide les attaques une à une mais pas `alternate_seconds` (0,01 s ⇒ un changement d'ensemble par tick) ni un groupe `null`. L'appeler dans `_start_phase` (`Log.error` + `_assert_failed`, alternance coupée).
+
