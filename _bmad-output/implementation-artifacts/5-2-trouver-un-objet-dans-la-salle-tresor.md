@@ -1,6 +1,6 @@
 # Story 5.2 : Trouver un objet dans la salle trésor
 
-Status: in-progress
+Status: done
 
 ## Story
 
@@ -80,7 +80,9 @@ epics.md (Story 5.2) ; GDD « Pools d'objets » (pools trésor et boutique = 8 o
 
 Revue de code 2026-11-24 (trois couches : Blind Hunter, Edge Case Hunter, Acceptance Auditor). 1 patch, 1 reporté, 9 écartés.
 
-- [ ] [Review][Patch] Un seul candidat ne fait avancer le flux d'aucun tirage : `RandomNumberGenerator.randi_range(0, 0)` rend 0 sans toucher l'état (vérifié sous Godot 4.7.2), donc le critère 4 (« un seul tirage par appel, quel que soit le nombre d'exclus ») est faux dès qu'un objet est possédé ou que la Dent est refusée à 1 cœur max ; le pool filtré vide ne tire rien non plus (décision 12) [game/economy/item_picker.gd:11-14] — dans `draw`, tirer d'abord `var roll: int = rng.randi()` (avant le test `candidates.is_empty()`), puis `return candidates[roll % candidates.size()]`. Tests (`game/tests/unit/economy/test_item_picker.gd`) : dans `test_one_draw_per_call_whatever_the_number_of_candidates`, ajouter un pool d'un seul candidat comparé à 8 ; `test_an_empty_filtered_pool_gives_null_and_draws_nothing` devient « avance d'un tirage par appel » (comparer à un flux de même seed qui a fait trois `randi()`).
+- [x] [Review][Patch] Un seul candidat ne fait avancer le flux d'aucun tirage : `RandomNumberGenerator.randi_range(0, 0)` rend 0 sans toucher l'état (vérifié sous Godot 4.7.2), donc le critère 4 (« un seul tirage par appel, quel que soit le nombre d'exclus ») est faux dès qu'un objet est possédé ou que la Dent est refusée à 1 cœur max ; le pool filtré vide ne tire rien non plus (décision 12) [game/economy/item_picker.gd:11-14] — dans `draw`, tirer d'abord `var roll: int = rng.randi()` (avant le test `candidates.is_empty()`), puis `return candidates[roll % candidates.size()]`. Tests (`game/tests/unit/economy/test_item_picker.gd`) : dans `test_one_draw_per_call_whatever_the_number_of_candidates`, ajouter un pool d'un seul candidat comparé à 8 ; `test_an_empty_filtered_pool_gives_null_and_draws_nothing` devient « avance d'un tirage par appel » (comparer à un flux de même seed qui a fait trois `randi()`).
+
+Correctif appliqué et vérifié (2026-11-24, par l’orchestrateur) : `ItemPicker.draw` tire `randi()` avant le test du vide puis prend `roll % taille` ; un appel fait toujours avancer le flux d’un tirage, même avec un seul candidat ou aucun (décision 12). Tests : `test_one_candidate_draws_like_eight` et `test_an_empty_filtered_pool_gives_null_and_still_draws_once` ; `test_item_picker` et `test_treasure*` passent.
 - [x] [Review][Defer] `Run.stocks` jamais vidé au changement d'étage rend aussi la salle trésor muette : `first_visit = not stocks.has(cell)` [game/run/run.gd:168] serait faux à l'étage N+1 pour une cellule déjà visitée à l'étage N — reporté, epic 6 (avec l'entrée `Run.stocks` de la revue 5.1)
 
 Réglés par cette story (entrées de `deferred-work.md` étiquetées 5.2) : le test de revisite passe maintenant par `Run._enter_cell` (`test_an_item_left_is_offered_again_and_an_item_taken_is_gone`) ; les pools ne contiennent que des objets du catalogue validé (`test_item_pool_defs` compare aux `ItemCatalog.all()`, une `ItemDef` refusée par `validate()` le fait échouer).
