@@ -283,6 +283,9 @@ func spawn_enemy(def: EnemyDef, requested: Vector2, prepare: Callable = Callable
 	enemy.setup(def, _player, _player.hurtbox, _enemy_bullets, danger, _nav) # before add_child()
 	if prepare.is_valid():
 		prepare.call(enemy) # still before add_child(): the caller gives what _ready() reads
+	var boss: Boss = enemy as Boss
+	if boss != null:
+		boss.bind_room(self, _rng, _floor_index) # a boss draws from the BOSS stream of the floor and puts its signs under the room
 	enemy.position = position_px
 	_spawn_serial += 1
 	enemy.name = "%s_%d" % [_enemy_base_name(def), _spawn_serial] # readable and unique: never a generated "@" name

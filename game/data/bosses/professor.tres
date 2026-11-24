@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="BossDef" load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://bosses/boss_def.gd" id="1_def"]
+[ext_resource type="Script" path="res://bosses/boss_phase.gd" id="2_phase"]
+[ext_resource type="Script" path="res://bosses/boss_attack_set.gd" id="3_set"]
+[ext_resource type="Script" path="res://bosses/boss_attack.gd" id="4_attack"]
+[ext_resource type="PackedScene" path="res://bosses/professor/professor.tscn" id="5_scene"]
+
+[sub_resource type="Resource" id="Resource_dictee_row"]
+script = ExtResource("4_attack")
+kind = 0
+interval = 2.0
+telegraph = 0.5
+bullet_speed = 5.0
+spacing_tiles = 0.75
+gap_tiles = 5.0
+max_gap_shift_tiles = 10.0
+
+[sub_resource type="Resource" id="Resource_dictee_set"]
+script = ExtResource("3_set")
+attacks = Array[ExtResource("4_attack")]([SubResource("Resource_dictee_row")])
+
+[sub_resource type="Resource" id="Resource_dictee"]
+script = ExtResource("2_phase")
+title_key = &"BOSS_PROFESSOR_PHASE_1"
+hp_from = 1.0
+groups = Array[ExtResource("3_set")]([SubResource("Resource_dictee_set")])
+
+[resource]
+script = ExtResource("1_def")
+announce_duration = 1.5
+phases = Array[ExtResource("2_phase")]([SubResource("Resource_dictee")])
+id = &"professor"
+scene = ExtResource("5_scene")
+max_hp = 2500.0
+body_size = Vector2(2, 2)
+hurtbox_size = Vector2(2.5, 2.5)
+contact_size = Vector2(2.25, 2.25)
