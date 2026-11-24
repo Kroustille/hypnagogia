@@ -57,3 +57,8 @@ signal lucidity_value_changed(value: int, tier: int)
 ## Never emitted for the initial state. Listeners: telemetry (story 3.1); danger and effects (stories 3.5+).
 @warning_ignore("unused_signal")
 signal lucidity_tier_changed(tier: int, previous_tier: int)
+
+## A power spent lucidity (story 3.3). power: the power's name (&"awakening"); cost: lucidity paid; tier: the
+## Lucidity.Tier (int) the player was in before paying. Listeners: telemetry.
+@warning_ignore("unused_signal")
+signal lucidity_spent(power: StringName, cost: int, tier: int)

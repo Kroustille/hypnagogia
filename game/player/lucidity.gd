@@ -11,6 +11,8 @@ enum Tier { LUCID = 0, FLOATING = 1, DRIFT = 2, ABANDON = 3, TOTAL_ABANDON = 4 }
 signal value_changed(value: int)
 ## The live tier changed, in either direction.
 signal tier_changed(tier: Tier)
+## A power paid its cost. tier_before: the live tier when the player decided to spend.
+signal spent(power: StringName, cost: int, tier_before: Tier)
 
 var value: int
 var live_tier: Tier
@@ -48,6 +50,17 @@ func gain(amount: int, source: Source = Source.OTHER) -> int:
 	if source == Source.GRAZE:
 		_room_graze_gained += gained # the cap counts what was really gained
 	return gained
+
+
+## Pays for a power. Refused (false, nothing changes, no signal) when cost <= 0 or the gauge holds less than cost.
+## Never goes through gain(). power names the spender for the telemetry.
+func try_spend(cost: int, power: StringName = &"") -> bool:
+	if cost <= 0 or value < cost:
+		return false
+	var tier_before: Tier = live_tier
+	set_value(value - cost)
+	spent.emit(power, cost, tier_before)
+	return true
 
 
 ## Starts a wave: the graze cap opens again.
