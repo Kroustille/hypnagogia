@@ -389,3 +389,10 @@
 - **Journal de génération** : `Log.error` à l'échec est émis par `Run.ensure_floor()` et non par `FloorGenerator` (le générateur reste sans autoload, `FloorLayout.failure` porte la raison).
 - **`FloorGenerator.generate` sans filtrage de pool** : le générateur ne vérifie pas `requires_unlock` ; c'est `RoomCatalog.pool(dir, unlocks)` qui filtre (vide au MVP).
 - **F1 G** (carte de l'étage de la seed courante dans le journal) : le test appelle `Run.log_floor_map()`, la touche elle-même n’est pas simulée.
+
+## Deferred from: code review of 4-7-generer-l-etage-depuis-une-seed (2026-11-24)
+
+- **Story 4.8 (changement d'étage) : cache d'étage non lié à `floor_index`** : `Run.ensure_floor()` rend `floor_layout` dès qu'il existe, sans regarder `state.floor_index` ; et `RunRng.stream()` garde l'état des flux `layout`/`rooms`, donc un second `FloorGenerator.generate(..., run.rng, même étage)` donne un autre étage. Lier le cache à l'indice d'étage (ou faire construire au générateur des flux neufs depuis (seed, nom, étage)).
+- **Story 4.8 : ce que voit le joueur d'un étage invalide** : en mode FLOOR, un étage invalide ne donne qu'un `Log.error` et la run continue dans l'arène ; décider (abandon de la run, ou nouveau tirage avec une seed suivante) quand la 4.8 joue l'étage.
+- **Story 4.10 : ids de `RoomInfo`** : l'id est le nom de fichier ; deux salles de même nom dans deux sous-dossiers du pool (parcours récursif) sont vues comme une seule (`used[info.id]`) et leur ordre dépend de l'entrée. Rejeter un id déjà vu dans `RoomCatalog.all()` (`Log.error`). Même endroit : `RoomInfo.from_scene` appelle `free()` sur un `instantiate()` nul (antérieur à la 4.7, mais désormais atteint en run) : rendre `null`.
+- **Fin d'epic 4 : architecture D8** : `game-architecture.md` (D8) dit encore « seed de run : entier 64 bits » ; la mettre à 40 bits (8 caractères base32) quand la décision 2 de la 4.7 est validée.
