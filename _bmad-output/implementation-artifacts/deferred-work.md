@@ -546,5 +546,9 @@
 
 - **NON ÉVALUÉ (humain) : parade de la règle après réglage** (playtest du jalon A) : à 0,75 tuile / 12 t/s, dash sur place = 5 ticks de fenêtre (0,08 s), dash vers la barre ≈ 19 ticks, fuite impossible. Si trop dur : 0,5 tuile / 10 t/s donne 6 ticks ; si trop facile : revenir vers 1 tuile.
 - **`validate()` du genre RULER n'empêche pas la barre de sauter le joueur** (story 6.4, ou premier réglage de la règle) : `game/bosses/boss_attack.gd:76` borne `sweep_speed` à 1 tuile/tick ; une barre fine et rapide (pas > épaisseur + corps) peut passer sans recouvrement. Exiger `sweep_speed < thickness_tiles * Engine.physics_ticks_per_second`.
-- **`BossPhase.validate()` jamais appelé en jeu** (story 6.3, qui ajoute un motif aux ensembles) : seuls les tests l'appellent ; `Boss._start_phase` (`game/bosses/boss.gd`) valide les attaques une à une mais pas `alternate_seconds` (0,01 s ⇒ un changement d'ensemble par tick) ni un groupe `null`. L'appeler dans `_start_phase` (`Log.error` + `_assert_failed`, alternance coupée).
+- **RÉSOLU en 6.3 (`Boss._validate_def`, plancher de 1 s sur `alternate_seconds`)** : **`BossPhase.validate()` jamais appelé en jeu** (story 6.3, qui ajoute un motif aux ensembles) : seuls les tests l'appellent ; `Boss._start_phase` (`game/bosses/boss.gd`) valide les attaques une à une mais pas `alternate_seconds` (0,01 s ⇒ un changement d'ensemble par tick) ni un groupe `null`. L'appeler dans `_start_phase` (`Log.error` + `_assert_failed`, alternance coupée).
 
+
+## Deferred from: dev of 6-3-subir-l-interro-surprise-en-abandon-total (2026-11-24)
+
+- **NON ÉVALUÉ (humain) : lisibilité de l'Interro surprise** (playtest du jalon A) : cercle de 12 craies à 5 t/s × 1,1 toutes les 6 s superposé à l'Examen final (règle + rangée + spirale), signe en anneau de 0,6 s (0,51 s en Abandon total) ; l'annonce « Interro surprise » remplace le titre de phase s'il est encore écrit (`ChalkTitle` n'affiche qu'une ligne).

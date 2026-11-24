@@ -1,6 +1,6 @@
 # Story 6.3 : Subir l'Interro surprise en Abandon total
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -27,12 +27,12 @@ Hors périmètre : mort du boss (6.4) ; sprites et audio réels.
 
 ## Tâches
 
-- [ ] `boss_attack.gd` : `Kind.RING` (à la fin), champs `ring_offset_deg` ; `boss_def.gd` : `extra_attack` ; `chalk_patterns.gd` : `ring_directions(count, offset_deg)`.
-- [ ] `runners/ring_runner.gd` ; `attack_runner.gd` : `make()` branche `RING`.
-- [ ] `boss.gd` : lecture de `danger.boss_extra_pattern` chaque tick (`_check_extra()`), **verrou** `_extra_active` (jamais remis à faux), démarrage du runner de l'Interro, annonce sans pause ; le runner survit aux changements d'ensemble et de phase (il n'appartient à aucun ensemble) ; arrêt avec les autres à la mort/fin de run.
-- [ ] `professor.tres` : `extra_attack` ; `strings.csv` : `BOSS_PROFESSOR_EXTRA` (« Interro surprise »).
-- [ ] Télémétrie : `Log.info("combat", "boss extra pattern started")` ; pas de nouveau champ (6.9 lit l'issue de la tentative, pas le pattern).
-- [ ] Tests.
+- [x] `boss_attack.gd` : `Kind.RING` (à la fin), champs `ring_offset_deg` ; `boss_def.gd` : `extra_attack` ; `chalk_patterns.gd` : `ring_directions(count, offset_deg)`.
+- [x] `runners/ring_runner.gd` ; `attack_runner.gd` : `make()` branche `RING`.
+- [x] `boss.gd` : lecture de `danger.boss_extra_pattern` chaque tick (`_check_extra()`), **verrou** `_extra_active` (jamais remis à faux), démarrage du runner de l'Interro, annonce sans pause ; le runner survit aux changements d'ensemble et de phase (il n'appartient à aucun ensemble) ; arrêt avec les autres à la mort/fin de run.
+- [x] `professor.tres` : `extra_attack` ; `strings.csv` : `BOSS_PROFESSOR_EXTRA` (« Interro surprise »).
+- [x] Télémétrie : `Log.info("combat", "boss extra pattern started")` ; pas de nouveau champ (6.9 lit l'issue de la tentative, pas le pattern).
+- [x] Tests.
 
 ## État du code concerné
 
@@ -72,6 +72,16 @@ epics.md (Story 6.3) ; GDD, Le Professeur, « En Abandon total : Interro surpris
 
 ### Notes de complétion
 
+- `Kind.RING` (4) + `ring_offset_deg`, `ChalkPatterns.ring_directions`, `RingRunner` (signe en anneau, cercle de 12, décalage de 15° par tir : `fired_rings * ring_offset_deg`, aucun tirage, vérifié par l état du flux BOSS).
+- `Boss._check_extra()` verrouille `_extra_active` à la première lecture vraie de `danger.boss_extra_pattern` (en FIGHTING seulement : une annonce de phase la retient), crée `_extra_runner` hors de tout ensemble, annonce `BOSS_PROFESSOR_EXTRA` sans changer d'état. Arrêté par `_halt()`. Log INFO `boss extra pattern started`.
+- Dette 6.3 soldée : `BossDef.validate()` (phases + extra) appelé dans `Boss._ready` ; une phase refusée par `BossPhase.validate()` n'alterne plus. `BossPhase.validate()` refuse maintenant `alternate_seconds` entre 0 et 1 s.
+- Tests : GUT `test_surprise_quiz` (8), `test_chalk_patterns`, `test_boss_duration`, `test_danger_boss_extra` ; capacité 60 s Examen final + Interro en Abandon : `refused_count == 0`. `tools/run_tests.sh` 715 verts, `run_all.sh` ALL PASS (un premier passage a eu 1 échec non reproduit, charge parallèle), `--quit-after 120` propre.
+- Décision ajoutée : `ChalkTitle` inchangé (une nouvelle annonce remplace simplement le titre en cours) ; lisibilité de l'Interro et du cercle au playtest : NON ÉVALUÉ.
+
 ### Liste des fichiers
 
+`game/bosses/{boss,boss_attack,boss_def,boss_phase,chalk_patterns}.gd`, `game/bosses/runners/{attack_runner,ring_runner}.gd`, `game/data/bosses/professor.tres`, `game/localization/strings.csv`, `game/tests/unit/bosses/{test_chalk_patterns,test_boss_duration}.gd`, `game/tests/unit/combat/test_danger_boss_extra.gd`, `game/tests/integration/bosses/test_surprise_quiz.gd`.
+
 ### Journal des modifications
+
+- 2026-11-24 : implémentation de l'Interro surprise (6.3), validation runtime des définitions de boss.
