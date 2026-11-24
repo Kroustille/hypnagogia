@@ -1,6 +1,6 @@
 # Story 6.4 : Gagner la nuit
 
-Status: in-progress
+Status: done
 
 ## Story
 
@@ -78,7 +78,9 @@ epics.md (Story 6.4) ; GDD, Conditions de victoire (réveil de soi-même, un seu
 
 Revue de code (2026-11-24, Opus, trois couches en passes isolées : Blind Hunter, Edge Case Hunter, Acceptance Auditor) sur `5978e16..de1ce72`, avec un coup d'œil à `e0b5911` (gardes de la revue 6.3, `LenientProfessor`, `_assert_failed()` dans `Boss._ready`). Arbre propre de `de1ce72` extrait à part, `XDG_DATA_HOME` jetable, `--fixed-fps 60` : GUT `integration/bosses` 43/43, `integration/run` 74/74, `unit/telemetry` 7/7, `unit/ui` 32/32, `unit/bosses/test_boss_def` 11/11. Vérifiés sans défaut : mort du boss une seule fois (`Enemy._die` gardé par `_dead` ; deux coups du même tick : le second est écarté par `_deliver_hits` puisque le boss est en file de suppression) ; Éveil sans effet (le boss refuse le recul, pas de fosse) ; onde du Plongeon et `kill()` passent par `_die()` hors de toute itération du `BulletManager` ennemi ; le reflet ne touche pas d'ennemi ; pendant l'attente, toute blessure passe par `Hurtbox.receive()` → `Player._on_hurtbox_damage_received`, refusée par l'invulnérabilité forcée avant `hit_incoming` (fosse : retour sans dégât, Chute libre jamais sollicitée), règle et contact aussi ; « Se pincer » et `lose_max` ne tuent jamais ; `travel()` et portes refusés ; délai en ticks `WORLD`, gelé par la pause (et par le gel de `Main`) ; mort et victoire du même tick : la première l'emporte (`_ended` / invulnérabilité posée dans le callback même), le gel de `Main` empêche toute mort du boss après une défaite ; `run_ended(VICTORY)` une fois ; `Main`, `WakeScreen` (titre, question et Oui/Non masqués et non focalisables, focus sur « Se rendormir »), issue inconnue = `Log.warn` + défaite ; télémétrie `victory`, `victories`, `run_end.outcome` ; règle : `sweep_speed` en tuiles/s, pas par tick `sweep_speed / 60` < `thickness_tiles` ⇔ `sweep_speed < thickness_tiles × 60` (prudent : ignore la hauteur du corps), `professor.tres` 12 < 45 ; `UI_WAKE_TITLE_VICTORY` dans `strings.csv`.
 
-- [ ] [Review][Patch] Le titre de craie ne disparaît pas à la mort du boss (AC 1) [`game/ui/announcements/chalk_title.gd:36`] — `ChalkTitle` ne se cache qu'à `run_ended` (2 s plus tard) ou à la fin de sa tenue : tué peu après « Interro surprise » (1,3 s d'écriture + 1,2 s de tenue) ou « Examen final », le titre reste au tableau pendant l'attente de la victoire. Ajouter `Events.boss_defeated.connect(_on_boss_defeated)` à côté de `run_ended` et `func _on_boss_defeated(_boss_id: StringName) -> void: hide_title()` ; test GUT (`unit/ui/test_boss_bar.gd`) : `boss_announced` puis `boss_defeated` ⇒ `written() == ""` et invisible.
+- [x] [Review][Patch] Le titre de craie ne disparaît pas à la mort du boss (AC 1) [`game/ui/announcements/chalk_title.gd:36`] — `ChalkTitle` ne se cache qu'à `run_ended` (2 s plus tard) ou à la fin de sa tenue : tué peu après « Interro surprise » (1,3 s d'écriture + 1,2 s de tenue) ou « Examen final », le titre reste au tableau pendant l'attente de la victoire. Ajouter `Events.boss_defeated.connect(_on_boss_defeated)` à côté de `run_ended` et `func _on_boss_defeated(_boss_id: StringName) -> void: hide_title()` ; test GUT (`unit/ui/test_boss_bar.gd`) : `boss_announced` puis `boss_defeated` ⇒ `written() == ""` et invisible.
+
+Correctif appliqué et vérifié (2026-11-24, par l’orchestrateur) : `ChalkTitle` s’efface sur `Events.boss_defeated` ; test `test_the_title_is_wiped_when_the_boss_falls` dans `test_boss_bar.gd` ; `test_boss_bar` passe.
 
 ## Dev Agent Record
 
