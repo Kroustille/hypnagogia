@@ -105,11 +105,12 @@ func test_try_spend_refused_for_non_positive_cost() -> void:
 
 
 func test_try_spend_accepted_pays_and_emits() -> void:
-	_lucidity.set_value(30)
+	var amount: int = _tuning.tier_floors[Lucidity.Tier.DRIFT]
+	_lucidity.set_value(amount)
 	watch_signals(_lucidity)
-	assert_true(_lucidity.try_spend(30, &"power"), "spending exactly the value is allowed")
+	assert_true(_lucidity.try_spend(amount, &"power"), "spending exactly the value is allowed")
 	assert_eq(_lucidity.value, 0)
-	assert_signal_emitted_with_parameters(_lucidity, "spent", [&"power", 30, Lucidity.Tier.DRIFT])
+	assert_signal_emitted_with_parameters(_lucidity, "spent", [&"power", amount, Lucidity.Tier.DRIFT])
 
 
 func test_room_tier_keeps_the_lowest_tier_reached() -> void:
