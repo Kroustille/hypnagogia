@@ -20,6 +20,9 @@ var _tier: int = -1
 var _tier_since: float = 0.0
 ## Seconds per tier of the current run only.
 var _run_tier_seconds: Array[float] = [0.0, 0.0, 0.0, 0.0, 0.0]
+## Spends by power then tier name (tier before the spend): of the session and of the current run.
+var spends: Dictionary = {}
+var _run_spends: Dictionary = {}
 ## True from a death until it is answered or skipped.
 var _death_open: bool = false
 
@@ -39,6 +42,7 @@ func run_started(at: float) -> void:
 	_tier = 0
 	_tier_since = at
 	_run_tier_seconds = [0.0, 0.0, 0.0, 0.0, 0.0]
+	_run_spends = {}
 	_add("run_start", at)
 
 
@@ -50,6 +54,15 @@ func tier_changed(at: float, tier: int) -> void:
 	_credit(at)
 	_tier = clampi(tier, 0, tier_seconds.size() - 1)
 	_tier_since = at
+
+
+## A power was paid (ignored outside a run). tier: Lucidity.Tier before the spend.
+func spent(power: String, tier: int) -> void:
+	if _tier == -1:
+		return
+	var tier_name: String = str(Lucidity.Tier.find_key(tier)).to_lower()
+	_count_spend(spends, power, tier_name)
+	_count_spend(_run_spends, power, tier_name)
 
 
 ## Run end: the time in each tier of this run, as a "run_end" event. Returns that run's seconds per tier.
@@ -109,6 +122,7 @@ func to_dict(at: float) -> Dictionary:
 			"no_answer": no_answer,
 			"yes_rate": yes_rate(),
 			"tier_seconds": tier_dict(tier_seconds),
+			"spends": spends,
 		},
 	}
 
@@ -125,7 +139,7 @@ func _close_tiers(at: float) -> void:
 		return
 	_credit(at)
 	_tier = -1
-	_add("run_end", at, {"tier_seconds": tier_dict(_run_tier_seconds)})
+	_add("run_end", at, {"tier_seconds": tier_dict(_run_tier_seconds), "spends": _run_spends.duplicate(true)})
 
 
 ## Tier name (Lucidity.Tier key, lower case) to seconds, rounded to 10 ms.
@@ -134,6 +148,12 @@ static func tier_dict(seconds: Array[float]) -> Dictionary:
 	for i: int in seconds.size():
 		result[str(Lucidity.Tier.find_key(i)).to_lower()] = snappedf(seconds[i], 0.01)
 	return result
+
+
+static func _count_spend(into: Dictionary, power: String, tier_name: String) -> void:
+	var by_tier: Dictionary = into.get_or_add(power, {})
+	var count: int = by_tier.get(tier_name, 0)
+	by_tier[tier_name] = count + 1
 
 
 func _close_death(at: float) -> void:
