@@ -54,6 +54,12 @@ ITEM_FALLING_TOOTH_COST,−1 cœur maximum
 ITEM_LEAD_LEGS_NAME,Jambes de plomb
 ITEM_LEAD_LEGS_BONUS,Tirs traversants
 ITEM_LEAD_LEGS_COST,−20 % de vitesse de déplacement
+ITEM_PAPER_WINGS_NAME,Ailes de papier
+ITEM_PAPER_WINGS_BONUS,Survol des trous
+ITEM_PAPER_WINGS_COST,Un coup reçu retire les ailes pendant 3 s
+ITEM_FREE_FALL_NAME,Chute libre
+ITEM_FREE_FALL_BONUS,+5 % de dégâts par seconde sans être touché (jusqu'à +50 %)
+ITEM_FREE_FALL_COST,"Le bonus retombe à zéro au premier coup, et ce coup retire ½ cœur de plus"
 CONSUMABLE_PINCH_NAME,Se pincer
 CONSUMABLE_PINCH_BONUS,+25 de lucidité
 CONSUMABLE_PINCH_COST,−½ cœur (jamais l'armure)

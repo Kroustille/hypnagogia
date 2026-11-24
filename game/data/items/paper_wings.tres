@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemDef" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://items/item_def.gd" id="1_def"]
+[ext_resource type="Script" path="res://items/effects/paper_wings_effect.gd" id="2_effect"]
+
+[resource]
+script = ExtResource("1_def")
+id = &"paper_wings"
+tags = Array[StringName]([&"fall"])
+name_key = &"ITEM_PAPER_WINGS_NAME"
+bonus_key = &"ITEM_PAPER_WINGS_BONUS"
+cost_key = &"ITEM_PAPER_WINGS_COST"
+effect_script = ExtResource("2_effect")
+params = Dictionary[StringName, float]({
+&"suspend_seconds": 3.0
+})
