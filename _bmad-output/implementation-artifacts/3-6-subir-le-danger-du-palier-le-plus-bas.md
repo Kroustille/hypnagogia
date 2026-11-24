@@ -1,6 +1,6 @@
 # Story 3.6 : Subir le danger du palier le plus bas
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -30,8 +30,8 @@ Hors périmètre : renfort (3.7), pattern supplémentaire des cauchemars (`boss_
 - [x] `LucidityTuning` : `danger_bullet_speed_mult` (par palier : 1, 1, 1.1, 1.1, 1.1), `danger_telegraph_mult` (1, 1, 1, 0.85, 0.85), `reinforcement_from_tier` (`Tier.ABANDON`), `boss_extra_pattern_from_tier` (`Tier.TOTAL_ABANDON`).
 - [x] `Lucidity` : `room_tier`, `begin_room()` étendu, `is_deeper(a, b)`, signal `room_danger_raised(tier)` ; `room_tier` suit dans `set_value`/`try_spend` (après la mise à jour de `live_tier`).
 - [x] `combat/danger_profile.gd` ; `Arena.danger` (un seul objet, **muté sur place** par `apply_tier`), `Arena.begin_room()` et `_on_room_danger_raised()` ; `Enemy.setup(def, target, hurtbox, bullets, danger)` (dernier paramètre facultatif, défaut : profil neutre) donné par `Arena.spawn_enemy`.
-- [ ] Ennemis : `Enemy._start_telegraph(base, sound)` appelle `telegraph.start(base, sound, danger.telegraph_mult)` ; remplacer les 5 appels directs (Somnambule, Mouton, Veilleuse/Berceuse via `ShooterEnemy._start_telegraph`) ; `ShooterEnemy._fire_volley()` règle `_bullet_params.speed = base * danger.enemy_bullet_speed_mult` avant `fire()`.
-- [ ] Signalement : son `sfx_danger_raised.wav` (grave, provisoire) et `ring_pulse` rouge sur le joueur (pas de flash plein écran), joués par `Arena._on_room_danger_raised`.
+- [x] Ennemis : `Enemy._start_telegraph_of(base, sound)` (décision 10) appelle `telegraph.start(base, sound, danger.telegraph_mult)` ; remplacer les 5 appels directs (Somnambule, Mouton, Veilleuse/Berceuse via `ShooterEnemy._start_telegraph`) ; `ShooterEnemy._fire_volley()` règle `_bullet_params.speed = base * danger.enemy_bullet_speed_mult` avant `fire()`.
+- [x] Signalement : son `sfx_danger_raised.wav` (grave, provisoire) et `ring_pulse` rouge sur le joueur (pas de flash plein écran), joués par `Arena._on_room_danger_raised`.
 - [x] `Events.room_danger_raised` (relais par le joueur), `Events.room_cleared(room, lowest_tier)` ; F3 : `room_tier` et profil (`x1.1`, `x0.85`).
 - [x] `t_danger` ; mise à jour des scènes existantes qui écoutent `room_cleared` ; `run_all.sh` une fois à la fin.
 
@@ -78,6 +78,7 @@ Hors périmètre : renfort (3.7), pattern supplémentaire des cauchemars (`boss_
 6. **`F1 L` fait aggraver la salle en cours** — Raison : mêmes méthodes que le jeu (règle F1) ; c'est ce qui permet de tester le danger.
 7. **Le Mouton et le Somnambule subissent seulement ×0,85 sur les télégraphes** (pas de projectiles) — Raison : GDD ne cite que « projectiles ennemis » et « télégraphes ».
 8. **Pas de modification de la Berceuse pour le report `fire_interval`** — Raison : le danger raccourcit les télégraphes ; seul un test garde l'invariant.
+12. **Revue : la décision 11 est remplacée — le son et l'anneau rouge ne se jouent que si le `DangerProfile` change** (Lucide -> Flottant : aucun signal ; Flottant -> Dérive, Dérive -> Abandon, Abandon -> Abandon total : signal). `Lucidity.room_danger_raised` et `Events.room_danger_raised` restent émis à chaque palier plus profond (loot de l'epic 5, renfort de 3.7). — Raison : le tableau du GDD donne « Aucun » danger en Flottant et le pilier « le danger reste lisible » réserve le signal aux aggravations réelles ; sinon le premier Éveil depuis 100 (-> 70) de chaque vague joue quatre retours à la fois (son et anneau d'Éveil, son de palier, son et anneau de danger) sans aucun effet ; le passage de palier a déjà son propre son. Réversible en une ligne.
 
 ## Dev Agent Record
 
@@ -97,7 +98,7 @@ Claude Sonnet 5.5
 
 9. **`Lucidity.room_danger_raised(tier, previous)`** (deux arguments, la spec en donnait un) — Raison : `Events.room_danger_raised(tier, previous)` a besoin du palier précédent, que le joueur ne peut pas deviner (`begin_room()` change `room_tier` sans signal).
 10. **`Enemy._start_telegraph_of(base, sound)`** au lieu de `_start_telegraph(base, sound)` — Raison : `ShooterEnemy._start_telegraph(sound)` existe déjà avec une autre signature (conflit de surcharge).
-11. **Le signalement se joue à toute aggravation, y compris Lucide -> Flottant** (danger inchangé à ce palier) — Raison : l'AC 2 le dit (« dépense qui amène `live_tier` plus profond que `room_tier` ») ; reporté au playtest.
+11. **Le signalement se joue à toute aggravation, y compris Lucide -> Flottant** (remplacée en revue par la décision 12) (danger inchangé à ce palier) — Raison : l'AC 2 le dit (« dépense qui amène `live_tier` plus profond que `room_tier` ») ; reporté au playtest.
 
 ### File List
 
@@ -106,3 +107,16 @@ Claude Sonnet 5.5
 ### Change Log
 
 - 2026-11-24 : implémentation de la story 3.6 (danger de salle), passée en review.
+- 2026-11-24 : revue de code, 3 correctifs à faire, story repassée en in-progress.
+
+### Review Findings
+
+Revue de code (2026-11-24, Claude Opus 5.5, mode complet : Blind Hunter, Edge Case Hunter, Acceptance Auditor) sur `ce0fd32..62eedbd` (commits hors ordre de dépendance relus comme un tout).
+
+- Critères 1, 3 à 8 : satisfaits. `is_deeper()` correct avec l'enum inversé ; `room_tier` mis à jour avant tout signal, un seul signal par saut ; `begin_room()` le remet au palier en direct à chaque vague (appelé depuis `WaveRunner._start_next_wave`, jamais en synchrone depuis `_wait`, donc `room_cleared` lit bien le palier de la vague nettoyée). `BulletManager.fire()` copie la vitesse : les balles en vol gardent la leur ; `_base_bullet_speed` évite tout cumul ; `Telegraph.start` garde le plancher `min_telegraph`. Les seuls appels `telegraph.start` / `fire` d'ennemis passent par le profil. Aucun système de danger ne lit `live_tier`. Seul le joueur écoute `room_cleared` (la télémétrie ne l'a jamais écouté). Relance en pleine salle : `Run` est recréé (joueur, jauge et `Arena.danger` neufs, palier Lucide).
+- Preuve : `t_danger` 55/0 (`--fixed-fps 60`, arbre courant).
+- [ ] [Review][Patch] Signal d'aggravation joué même quand le danger ne change pas (Lucide -> Flottant, premier Éveil de chaque vague) [`game/rooms/arena/arena.gd:197-201` au commit `62eedbd`] — décision 12 : `DangerProfile.apply_tier()` renvoie `bool` (vrai si un des quatre champs a changé) ; `_on_room_danger_raised` applique le profil puis `return` avant le son et l'anneau quand il renvoie faux (garder le `Log.debug`). Adapter `t_awakening` (1 anneau : Éveil seul, 100 -> 70) et les vérifications de signalement de `t_danger` (cas Lucide -> Flottant : aucun son ni anneau ; Flottant -> Dérive : son et anneau).
+- [ ] [Review][Patch] Architecture P1 périmée, que la 3.7 risque de recopier [`_bmad-output/game-architecture.md:720` et `:728-733`] — signal `room_danger_raised(tier, previous)`, `danger.apply_tier(tier, Tuning.LUCIDITY)` muté sur place (pas `DangerProfile.from_tier`, qui ferait garder l'ancien profil aux ennemis vivants), signalement seulement si le profil change.
+- [x] [Review][Patch] Deux tâches restées décochées alors qu'elles sont faites (Ennemis, Signalement), nom `_start_telegraph_of` — corrigé dans ce fichier pendant la revue.
+- Reportés (`deferred-work.md`) : relais `Events.room_danger_raised` émis avant le recalcul du profil ; bornes des tables de danger et vitesse multipliée ; salles sans vagues dont le `room_tier` ne repart jamais ; signal joué pendant la pause entre deux vagues ; palier de départ de la télémétrie (report de 3.1 retagué).
+- Écartés (12) : écouteurs de `room_cleared` non mis à jour (aucun autre), vitesse des balles en vol (copiée par `fire()`), `lucidity` nulle à la connexion (joueur prêt avant l'arène, comme pour `awakening_used`), ennemis hors `spawn_enemy` neutres (voulu), autres chemins d'attaque (aucun), `room_tier` lu après `_wait` (asynchrone), `previous` intermédiaire en cas de réentrance (aucun écouteur ne replonge), overlay à deux sources, arène non déconnectée (`Run` libéré en entier), ordre des commits (historique publié), couverture partielle des tests (pipeline allégé), écouteur télémétrie de l'AC 8 (n'existait pas).
