@@ -1,6 +1,6 @@
 # Story 4.10 : Remplir le pool de l'Endormissement
 
-Status: review
+Status: done
 
 ## Story
 
@@ -75,6 +75,16 @@ La première vague d'une salle ne contient ni Mouton ni plus de 2 tireuses. Le t
 5. **Plan de difficulté provisoire** : réglé au jalon B.
 6. **Une seule salle de départ, trésor, boutique, cauchemar** : le contenu définitif viendra avec les epics 5 et 6.
 
+### Review Findings
+
+Revue de code (Opus 5.5, 2026-11-24), trois couches (Blind Hunter, Edge Case Hunter, Acceptance Auditor) en passes isolées. Aucun patch de code : revue propre. Tests GUT de la story : `test_pool_smoke` 1/1 (220 assertions), `test_pool_content` 7/7, `test_floor_real_pool` 2/2, `test_room_catalog` 7/7 ; `tools/run_tests.sh` complet 313/313 en 6,7 s (3,5 s de tests) ; `tools/validate_rooms.sh` : 34 salles valides.
+
+- [x] [Review][Doc] **Chiffres de la note d'achèvement faux** (25 salles à trous, 12 à 40 cases et plus, 8 à meubles, 7 à lampe, 2 à une vague) : corrigés dans la note ; le tableau des salles était juste.
+- [x] [Review][Defer] Premières vagues semblables, équilibrage du pool, lisibilité et plaisir NON ÉVALUÉS, poches au Glissement, ennemis hors écran, danger en salle calme : `deferred-work.md` (section 4.10).
+- [x] [Review][Dismiss] `RoomCatalog.all()` journalise « has no Room root » aussi quand `instantiate()` échoue (le nouveau `null` de `from_scene`) : message approximatif, cas d'une scène cassée déjà signalée par Godot.
+
+Vérifié sans remarque : les 23 `.tscn` touchés reconstruits depuis leur `.txt` par `tools/build_room.sh` dans un dossier temporaire sont identiques à ceux du dépôt (identifiants mis à part) ; quotas des AC 1 à 7 recomptés depuis les sources ; règles de vagues (2 à 6, ≤ 2 Moutons, ≤ 4 tireuses, première vague sans Mouton et ≤ 2 tireuses) tenues par le test sur les 30 salles ; salles à trois portes (018, 025) : `FloorGenerator._choose_rooms` filtre par portes et remplit d'abord les cellules les plus reliées, et les 28 salles à quatre portes couvrent seules les 12 cellules de combat : un étage se construit toujours, quel que soit le nombre de seeds testées ; rejet d'id en double déterministe (chemins triés, `Log.error`, testé par fixtures) ; garde `null` de `from_scene` ; le test de fumée attend que chaque marqueur de chaque vague donne un ennemi vivant (un refus, `null`, ferait échouer le compte), puis `room_cleared` une fois et toutes les portes ouvertes.
+
 ## Dev Agent Record
 
 ### Agent Model Used
@@ -84,7 +94,7 @@ Claude Sonnet 5.5
 ### Completion Notes
 
 - 18 nouvelles salles (013 à 030) écrites par un script jetable (hors dépôt) qui compose les formes et vérifie, avant `tools/build_room.sh`, la case du joueur au centre, les bandes d'entrée des portes, les apparitions (obstacle, 4 tuiles des portes), les renforts et les poches de sol non atteintes (aucune). `tools/validate_rooms.sh` : 34 salles valides. Les salles 005 et 009 à 012 sont enrichies sans changer de nom (005 : Mouton en vague 2 et lampe rapprochée des apparitions ; 009, 011 : deuxième vague ; 009 à 012 : trous ; 010 : Mouton en vague 2).
-- Quotas du pool (test `test_pool_content`) : 30 salles, 24 avec trous (80 %), 18 avec au moins 40 cases de trou, 4 larges (007, 019, 021, 028), 4 hautes (008, 020, 026, 030), 7 salles à meubles, 6 à lampe, quatre portes dans 28 salles sur 30 (018 : N, E, S ; 025 : E, S, O), au plus 4 salles à une vague (003, 004, et aucune autre).
+- Quotas du pool (test `test_pool_content`) : 30 salles, 25 avec trous (83 %), 12 avec au moins 40 cases de trou (6 avec plus de 100), 4 larges (007, 019, 021, 028), 4 hautes (008, 020, 026, 030), 8 salles à meubles, 7 à lampe, quatre portes dans 28 salles sur 30 (018 : N, E, S ; 025 : E, S, O), 2 salles à une vague (003, 004). *(Chiffres corrigés en revue : la note disait 24 avec trous, 18 à 40 cases, 7 à meubles, 6 à lampe.)*
 - Test d'intégration du générateur sur le vrai pool : 10 seeds, 10 ensembles de 12 combats tous différents, au moins 20 salles distinctes. Les empreintes de référence de `test_floor_generator` utilisent `FakePool` : inchangées.
 - Dettes soldées (code, petites) : `RoomCatalog.all()` rejette un identifiant déjà vu (`Log.error`, la première salle dans l'ordre des chemins gagne) ; `RoomInfo.from_scene` rend `null` quand l'instanciation échoue ; lampe de la 005 rapprochée des apparitions (28, 5).
 - Non traités ici (code de jeu ou fichiers de la 4.8 hors périmètre) : poches atteignables seulement au Glissement (aucune dans le pool, la règle du validateur n'est pas ajoutée), ennemis qui télégraphient hors écran en grande salle, avertissement de danger dans une salle calme ou vidée (`room.gd`) : restent dans `deferred-work.md`.
@@ -98,6 +108,10 @@ Claude Sonnet 5.5
 9. **Le Mouton passe en vague 2 dans 005 et 010** pour respecter « première vague douce » (le critère s'applique aussi aux salles déjà livrées) ; le test de la 005 (2 vagues, meubles, lampe) reste vrai.
 10. **Les salles sont composées par un script jetable** (formes + vérifications) puis passent par l'outil ASCII ; seuls les `.txt` et les `.tscn` sont versionnés.
 11. **Fixtures `tests/fixtures/catalog_dupes/`** : deux scènes de même nom dans deux sous-dossiers, pour tester le rejet d'identifiant en double.
+12. **Revue : seuil de 40 cases pour « beaucoup de trous » gardé** : seuil lâche (6 % d'un écran), mais 6 salles dépassent 100 cases (015, 019, 023, 026, 028, 030) : le quota tient aussi sous une lecture stricte.
+13. **Revue : « obstacles hauts et bas dans au moins 15 salles » lu « hauts ou bas »** : 20 salles en ont, 16 des hauts, 11 des bas, 5 les deux ; le test exige aussi 4 salles avec les deux.
+14. **Revue : écarts au plan de difficulté acceptés** (014 à 018 à trois types au lieu d'un ou deux, premières vagues de 021 à 027 à 2 ennemis) : l'AC (2 à 6, première vague douce) est tenu et le plan est provisoire ; reporté à l'équilibrage du jalon B (`deferred-work.md`).
+15. **Revue : premières vagues trop semblables reportées au jalon B** : 17 salles ouvrent sur 2 Somnambules seuls (5 aux mêmes marqueurs) ; contenu, pas défaut d'un AC chiffré.
 
 ### Liste des salles (jalon B)
 

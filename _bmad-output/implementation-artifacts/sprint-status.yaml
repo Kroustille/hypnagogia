@@ -91,7 +91,7 @@ development_status:
   4-7-generer-l-etage-depuis-une-seed: done
   4-8-passer-d-une-salle-a-l-autre: done
   4-9-consulter-la-carte-de-l-etage: done
-  4-10-remplir-le-pool-de-l-endormissement: review
+  4-10-remplir-le-pool-de-l-endormissement: done
   4-11-afficher-et-saisir-une-seed: ready-for-dev
   epic-4-retrospective: optional
 
