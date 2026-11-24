@@ -100,3 +100,14 @@ func test_leaving_and_entering_the_tree_detaches_then_attaches_again() -> void:
 	_player.add_child(_carrier)
 	assert_true(_player.can_fly_over_pits())
 	assert_eq(_carrier.hit_taken.get_connections().size(), 1)
+
+
+func test_the_flight_comes_back_when_the_carrier_is_re_attached_during_a_suspension() -> void:
+	_carrier.acquire(WINGS)
+	_hit()
+	_tick(1.0)
+	_player.remove_child(_carrier)
+	_player.add_child(_carrier)
+	assert_false(_player.can_fly_over_pits(), "still suspended")
+	_tick(2.2)
+	assert_true(_player.can_fly_over_pits(), "the countdown resumed")

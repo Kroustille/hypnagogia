@@ -18,6 +18,8 @@ func attach(new_carrier: BuildCarrier) -> void:
 	carrier.hit_taken.connect(_on_hit_taken)
 	if _suspended_left <= 0.0:
 		_grant_flight()
+	else:
+		wants_tick = true # re-attached during a suspension: the countdown resumes
 
 
 func detach() -> void:

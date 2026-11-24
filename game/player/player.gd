@@ -540,9 +540,9 @@ func _on_hurtbox_damage_received(info: DamageInfo) -> void:
 		return
 	if is_finite(info.amount) and roundi(info.amount) >= 1: # an invalid amount goes to Health, which reports it
 		carrier.hit_incoming.emit(info) # an item may change info.amount
-	if is_finite(info.amount) and roundi(info.amount) < 1:
-		hurtbox.refuse_hit() # an item took the hit away: refused cleanly, never an invalid amount for Health
-		return
+		if is_finite(info.amount) and roundi(info.amount) < 1:
+			hurtbox.refuse_hit() # an item took the hit away: refused cleanly, never an invalid amount for Health
+			return
 	var lost: int = health.apply_damage(info)
 	if lost <= 0:
 		hurtbox.refuse_hit() # no "hit applied" for a refused hit (story 2.3)

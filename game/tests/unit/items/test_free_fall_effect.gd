@@ -114,3 +114,11 @@ func test_a_dead_player_does_not_count_time() -> void:
 	_player.health._dead = true
 	_tick(3.0)
 	assert_almost_eq(_ratio(), 1.0, 0.0001)
+
+
+func test_a_direct_detach_takes_the_damage_modifier_away() -> void:
+	var owned: OwnedItem = _carrier.acquire(FREE_FALL)
+	_tick(3.0)
+	assert_gt(_ratio(), 1.0, "a bonus is running")
+	owned.effect.detach()
+	assert_almost_eq(_ratio(), 1.0, 0.0001)

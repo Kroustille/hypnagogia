@@ -129,3 +129,19 @@ func test_an_effect_that_cancels_the_hit_refuses_it_cleanly() -> void:
 	assert_eq(_player.health.half_hearts, hearts)
 	assert_false(_player.health.is_hit_invulnerable())
 	_player.carrier.hit_incoming.disconnect(canceller)
+
+
+func test_the_wings_fall_costs_nothing_on_a_vulnerable_player() -> void:
+	var owned: OwnedItem = _player.carrier.acquire(WINGS)
+	await _fly_over_the_pit()
+	assert_false(_player.health.is_invulnerable(), "no hit before: nothing protects the player")
+	var hearts: int = _player.health.half_hearts
+	var hits: Array[int] = []
+	var on_hit: Callable = func(lost: int, _source: int) -> void: hits.append(lost)
+	Events.player_hit.connect(on_hit)
+	_player.stats.clear_modifier(owned.effect.modifier_source(), StatBlock.Stat.CAN_FLY_OVER_PITS)
+	assert_true(_player.fall_if_over_pit())
+	Events.player_hit.disconnect(on_hit)
+	assert_almost_eq(_player.global_position.x, CELL_20_X, 1.0, "back on the last safe cell")
+	assert_eq(_player.health.half_hearts, hearts, "the free fall costs no heart")
+	assert_true(hits.is_empty(), "no player_hit")

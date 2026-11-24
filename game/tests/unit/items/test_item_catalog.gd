@@ -91,3 +91,12 @@ func test_an_effect_script_that_is_not_an_item_effect_is_refused() -> void:
 	var def: ItemDef = _valid_def(&"x")
 	def.effect_script = preload("res://items/item_def.gd")
 	assert_ne(ItemCatalog.problem_of(def), "")
+
+
+func test_the_required_params_are_cached_per_script() -> void:
+	var wings: ItemDef = preload("res://data/items/paper_wings.tres")
+	assert_eq(ItemCatalog.problem_of(wings), "")
+	assert_eq(ItemCatalog.problem_of(wings), "", "second call, from the cache")
+	var bare: ItemDef = _valid_def(&"x")
+	bare.effect_script = wings.effect_script
+	assert_string_contains(ItemCatalog.problem_of(bare), "suspend_seconds")

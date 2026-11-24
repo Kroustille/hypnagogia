@@ -4,6 +4,11 @@ extends RefCounted
 
 const DIR: String = "res://data/items"
 
+## Required params per effect script (null: not an ItemEffect), so problem_of() builds each effect once, not per call.
+static var _required_by_script: Dictionary[Script, PackedStringArray] = {}
+## Scripts found not to extend ItemEffect.
+static var _not_effects: Dictionary[Script, bool] = {}
+
 
 ## The valid definitions, sorted by file name.
 static func all() -> Array[ItemDef]:
@@ -45,16 +50,32 @@ static func problem_of(def: ItemDef) -> String:
 			return "two modifiers on the same stat (a source holds one per stat)"
 		seen[modifier.stat] = true
 	if def.effect_script != null:
-		var made: Object = (def.effect_script as GDScript).new() if def.effect_script is GDScript else null
-		var effect: ItemEffect = made as ItemEffect
-		if effect == null:
-			if made != null and not made is RefCounted:
-				made.free()
+		var required: PackedStringArray = _required_params_of(def.effect_script)
+		if _not_effects.has(def.effect_script):
 			return "effect_script must be a script extending ItemEffect"
-		for key: StringName in effect.required_params():
-			if not def.params.has(key):
+		for key: String in required:
+			if not def.params.has(StringName(key)):
 				return "the effect needs the param %s" % key
 	return ""
+
+
+## Params an effect script requires, read once per script from a throwaway instance.
+## A script that does not extend ItemEffect is remembered in _not_effects.
+static func _required_params_of(script: Script) -> PackedStringArray:
+	if _required_by_script.has(script):
+		return _required_by_script[script]
+	var made: Object = (script as GDScript).new() if script is GDScript else null
+	var effect: ItemEffect = made as ItemEffect
+	var required: PackedStringArray = PackedStringArray()
+	if effect != null:
+		for key: StringName in effect.required_params():
+			required.append(String(key))
+		_required_by_script[script] = required
+	else:
+		if made != null and not made is RefCounted:
+			made.free()
+		_not_effects[script] = true
+	return required
 
 
 ## problem_of() with the report: an error in the journal and an assert in debug builds. True when valid.
