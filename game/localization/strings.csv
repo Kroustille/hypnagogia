@@ -81,5 +81,5 @@ ITEM_BLANK_EXAM_NAME,Copie d'examen vierge
 ITEM_BLANK_EXAM_BONUS,Un drop garanti à chaque salle de combat vidée
 ITEM_BLANK_EXAM_COST,"Chrono de 45 s par salle : à zéro, les ennemis restants vont 30 % plus vite"
 ITEM_NAKED_IN_PUBLIC_NAME,Être nu en public
-ITEM_NAKED_IN_PUBLIC_BONUS,Les ennemis ne tirent pas pendant 1,5 s au début de chaque salle
+ITEM_NAKED_IN_PUBLIC_BONUS,"Les ennemis ne tirent pas pendant 1,5 s au début de chaque salle"
 ITEM_NAKED_IN_PUBLIC_COST,"Perd toute l'armure, et plus aucune armure ensuite"
