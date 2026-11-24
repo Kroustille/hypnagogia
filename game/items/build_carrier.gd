@@ -11,6 +11,10 @@ signal hit_taken(lost: int, source: int)
 signal dash_ended
 ## The room has no enemy left. lowest_tier: Lucidity.Tier as an int.
 signal room_cleared(room: Node, lowest_tier: int)
+## The player is in a room that is ready (story 5.9): the items read whether it holds a fight to win.
+signal room_entered(room: Room)
+## The first wave of the room is about to appear (story 5.9, reused by 5.10).
+signal room_fight_started(room: Room)
 
 var player: Player
 ## The same object as Player.stats.
@@ -176,6 +180,7 @@ func use_active() -> UseResult:
 	owned.effect.activate(player)
 	Log.info("items", "active item used %s" % owned.def.id)
 	return UseResult.USED
+
 
 ## A room was cleared: the active item recharges by one.
 func _on_room_cleared_charge(_room: Node, _lowest_tier: int) -> void:

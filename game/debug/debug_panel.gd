@@ -278,6 +278,7 @@ func _recharge_active_item() -> void:
 	player.carrier.loadout.set_charge(player.carrier.loadout.active.charge_max)
 	_log("active item recharged")
 
+
 ## Lays the next catalog consumable next to the player (the C key was already taken by the seed replay).
 func _drop_next_consumable() -> void:
 	var player: Player = _find_player()
@@ -422,6 +423,7 @@ func _refresh_text() -> void:
 		"I drop the next catalog item next to the player",
 		"K drop the next catalog consumable next to the player",
 		"Y give the four Fall items (synergy thresholds)",
+		"U recharge the active item",
 	])
 	if player != null:
 		var health: Health = player.health

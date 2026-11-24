@@ -30,6 +30,11 @@ func _init() -> void:
 		_scales[group] = 1.0
 
 
+func _ready() -> void:
+	Events.run_started.connect(reset_slows)
+	Events.run_ended.connect(_on_events_run_ended)
+
+
 func _physics_process(delta: float) -> void:
 	if paused or _slows.is_empty():
 		return
@@ -90,11 +95,6 @@ func _recompute() -> void:
 	for slow: Slow in _slows:
 		for group: int in slow.groups:
 			_scales[group as Group] *= slow.factor
-
-
-func _ready() -> void:
-	Events.run_started.connect(reset_slows)
-	Events.run_ended.connect(_on_events_run_ended)
 
 
 func _on_events_run_ended(_outcome: int) -> void:

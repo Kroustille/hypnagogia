@@ -14,6 +14,8 @@ const TIER_NAME_KEYS: Array[StringName] = [
 	&"UI_LUCIDITY_LUCID", &"UI_LUCIDITY_FLOATING", &"UI_LUCIDITY_DRIFT", &"UI_LUCIDITY_ABANDON",
 	&"UI_LUCIDITY_TOTAL_ABANDON",
 ]
+## Room left of the gauge for the exam timer (story 5.9).
+const EXAM_LABEL_WIDTH: int = 130
 const ITEM_SLOT_SIZE: Vector2 = Vector2(16, 16)
 const ITEM_SLOT_GAP: int = 8
 const SHARD_COLOR: Color = Color(0.85, 0.8, 0.4)
@@ -30,6 +32,7 @@ var _tier: int = -1
 var _active_item_slot: HudSlot
 var _consumable_slot: HudSlot
 var _shards_label: Label
+var _exam_label: Label
 var _banner: Banner
 
 
@@ -80,6 +83,17 @@ func _ready() -> void:
 	_shards_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_shards_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_shards_label)
+	_exam_label = Label.new()
+	_exam_label.name = "ExamLabel"
+	_exam_label.position = Vector2(_lucidity_slot.position.x - EXAM_LABEL_WIDTH - MARGIN, 0)
+	_exam_label.size = Vector2(EXAM_LABEL_WIDTH, Const.HUD_BAND_HEIGHT)
+	_exam_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_exam_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_exam_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_exam_label.visible = false
+	add_child(_exam_label)
+	Events.exam_timer_changed.connect(_on_events_exam_timer_changed)
+
 	_refresh_shards()
 
 	_banner = Banner.new()
@@ -114,6 +128,11 @@ func tier_text() -> String:
 
 func shards_text() -> String:
 	return _shards_label.text
+
+
+## The exam timer text, "" while hidden.
+func exam_text() -> String:
+	return _exam_label.text if _exam_label.visible else ""
 
 
 func _draw() -> void:
@@ -158,6 +177,14 @@ func _on_events_active_item_changed(id: StringName, charge: int, charge_max: int
 	var color: Color = Color.from_hsv(float(id.hash() % CONSUMABLE_HUE_STEPS) / CONSUMABLE_HUE_STEPS, 0.55, 0.45)
 	_active_item_slot.set_content(color, initial)
 	_active_item_slot.set_charge(charge, charge_max)
+
+
+## The exam timer of Blank exam: whole seconds left rounded up; a negative value hides it.
+func _on_events_exam_timer_changed(seconds_left: float) -> void:
+	_exam_label.visible = seconds_left >= 0.0
+	if seconds_left >= 0.0:
+		_exam_label.text = tr(&"UI_EXAM_TIMER") % ceili(seconds_left)
+
 
 ## The total of shards the player holds.
 func _on_events_shards_changed(total: int) -> void:

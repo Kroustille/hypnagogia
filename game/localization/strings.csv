@@ -70,8 +70,16 @@ CONSUMABLE_COFFEE_NAME,Café
 CONSUMABLE_COFFEE_BONUS,+30 % de vitesse et de cadence pendant 10 s
 CONSUMABLE_COFFEE_COST,puis −20 % de vitesse pendant 5 s
 UI_TUTORIAL_CONSUMABLE,Consommable
+UI_TUTORIAL_ACTIVE_ITEM,Objet actif
 UI_SHOP_PRICE,%d Éclats
 SYNERGY_FALL_2_NAME,Piqué
 SYNERGY_FALL_2_DESC,"Chaque dash finit par une onde de choc (15 dégâts, 1,5 tuile)"
 SYNERGY_FALL_3_NAME,Chute sans fin
 SYNERGY_FALL_3_DESC,"L'onde double (30 dégâts, 2,5 tuiles) et la chute ne coûte plus de cœur"
+UI_EXAM_TIMER,Copie d'examen : %d s
+ITEM_BLANK_EXAM_NAME,Copie d'examen vierge
+ITEM_BLANK_EXAM_BONUS,Un drop garanti à chaque salle de combat vidée
+ITEM_BLANK_EXAM_COST,"Chrono de 45 s par salle : à zéro, les ennemis restants vont 30 % plus vite"
+ITEM_NAKED_IN_PUBLIC_NAME,Être nu en public
+ITEM_NAKED_IN_PUBLIC_BONUS,Les ennemis ne tirent pas pendant 1,5 s au début de chaque salle
+ITEM_NAKED_IN_PUBLIC_COST,"Perd toute l'armure, et plus aucune armure ensuite"
