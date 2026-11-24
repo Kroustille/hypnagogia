@@ -73,7 +73,7 @@ func _process_keep_distance(clock_scale: float) -> void:
 		return
 	var distance: float = _distance_to_target()
 	if distance > _max_px and is_finite(distance):
-		_move_toward(_target_position(), _speed_px, clock_scale)
+		_chase(_target_position(), _speed_px, clock_scale)
 	elif distance < _min_px:
 		_move_toward(global_position * 2.0 - _target_position(), _speed_px, clock_scale) # straight away
 	else:

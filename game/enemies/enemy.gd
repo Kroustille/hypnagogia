@@ -13,6 +13,12 @@ extends CharacterBody2D
 const DAZZLED_TINT: Color = Color(1.0, 1.0, 0.55)
 ## Rounding margin when comparing the dazzle countdown.
 const DAZZLE_EPSILON: float = 1e-6
+## A waypoint closer than this (px) is reached.
+const WAYPOINT_REACHED_PX: float = 2.0
+## Margin added to the body half-width when testing the straight line (px).
+const PATH_CLEARANCE_PX: float = 1.0
+## The first recalculations of the enemies are spread over this many slots of the refresh interval.
+const PATH_STAGGER_SLOTS: int = 8
 
 var hp: HitPoints
 ## Registered by the room with the player's BulletManager.
@@ -31,6 +37,17 @@ var _feedback: HitFeedback
 var _dead: bool = false
 ## Ticks of dazzle left (story 4.4): the enemy neither moves nor attacks while it is above 0.
 var _dazzle_ticks_left: float = 0.0
+## The room's navigation grid (story 4.5), null for an enemy without one (it then goes straight).
+var _nav: RoomNav
+## Cell centers (global) of the current path and the next one to reach. Empty: straight line.
+var _path: PackedVector2Array = PackedVector2Array()
+var _path_index: int = 0
+var _path_start: Vector2 = Vector2.INF
+## Ticks until the next planning of the path (clock-scaled), -1 before the first one.
+var _plan_ticks_left: float = -1.0
+var _stagger: int = 0
+## Reused by the test moves of _presses_target().
+var _probe: KinematicCollision2D = KinematicCollision2D.new()
 
 @onready var _sprite: Sprite2D = %Sprite
 @onready var _body: CollisionShape2D = %Body
@@ -38,8 +55,12 @@ var _dazzle_ticks_left: float = 0.0
 
 ## Dependency injection: call before add_child(). target: what the enemy chases; target_hurtbox: what its contact hits;
 ## bullets: the room's enemy BulletManager (optional: only shooters need it). danger: the room's profile, shared and
-## mutated by the room (optional: a fresh neutral profile of its own otherwise).
-func setup(def: EnemyDef, target: Node2D, target_hurtbox: Hurtbox, bullets: BulletManager = null, room_danger: DangerProfile = null) -> void:
+## mutated by the room (optional: a fresh neutral profile of its own otherwise). nav: the room's grid (optional: without it
+## the enemy only goes straight).
+func setup(def: EnemyDef, target: Node2D, target_hurtbox: Hurtbox, bullets: BulletManager = null, room_danger: DangerProfile = null, nav: RoomNav = null) -> void:
+	_nav = nav
+	if nav != null:
+		_stagger = nav.next_stagger()
 	danger = room_danger if room_danger != null else DangerProfile.new()
 	_def = def
 	_bullets = bullets
@@ -183,19 +204,89 @@ func _die() -> void:
 	Log.debug("combat", "%s died" % _def.id)
 	queue_free()
 
-
-## The straight line of AR23 (AStarGrid2D replaces it in story 4.5): toward a point, stopping on it.
+## The straight line: toward a point, stopping on it, never pressing on the target's body (_presses_target()).
 ## velocity is rewritten every tick. Without a target, callers pass _target_position() (the enemy's own position).
 func _move_toward(point: Vector2, speed_px: float, clock_scale: float) -> void:
 	var to: Vector2 = point - global_position
-	_move_in_direction(to.normalized() if to.length_squared() >= 1e-6 else Vector2.ZERO, speed_px, clock_scale)
+	_move_in_direction(to.normalized() if to.length_squared() >= 1e-6 else Vector2.ZERO, speed_px, clock_scale, true)
 
 
 ## Moves along a direction (unit vector, or zero to stand still) at speed_px per second, scaled by the clock:
 ## never stops on a point (a charge goes on until something stops it). move_and_slide() reports what it hit.
-func _move_in_direction(direction: Vector2, speed_px: float, clock_scale: float) -> void:
+## spare_target: stands still instead of stepping into the target's body.
+func _move_in_direction(direction: Vector2, speed_px: float, clock_scale: float, spare_target: bool = false) -> void:
+	if spare_target and _presses_target(direction, speed_px, clock_scale):
+		velocity = Vector2.ZERO
+		return
 	velocity = direction * speed_px * clock_scale
 	move_and_slide()
+
+
+## True when a step in this direction would end against the target's body already touched: pressing on a motionless
+## player would make its own penetration recovery shove it (story 4.3: never toward a pit).
+func _presses_target(direction: Vector2, speed_px: float, clock_scale: float) -> bool:
+	if direction == Vector2.ZERO or not is_instance_valid(_target):
+		return false
+	var step: Vector2 = direction * speed_px * clock_scale / Engine.physics_ticks_per_second
+	return test_move(global_transform, step, _probe) and _probe.get_collider() == _target
+
+
+## Chases a point (the target's position) around the obstacles (story 4.5, AR23): the straight line when it is clear,
+## else the waypoints of the room's grid. The path is planned at most every Tuning.COMBAT.path_refresh_interval and
+## only when the room's grid grants a slot (RoomNav.take_path_slot()): between two plans the enemy keeps its path.
+## Without a valid target it stands still. Without a grid it goes straight.
+func _chase(point: Vector2, speed_px: float, clock_scale: float) -> void:
+	if not is_instance_valid(_target):
+		velocity = Vector2.ZERO
+		return
+	if _nav == null:
+		_move_toward(point, speed_px, clock_scale)
+		return
+	_plan_ticks_left -= clock_scale
+	if _plan_ticks_left <= 0.0 and _nav.take_path_slot():
+		_plan_path(point)
+	var waypoint: Vector2 = _current_waypoint()
+	_move_toward(waypoint if _path_index < _path.size() else point, speed_px, clock_scale)
+
+
+## Straight line when clear, else the path of the grid (global coordinates, without the cell the enemy stands in).
+func _plan_path(point: Vector2) -> void:
+	var interval_ticks: float = Tuning.COMBAT.path_refresh_interval * Engine.physics_ticks_per_second
+	var first_plan: bool = _path_start == Vector2.INF
+	# The first plan is at once; the next ones are shifted by the spawn number so that enemies never plan together.
+	_plan_ticks_left = interval_ticks * (1.0 + float(_stagger % PATH_STAGGER_SLOTS) / PATH_STAGGER_SLOTS) if first_plan else interval_ticks
+	_path = PackedVector2Array()
+	_path_index = 0
+	_path_start = global_position
+	var half_width: float = maxf(_body_size_px().x, _body_size_px().y) / 2.0 + PATH_CLEARANCE_PX
+	var from_room: Vector2 = global_position - _nav.origin
+	var to_room: Vector2 = point - _nav.origin
+	if _nav.is_line_clear(from_room, to_room, half_width):
+		return
+	var cells: PackedVector2Array = _nav.path(from_room, to_room)
+	if cells.size() > 1:
+		for i: int in range(1, cells.size()):
+			_path.append(cells[i] + _nav.origin)
+	Log.debug("combat", "%s planned a path of %d waypoints" % [name, _path.size()])
+
+
+## The waypoint to head to, skipping the ones reached (closer than 2 px) or passed (pushed beyond along the segment).
+## The caller tests _path_index against the path size afterwards (the path is used up).
+func _current_waypoint() -> Vector2:
+	while _path_index < _path.size():
+		var waypoint: Vector2 = _path[_path_index]
+		var previous: Vector2 = _path[_path_index - 1] if _path_index > 0 else _path_start
+		var to: Vector2 = waypoint - global_position
+		if to.length_squared() < WAYPOINT_REACHED_PX * WAYPOINT_REACHED_PX or to.dot(waypoint - previous) <= 0.0:
+			_path_index += 1
+			continue
+		return waypoint
+	return global_position
+
+
+func _body_size_px() -> Vector2:
+	var rectangle: RectangleShape2D = _body.shape as RectangleShape2D
+	return rectangle.size if rectangle != null else Vector2.ONE
 
 
 func _target_position() -> Vector2:
