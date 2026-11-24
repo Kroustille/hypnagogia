@@ -1,6 +1,6 @@
 # Story 4.6 : Explorer les grandes salles
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -34,7 +34,20 @@ Hors périmètre : portes multiples par côté (une porte par côté, canonique)
 - [x] Positions d'apparition par défaut du joueur (`player_spawn_position()` : centre du cadre, valable en grande salle).
 - [x] Validateur (dimensions par `size_kind`), outil ASCII (`size: wide|tall`, grille de la bonne taille).
 - [x] Tests GUT : `tests/unit/rooms/test_room_camera.gd` (bords, coins, axe court, salle d'un écran identique à l'ancienne position, vue incluse dans le cadre + bande pour 200 positions de joueur de la salle), `tests/integration/rooms/test_big_rooms.gd` (la caméra suit en déplaçant le joueur ; apparition d'ennemis et de renfort dans la zone de 72×19 ; tremblement puis retour à la position suivie ; validateur accepte/refuse).
-- [x] Capture WSLg d'une salle WIDE pour juger la lisibilité (NON VÉRIFIÉ par un humain).
+- [ ] Capture WSLg d'une salle WIDE pour juger la lisibilité (NON VÉRIFIÉ par un humain ; non faite, voir deferred-work.md — décochée à la revue).
+
+### Review Findings
+
+Revue complète (3 couches, sous-agents parallèles) du 2026-11-24 sur `0a001d4..dd865a8`. Numéros de ligne à `dd865a8`. Calcul de `RoomCamera.target()` vérifié sur les trois tailles (SCREEN (304, 156) identique, WIDE x ∈ [320, 864], TALL y ∈ [156, 476]), cadres 74×21 et 38×40, portes canoniques, nav et validateur cohérents avec le runtime. Sonde jetable (headless, `--fixed-fps 60`) : coût du A* coin à coin 46 µs dans 007 (74×21), 17 µs dans 008, 4 µs dans un écran ; 4 calculs par tick → 0,18 ms/tick au pire. L'interpolation de la caméra n'est pas observable en headless (fraction 0) : le recalage par `snap_camera()` reste NON VÉRIFIÉ au rendu. 5 actions, 3 reportés, une dizaine d'écartés (salle sans joueur : `setup()` est exigé par assertion ; validateur aligné sur `to_local(global_position)` du runtime ; shader en `SCREEN_UV`/`FRAGCOORD`, couverture juste ; joueur libéré : la salle part avec lui ; vérification d'écran limitée aux salles d'un écran ; `room_base.tscn` sans dépendance de taille ; tremblement sur `offset` : décision dev documentée).
+
+- [ ] [Review][Patch] **Renfort et panneau d'avertissement hors de la vue en grande salle** [`game/rooms/room.gd:437-460`] : `_pick_reinforcement_position()` tire au hasard parmi les marqueurs à ≥ 3 tuiles ; dans `onset_combat_007`, joueur au centre (vue x 272..912), les 4 marqueurs (x 72 / 1112) sont hors écran : le panneau de 0,6 s n'est jamais vu (pilier lisibilité). Correctif : après le calcul de `far`, `var view: Rect2 = Rect2(_camera.position - Vector2(Const.VIEWPORT) / 2.0 + Vector2(0.0, Const.HUD_BAND_HEIGHT), Vector2(Const.VIEWPORT) - Vector2(0.0, Const.HUD_BAND_HEIGHT))` ; `var seen: Array[Vector2] = far.filter(func(m: Vector2) -> bool: return view.has_point(m))` (typé) ; `if not seen.is_empty(): far = seen` ; un seul tirage RNG comme avant (salle d'un écran : tous visibles, comportement inchangé). Test : 007, joueur à (592, 168), le renfort apparaît dans la vue.
+- [ ] [Review][Patch] **La caméra glisse d'un tick après une Glissade ou une chute dans un trou** [`game/player/player.gd:266` et `:307`] : le joueur fait `reset_physics_interpolation()` mais pas la caméra, qui interpole jusqu'à 96 px (Glissade de 6 tuiles) sur l'axe long : le joueur est dessiné décentré une ou deux frames. Correctif : après chacun des deux `reset_physics_interpolation()`, `if _room != null: _room.snap_camera()` (appelé pendant le tick du joueur, priorité 0 : le `_track_camera()` de la salle, priorité 10, réécrit la même position). Test : 007, Glissade vers la droite, `_camera.position` égale la cible dès le tick de la Glissade.
+- [ ] [Review][Patch] **Les balles ennemies expirent en plein écran dans une salle WIDE** [`game/data/tuning/combat_tuning.tres:14`, `game/core/combat_tuning.gd:21-22`] : `enemy_bullet_lifetime = 10` s donne 50 tuiles à la Veilleuse (5 t/s), 60 à la Berceuse ; la salle WIDE fait 72 tuiles jouables (diagonale du cadre ≈ 77) : la Berceuse de la vague 0 de 007 (x ≈ 66 tuiles) tire sur un joueur à gauche et ses balles disparaissent dans la vue. Le commentaire « walls stop every bullet well before » est faux. Correctif : 18,0 dans le `.tres` et la valeur par défaut, commentaire « covers the frame diagonal of a WIDE room (~77 tiles) at the slowest bullet speed ».
+- [ ] [Review][Patch] **Dernier usage de `Const.ROOM_TILES` hors vérification d'écran** [`game/debug/debug_panel.gd:232`] : l'émetteur de test F1 tire depuis x = 304 quelle que soit la salle (tâche 1 cochée). Correctif : `var room: Room = get_tree().get_first_node_in_group(Const.GROUP_ROOM) as Room` puis `var origin: Vector2 = Vector2(room.frame_px().x / 2.0 if room != null else (Const.ROOM_TILES.x + 2) * Const.TILE_SIZE / 2.0, 2.5 * Const.TILE_SIZE)`.
+- [ ] [Review][Patch] **Le réticule lit la transformation du canevas de la frame précédente** [`game/player/reticle.gd:36`] : le joueur (et son réticule) précède `RoomSlot` dans l'arbre, à priorité égale ; `Reticle._process` s'exécute avant que la `Camera2D` mette à jour le canevas : en défilement, le réticule traîne d'un déplacement de caméra par frame (≈ 1,6 px en marche, plus en dash) et la borne sous la bande de HUD est en retard d'une frame. Correctif : `process_priority = 1` dans `_ready()` (après la caméra), avec un commentaire.
+- [x] [Review][Defer] **Pixel-art en défilement : caméra interpolée entre positions entières, balles non interpolées** [`game/rooms/room_camera.gd:21-23`, `game/combat/bullets/bullet_manager.gd:276-288`] — reporté au playtest du jalon A (NON VÉRIFIÉ, écran > 60 Hz).
+- [x] [Review][Defer] **Ennemis qui télégraphient, tirent ou apparaissent hors de la vue** [`game/enemies/shooter_enemy.gd`, `game/enemies/sheep/sheep.gd`, `game/rooms/room.gd`] — reporté au playtest du jalon A / story 4.10. Décision 6.
+- [x] [Review][Defer] **Ondulation du décor ancrée à l'écran** [`game/vfx/shaders/lucidity_distortion.gdshader:16`] — reporté à l'epic 7 (polish visuel).
 
 ## État du code concerné
 
@@ -64,6 +77,10 @@ Hors périmètre : portes multiples par côté (une porte par côté, canonique)
 3. **Le joueur est suivi à la position du tick** (priorité 10) et la caméra n'a pas d'avance sur la visée : à juger au jeu (NON ÉVALUÉ).
 4. **Une porte par côté, au milieu**, même en grande salle.
 5. **La bande de HUD recouvre la zone au-dessus du cadre** : la vue peut montrer au plus 24 px hors du mur du haut, jamais plus.
+6. **Revue : ennemis hors de la vue en grande salle** (télégraphe et tir de la Berceuse/Veilleuse, raclement du Mouton, apparitions de vague hors écran) : reporté au playtest plutôt que bloquer les télégraphes hors vue ; les balles (5–6 t/s) et la charge (10 t/s, ≥ 2 s depuis le bord de vue) restent lisibles en entrant dans la vue ; seul le renfort (panneau de 0,6 s) est corrigé tout de suite.
+7. **Revue : toute la salle passe en priorité de physique 10** (pas seulement la caméra) : gardé ; les apparitions en attente et le tremblement décalés d'un tick n'ont aucun effet de jeu.
+8. **Revue : en salle TALL le joueur est 12 px au-dessus du centre de la zone visible** (sous la bande) : gardé, conforme à la lettre du critère 2 et négligeable.
+9. **Revue : limite de charge du Mouton de 45 à ~65 tuiles en salle d'un écran** (1,5 diagonale) : gardée ; filet de sécurité seulement (portes fermées en combat), décision dev « absolu prioritaire » conservée.
 
 ## Dev Agent Record
 

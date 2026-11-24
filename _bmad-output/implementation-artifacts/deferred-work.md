@@ -368,9 +368,15 @@
 ## Deferred from: code review of 4-5-des-ennemis-qui-contournent-les-obstacles (2026-11-24)
 
 - **Story 4.8 : `RoomNav.origin` figé** : `RoomNav.from_room()` lit `room.global_position` une fois, dans `Room._ready()` ; les chemins et le test de ligne seraient décalés pour une salle placée ailleurs qu'à l'origine ou déplacée après son `_ready()`. Relire l'origine (ou la passer à chaque requête) si la 4.8 positionne les salles.
-- **Story 4.6 : coût du pathing non mesuré** : 4 calculs par tick, 0,4 s d'intervalle, un `test_move` par ennemi et par tick (garde de contact) ; une cible inatteignable coûte un A* complet en échec par ennemi à chaque intervalle. Mesurer (`F5`) avec les grandes salles et une vague de 7 + renfort avant de régler `CombatTuning`.
+- **Story 4.6 : coût du pathing non mesuré** : 4 calculs par tick, 0,4 s d'intervalle, un `test_move` par ennemi et par tick (garde de contact) ; une cible inatteignable coûte un A* complet en échec par ennemi à chaque intervalle. Mesurer (`F5`) avec les grandes salles et une vague de 7 + renfort avant de régler `CombatTuning`. **MESURÉ en revue 4.6** : A* coin à coin 46 µs dans `onset_combat_007` (74×21), 17 µs dans 008, 4 µs dans un écran ; 4 calculs par tick → 0,18 ms/tick au pire. Le `test_move` par ennemi n'est pas mesuré à part.
 
 ## Deferred from: story 4.6 (explorer les grandes salles, 2026-11-24)
 
 - **NON ÉVALUÉ (humain) : lisibilité d'une grande salle** : caméra à la position du tick (sans avance sur la visée, sans lissage), portée des tirs ennemis hors écran, bande de HUD sur 24 px de mur. Pas de capture WSLg faite.
 - **Étage (4.7/4.8)** : une salle est ajoutée telle quelle au nœud de l'étage ; `Room.snap_camera()` doit être rappelé après le placement du joueur par une porte (comme `Run` le fait).
+
+## Deferred from: code review of 4-6-explorer-les-grandes-salles (2026-11-24)
+
+- **Playtest jalon A (NON VÉRIFIÉ, écran > 60 Hz) : papillotement du pixel-art en défilement** : `RoomCamera` arrondit la position du tick, mais l'interpolation physique dessine la caméra entre deux entiers (pas de `rendering/2d/snap/*` dans `project.godot`) : le joueur (interpolé, sous-pixel) et le décor peuvent osciller d'1 px pendant le suivi ; les balles (`BulletManager._process` dessine les positions du tick, sans interpolation) saccadent contre le décor qui défile. Pistes : caméra placée en `_process` depuis `get_global_transform_interpolated()` du joueur, arrondie, interpolation coupée sur la caméra, plus `snap_2d_transforms_to_pixel` ; balles dessinées à `lerp(prev, cur, Engine.get_physics_interpolation_fraction())`.
+- **Playtest jalon A / story 4.10 : ennemis hors de la vue en grande salle** : la Berceuse et la Veilleuse télégraphient et tirent hors écran, le Mouton racle (0,5 s) hors écran puis charge dans la vue, les vagues apparaissent aux marqueurs hors écran (`onset_combat_007`, marqueurs à x ≈ 1080). Pistes : retenir le télégraphe tant que l'ennemi n'est pas dans le rectangle de vue (`RoomCamera.target`), ou indicateur en bord d'écran. Décision 6 de la 4.6.
+- **Epic 7 (polish) : ondulation du décor ancrée à l'écran** : `lucidity_distortion.gdshader` calcule la rangée par `FRAGCOORD.y` : en défilement vertical (TALL) le décor traverse des rangées fixes. Passer la position monde de la caméra en uniforme (`row = floor(FRAGCOORD.y + camera_y)`).
