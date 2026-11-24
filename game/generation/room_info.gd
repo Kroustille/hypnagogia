@@ -15,6 +15,8 @@ var doors: Array[int] = []
 ## Instantiates the scene, reads it and frees it. Null when the root is not a Room.
 static func from_scene(scene: PackedScene) -> RoomInfo:
 	var node: Node = scene.instantiate()
+	if node == null:
+		return null # the scene cannot be instantiated (a broken script or sub-resource)
 	var room: Room = node as Room
 	if room == null:
 		node.free()

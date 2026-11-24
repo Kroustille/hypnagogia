@@ -26,6 +26,7 @@ static func all(dir: String) -> Array[RoomInfo]:
 		cached.assign(stored)
 		return cached
 	var infos: Array[RoomInfo] = []
+	var seen: Dictionary[StringName, String] = {} # id -> path of the room that holds it
 	for path: String in RoomInfo.scene_paths(dir):
 		var scene: PackedScene = load(path) as PackedScene
 		if scene == null:
@@ -35,6 +36,11 @@ static func all(dir: String) -> Array[RoomInfo]:
 		if info == null:
 			Log.error("gen", "room scene %s has no Room root" % path)
 			continue
+		if seen.has(info.id):
+			# The id is the file name: two rooms of the same name in two sub-folders cannot be told apart.
+			Log.error("gen", "room id %s is used by %s and %s: the second is ignored" % [info.id, seen[info.id], path])
+			continue
+		seen[info.id] = path
 		infos.append(info)
 	_cache[dir] = infos
 	var copy: Array[RoomInfo] = []

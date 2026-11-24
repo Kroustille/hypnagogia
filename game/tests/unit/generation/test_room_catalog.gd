@@ -70,3 +70,18 @@ func test_the_real_pool_generates_a_valid_floor() -> void:
 func _count(counts: Dictionary, room_type: Room.RoomType) -> int:
 	var count: int = counts.get(room_type, 0)
 	return count
+
+
+func test_two_rooms_with_the_same_file_name_are_one_id_and_the_first_in_path_order_wins() -> void:
+	var dir: String = "res://tests/fixtures/catalog_dupes"
+	var infos: Array[RoomInfo] = RoomCatalog.all(dir)
+	var ids: Array[StringName] = []
+	for info: RoomInfo in infos:
+		ids.append(info.id)
+	assert_eq(ids.size(), 2, "twin (once) and other")
+	assert_eq(ids.count(&"twin"), 1, "no id twice")
+	for info: RoomInfo in infos:
+		if info.id == &"twin":
+			assert_eq(info.path, dir + "/a/twin.tscn", "the first path in sorted order is kept")
+	assert_push_error("room id twin is used by")
+
