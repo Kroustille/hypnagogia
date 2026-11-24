@@ -100,6 +100,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_drop_next_item()
 		KEY_K:
 			_drop_next_consumable()
+		KEY_Y:
+			_give_fall_items()
 		_:
 			handled = false
 	if handled:
@@ -252,6 +254,19 @@ func _drop_next_item() -> void:
 		_log("item %s dropped" % def.id)
 
 
+## Gives the player every Fall item at once (the Y key): the quick way to the synergy thresholds.
+func _give_fall_items() -> void:
+	var player: Player = _find_player()
+	if player == null or player.carrier == null:
+		_log("no fall items given (player missing)")
+		return
+	var given: int = 0
+	for def: ItemDef in ItemCatalog.all():
+		if def.tags.has(&"fall") and player.carrier.acquire(def) != null:
+			given += 1
+	_log("%d fall items given" % given)
+
+
 ## Lays the next catalog consumable next to the player (the C key was already taken by the seed replay).
 func _drop_next_consumable() -> void:
 	var player: Player = _find_player()
@@ -395,6 +410,7 @@ func _refresh_text() -> void:
 		"V new floor on the seed code of the clipboard",
 		"I drop the next catalog item next to the player",
 		"K drop the next catalog consumable next to the player",
+		"Y give the four Fall items (synergy thresholds)",
 	])
 	if player != null:
 		var health: Health = player.health

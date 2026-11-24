@@ -197,6 +197,8 @@ func equip_bullets(manager: BulletManager) -> void:
 ## Called by the room once ready: from now on the player reads its pits and floor. The last safe position starts over.
 func enter_room(room: Room) -> void:
 	_room = room
+	if carrier != null:
+		carrier.current_room = room
 	_pit_guard = PitGuard.new()
 	# The spawn cell is the first safe position: a first tick ending in a pit still falls (Run places the player there).
 	var spawn: Vector2 = room.player_spawn_position()
@@ -208,6 +210,8 @@ func enter_room(room: Room) -> void:
 func leave_room(room: Room) -> void:
 	if _room == room:
 		_room = null
+		if carrier != null and carrier.current_room == room:
+			carrier.current_room = null
 	if _bullets != null and (not is_instance_valid(_bullets) or room.is_ancestor_of(_bullets)):
 		_bullets = null
 		_shot_params = null

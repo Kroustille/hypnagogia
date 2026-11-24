@@ -68,3 +68,7 @@ CONSUMABLE_COFFEE_BONUS,+30 % de vitesse et de cadence pendant 10 s
 CONSUMABLE_COFFEE_COST,puis −20 % de vitesse pendant 5 s
 UI_TUTORIAL_CONSUMABLE,Consommable
 UI_SHOP_PRICE,%d Éclats
+SYNERGY_FALL_2_NAME,Piqué
+SYNERGY_FALL_2_DESC,"Chaque dash finit par une onde de choc (15 dégâts, 1,5 tuile)"
+SYNERGY_FALL_3_NAME,Chute sans fin
+SYNERGY_FALL_3_DESC,"L'onde double (30 dégâts, 2,5 tuiles) et la chute ne coûte plus de cœur"
